@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class SmartHomeSection {
 
@@ -14,7 +15,9 @@ public class SmartHomeSection {
         try {
             p.load(new FileInputStream(configurationFilePath));
             dataFile = getProperty(p, "DataFile", "samlpe.csv");
-
+            numPlugs = Integer.parseInt(getProperty(p, "NumPlugs", "2025"));
+            numHouses = Integer.parseInt(getProperty(p, "NumHouses", "40"));
+            slices =  Stream.of(getProperty(p, "TimeSlices", "1,5,15,60,120").split(",")).mapToInt(Integer::parseInt).toArray();
         } catch (IOException e) {
             throw new RuntimeException("IO exception occurred while reading configuration properties file", e);
         }
@@ -33,6 +36,9 @@ public class SmartHomeSection {
     }
 
     public String dataFile;
+    public int numPlugs;
+    public int numHouses;
+    public int[] slices;
 
 
     private String getPadding(int count, String prefix){
@@ -42,9 +48,9 @@ public class SmartHomeSection {
     }
 
     public String toString(boolean centerAligned) {
-        String[] params = {"DataFile"};
+        String[] params = {"DataFile", "NumPlugs", "NumHouses", "TimeSlices"};
         Object[] args =
-            new Object[]{dataFile};
+            new Object[]{dataFile,numPlugs,numHouses,slices};
 
         java.util.Optional<Integer> maxLength =
             Arrays.stream(params).map(String::length).reduce(Math::max);
