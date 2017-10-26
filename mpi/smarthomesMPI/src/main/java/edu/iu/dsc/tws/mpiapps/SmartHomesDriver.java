@@ -8,12 +8,16 @@ import edu.iu.dsc.tws.data.fs.io.InputSplit;
 import edu.iu.dsc.tws.data.fs.io.InputSplitAssigner;
 import edu.iu.dsc.tws.mpiapps.configuration.ConfigurationMgr;
 import edu.iu.dsc.tws.mpiapps.configuration.section.SmartHomeSection;
+import mpi.MPIException;
 import org.apache.commons.cli.*;
 
 import edu.iu.dsc.tws.data.*;
 import com.google.common.base.Optional;
 
+import java.awt.print.PrinterAbortException;
 import java.nio.ByteOrder;
+import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * Created by pulasthi on 10/18/17.
@@ -73,23 +77,106 @@ public class SmartHomesDriver {
         readConfiguration(cmd);
         //Initial data read to setup parallism
         // read data using twsiter2 data api
-
-        Config.Builder builder = new Config.Builder();
-        builder.put("input.file.path",config.dataFile);
-        Config txtFileConf = builder.build();
-        Path path = new Path(config.dataFile);
-        InputFormat txtInput = new TextInputFormatter(path);
-        txtInput.configure(txtFileConf);
-        int minSplits = 1;
-
         try {
+            ParallelOps.setupParallelism(args);
+
+            Config.Builder builder = new Config.Builder();
+            builder.put("input.file.path",config.dataFile);
+            Config txtFileConf = builder.build();
+            Path path = new Path(config.dataFile);
+            InputFormat txtInput = new TextInputFormatter(path);
+            txtInput.configure(txtFileConf);
+            int minSplits = 1;
+            Set<String> plugs = new HashSet<>();
             InputSplit[] inputSplits = txtInput.createInputSplits(minSplits);
-            InputSplitAssigner inputSplitAssigner = txtInput.getInputSplitAssigner(inputSplits);
-            InputSplit cur = inputSplitAssigner.getNextInputSplit(null,0);
+            InputSplit cur = inputSplits[0];
             txtInput.open(cur);
+
+            //Data Structures needed
+            int currentcounter = 0;
+            int totalplugsFound = 0;
+            Set<Integer> houseIds = new HashSet<Integer>();
+//            int[] currentspaces = new int[ParallelOps.worldProcsCount];
+//            currentspaces[ParallelOps.worldProcRank] = ParallelOps.plugNumAssigned;
+
+            Set<Integer> filledNodes = new HashSet<Integer>();
+            HashMap<String, Integer> assignedRankbyPlug = new HashMap<String, Integer>();
+            HashMap<String, Integer> assignedRankbyhouse = new HashMap<String, Integer>();
+            HashMap<Integer, Set<Integer>> housedatamappedRanks = new HashMap<Integer, Set<Integer>>();
+            for (int i = 0; i < config.numHouses; i++) {
+                housedatamappedRanks.put(i, new HashSet<Integer>());
+            }
+
+
             String line = "";
             line = (String)txtInput.nextRecord(line);
-            System.out.println(line);
+            Pattern splitpattern = Pattern.compile(",");
+            String splits[];
+            String plugKey = null;
+            int count = 0;
+            System.out.println("Plug Spaces left" + Arrays.toString(ParallelOps.assignedPlugs));
+
+            while ((line = (String)txtInput.nextRecord(line)) != null){
+                count++;
+                splits = splitpattern.split(line);
+                plugKey = splits[6] + "-" + splits[5] + "-" + splits[4];
+                if(!assignedRankbyPlug.containsKey(plugKey)){
+                    if(assignedRankbyhouse.containsKey(splits[6])){
+                        int temprank = assignedRankbyhouse.get(splits[6]);
+                        if(filledNodes.contains(temprank)){
+                            assignedRankbyhouse.remove(splits[6]);
+                            temprank = (temprank + 1) % ParallelOps.worldProcsCount;
+                            while(filledNodes.contains(temprank)){
+                                temprank = (temprank + 1) % ParallelOps.worldProcsCount;
+                            }
+
+                        }
+                        assignedRankbyPlug.put(plugKey,temprank);
+                        ParallelOps.assignedPlugs[temprank] -= 1;
+                        if(ParallelOps.assignedPlugs[temprank] == 0) {
+
+                            assignedRankbyhouse.remove(splits[6]);
+                            filledNodes.add(temprank);
+//                            System.out.println("Plug Spaces left 1111" + Arrays.toString(ParallelOps.assignedPlugs));
+//                            System.out.println(currentcounter);
+//                            System.out.println(filledNodes.size());
+                        }
+                    }else{
+
+                        while(filledNodes.contains(currentcounter)){
+
+//                            System.out.println("currentCounter : " + currentcounter + " is already filled");
+                            currentcounter = (currentcounter + 1) % ParallelOps.worldProcsCount;
+                        }
+                        assignedRankbyhouse.put(splits[6],currentcounter);
+                        int tempHouseId = Integer.parseInt(splits[6]);
+                        houseIds.add(tempHouseId);
+                        housedatamappedRanks.get(tempHouseId).add(currentcounter);
+                        assignedRankbyPlug.put(plugKey,currentcounter);
+                        ParallelOps.assignedPlugs[currentcounter] -= 1;
+                        if(ParallelOps.assignedPlugs[currentcounter] == 0) {
+                            assignedRankbyhouse.remove(splits[6]);
+                            filledNodes.add(currentcounter);
+                        }
+                        currentcounter = (currentcounter + 1) % ParallelOps.worldProcsCount;
+                        while(filledNodes.contains(currentcounter)){
+                            currentcounter = (currentcounter + 1) % ParallelOps.worldProcsCount;
+                        }
+
+                    }
+
+                }
+            }
+            System.out.println(assignedRankbyPlug.size());
+            System.out.println("Plug Spaces left" + Arrays.toString(ParallelOps.assignedPlugs));
+
+            System.out.println("MPI Rank" + ParallelOps.worldProcRank + " :::: " + line);
+            System.out.printf(" house count " + houseIds.size());
+            System.out.printf(" house ids 0" + housedatamappedRanks.get(0).toString());
+            System.out.printf(" house ids 2" + housedatamappedRanks.get(2).toString());
+            System.out.printf(" house ids 4" + housedatamappedRanks.get(4).toString());
+            ParallelOps.tearDownParallelism();
+            System.out.println(count);
         } catch (Exception e) {
             e.printStackTrace();
         }
