@@ -1,5 +1,6 @@
 package edu.iu.dsc.tws.mpiapps;
 
+import com.google.common.collect.Interner;
 import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.data.api.InputFormat;
 import edu.iu.dsc.tws.data.api.formatters.TextInputFormatter;
@@ -24,6 +25,9 @@ import java.util.regex.Pattern;
  */
 public class SmartHomesDriver {
     private static Options programOptions = new Options();
+    private static int startTime = 1377986401;
+    private static int basicSlice = 60;
+    private static int basicSliceCount = 1440;
     static {
         programOptions.addOption(
                 String.valueOf(Constants.CMD_OPTION_SHORT_C),
@@ -103,28 +107,42 @@ public class SmartHomesDriver {
             HashMap<String, Integer> assignedRankbyPlug = new HashMap<String, Integer>();
             HashMap<String, Integer> assignedRankbyhouse = new HashMap<String, Integer>();
             HashMap<Integer, Set<Integer>> housedatamappedRanks = new HashMap<Integer, Set<Integer>>();
+
             for (int i = 0; i < config.numHouses; i++) {
                 housedatamappedRanks.put(i, new HashSet<Integer>());
             }
 
+            //Data structures required for the processing
+            // Set of Hashmaps that keeps the median of the older values one hashmap for each slice type
+            HashMap<String, Map<Integer,Map<Integer, Double>>> localPlugsMeans = new HashMap<String, Map<Integer,Map<Integer, Double>>>();
+            HashMap<String, double[]> localCounters = new HashMap<String, double[]>();
 
             String line = "";
             line = (String)txtInput.nextRecord(line);
             Pattern splitpattern = Pattern.compile(",");
             String splits[];
             String plugKey = null;
+            String houseKey = null;
+            int property = 0;
+            int timeStamp = 0;
             int count = 0;
             System.out.println("Plug Spaces left" + Arrays.toString(ParallelOps.assignedPlugs));
-
+            int currentTime = startTime;
+            double tempLoadsum = 0.0;
+            int tempsliceCount = 0;
             while ((line = (String)txtInput.nextRecord(line)) != null){
                 count++;
                 splits = splitpattern.split(line);
-                plugKey = splits[6] + "-" + splits[5] + "-" + splits[4];
-                if(!assignedRankbyPlug.containsKey(plugKey)){
-                    if(assignedRankbyhouse.containsKey(splits[6])){
-                        int temprank = assignedRankbyhouse.get(splits[6]);
+                houseKey = splits[6];
+                plugKey = houseKey + "-" + splits[5] + "-" + splits[4];
+                property = Integer.valueOf(splits[3]);
+                timeStamp = Integer.valueOf(splits[1]);
+                // Code that assigns plugs to processes does not need to run once all is done
+                if( !(config.numPlugs == assignedRankbyPlug.size()) && !assignedRankbyPlug.containsKey(plugKey)){
+                    if(assignedRankbyhouse.containsKey(houseKey)){
+                        int temprank = assignedRankbyhouse.get(houseKey);
                         if(filledNodes.contains(temprank)){
-                            assignedRankbyhouse.remove(splits[6]);
+                            assignedRankbyhouse.remove(houseKey);
                             temprank = (temprank + 1) % ParallelOps.worldProcsCount;
                             while(filledNodes.contains(temprank)){
                                 temprank = (temprank + 1) % ParallelOps.worldProcsCount;
@@ -132,14 +150,15 @@ public class SmartHomesDriver {
 
                         }
                         assignedRankbyPlug.put(plugKey,temprank);
+                        if(temprank == ParallelOps.worldProcRank) {
+                            localPlugsMeans.put(plugKey,addSliceMeansMap());
+                            localCounters.put(plugKey,new double[]{0.0,startTime,tempsliceCount});
+                        }
                         ParallelOps.assignedPlugs[temprank] -= 1;
                         if(ParallelOps.assignedPlugs[temprank] == 0) {
 
-                            assignedRankbyhouse.remove(splits[6]);
+                            assignedRankbyhouse.remove(houseKey);
                             filledNodes.add(temprank);
-//                            System.out.println("Plug Spaces left 1111" + Arrays.toString(ParallelOps.assignedPlugs));
-//                            System.out.println(currentcounter);
-//                            System.out.println(filledNodes.size());
                         }
                     }else{
 
@@ -148,14 +167,18 @@ public class SmartHomesDriver {
 //                            System.out.println("currentCounter : " + currentcounter + " is already filled");
                             currentcounter = (currentcounter + 1) % ParallelOps.worldProcsCount;
                         }
-                        assignedRankbyhouse.put(splits[6],currentcounter);
-                        int tempHouseId = Integer.parseInt(splits[6]);
+                        assignedRankbyhouse.put(houseKey,currentcounter);
+                        int tempHouseId = Integer.parseInt(houseKey);
                         houseIds.add(tempHouseId);
                         housedatamappedRanks.get(tempHouseId).add(currentcounter);
                         assignedRankbyPlug.put(plugKey,currentcounter);
+                        if(currentcounter == ParallelOps.worldProcRank) {
+                            localPlugsMeans.put(plugKey,addSliceMeansMap());
+                            localCounters.put(plugKey,new double[]{0.0,startTime,tempsliceCount});
+                        }
                         ParallelOps.assignedPlugs[currentcounter] -= 1;
                         if(ParallelOps.assignedPlugs[currentcounter] == 0) {
-                            assignedRankbyhouse.remove(splits[6]);
+                            assignedRankbyhouse.remove(houseKey);
                             filledNodes.add(currentcounter);
                         }
                         currentcounter = (currentcounter + 1) % ParallelOps.worldProcsCount;
@@ -166,15 +189,41 @@ public class SmartHomesDriver {
                     }
 
                 }
-            }
-            System.out.println(assignedRankbyPlug.size());
-            System.out.println("Plug Spaces left" + Arrays.toString(ParallelOps.assignedPlugs));
 
-            System.out.println("MPI Rank" + ParallelOps.worldProcRank + " :::: " + line);
-            System.out.printf(" house count " + houseIds.size());
-            System.out.printf(" house ids 0" + housedatamappedRanks.get(0).toString());
-            System.out.printf(" house ids 2" + housedatamappedRanks.get(2).toString());
-            System.out.printf(" house ids 4" + housedatamappedRanks.get(4).toString());
+
+
+                //Atcuall processing of each plug data and summarizing
+                // ONly hanldes plugs that are assined to it and if property is work no need to process for now
+
+                if(assignedRankbyPlug.get(plugKey) == ParallelOps.worldProcRank && property == 1 ){
+                    Map<Integer,Map<Integer, Double>> temp = localPlugsMeans.get(plugKey);
+                    double[] countertemp = localCounters.get(plugKey);
+                    if(timeStamp - countertemp[1] >= basicSlice){ // TODO: check if this handles missing data
+                       // if(timeStamp - currentTime > basicSlice){
+
+                       // }
+                        //if(plugKey.equals("0-0-11")) System.out.println("basic slice " + countertemp[2] + "   ++ " + (timeStamp - countertemp[1]));
+                        temp.get(config.slices[0]).put((int)countertemp[2],temp.get(config.slices[0]).get((int)countertemp[2]) + countertemp[0]);
+                        countertemp[0] = Double.parseDouble(splits[2]);
+                        countertemp[1] += basicSlice * (int)(timeStamp - countertemp[1])/basicSlice; // if more than 1 time slices is jumped
+                        countertemp[2] = (countertemp[2] + 1) % basicSliceCount;
+                        // need to do calculations for other slices
+                    }else{
+
+                        countertemp[0] += Double.parseDouble(splits[2]);
+                    }
+
+                }
+            }
+
+            //Print test counts of means
+            System.out.println("ttttttttttttttttttt");
+            if(assignedRankbyPlug.get("0-0-11") == ParallelOps.worldProcRank){
+                localPlugsMeans.get("0-0-11").get(config.slices[0]).forEach((K,V) -> {
+                    System.out.println("slice " + K + " : " + V);
+                });
+            }
+
             ParallelOps.tearDownParallelism();
             System.out.println(count);
         } catch (Exception e) {
@@ -210,5 +259,20 @@ public class SmartHomesDriver {
             e.printStackTrace();
         }
         return Optional.fromNullable(null);
+    }
+
+    private static Map<Integer,Map<Integer, Double>> addSliceMeansMap(){
+        Map<Integer,Map<Integer, Double>> sliceMeans = new HashMap<Integer,Map<Integer, Double>>();
+        for (int i = 0; i < config.slices.length; i++) {
+            int tempslice = config.slices[i];
+            Map<Integer, Double> temp = new HashMap<Integer, Double>();
+            int k = 1440/tempslice;
+            for (int j = 0; j < k; j++) {
+                temp.put(j,0.0);
+            }
+            sliceMeans.put(tempslice, temp);
+        }
+
+        return  sliceMeans;
     }
 }
