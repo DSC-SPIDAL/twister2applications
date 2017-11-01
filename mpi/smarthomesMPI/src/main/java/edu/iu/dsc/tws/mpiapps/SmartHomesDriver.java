@@ -9,6 +9,7 @@ import edu.iu.dsc.tws.data.fs.io.InputSplit;
 import edu.iu.dsc.tws.data.fs.io.InputSplitAssigner;
 import edu.iu.dsc.tws.mpiapps.configuration.ConfigurationMgr;
 import edu.iu.dsc.tws.mpiapps.configuration.section.SmartHomeSection;
+import mpi.MPI;
 import mpi.MPIException;
 import org.apache.commons.cli.*;
 
@@ -16,6 +17,8 @@ import edu.iu.dsc.tws.data.*;
 import com.google.common.base.Optional;
 
 import java.awt.print.PrinterAbortException;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.nio.ByteOrder;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -24,10 +27,10 @@ import java.util.regex.Pattern;
  * Created by pulasthi on 10/18/17.
  */
 public class SmartHomesDriver {
-    private static Options programOptions = new Options();
-    private static int startTime = 1377986401;
-    private static int basicSlice = 60;
-    private static int basicSliceCount = 1440;
+    public static Options programOptions = new Options();
+    public static int startTime = 1377986401;
+    public static int basicSlice = 60;
+    public static int basicSliceCount = 1440;
     static {
         programOptions.addOption(
                 String.valueOf(Constants.CMD_OPTION_SHORT_C),
@@ -115,9 +118,13 @@ public class SmartHomesDriver {
             //Data structures required for the processing
             // Set of Hashmaps that keeps the median of the older values one hashmap for each slice type
             HashMap<String, Map<Integer,Map<Integer, double[]>>> localPlugsMeans = new HashMap<String, Map<Integer,Map<Integer, double[]>>>();
+            HashMap<String, Map<Integer,Map<Integer, MedianHeap>>> localPlugsMedians = new HashMap<String, Map<Integer,Map<Integer, MedianHeap>>>();
             HashMap<String, double[]> localCounters = new HashMap<String, double[]>();
-            double[][] houseSums = new double[config.numHouses][basicSliceCount];
-            int[][] houseSumsCount = new int[config.numHouses][basicSliceCount];
+            double[] houseSums = new double[config.numHouses*basicSliceCount];
+            double[] houseSumsaccu = new double[config.numHouses*basicSliceCount];
+            int houseSumsCount = 1;
+            BufferedWriter out = new BufferedWriter(new FileWriter(config.houseOutStream), 400000);
+
             int houseTime = startTime;
             int houseSliceCount = 0;
 
@@ -130,9 +137,10 @@ public class SmartHomesDriver {
             int property = 0;
             int timeStamp = 0;
             int count = 0;
-            System.out.println("Plug Spaces left" + Arrays.toString(ParallelOps.assignedPlugs));
             int currentTime = startTime;
             double tempLoadsum = 0.0;
+            double load = 0.0;
+            int templastid = 0;
             int tempsliceCount = 0;
             while ((line = (String)txtInput.nextRecord(line)) != null){
                 count++;
@@ -141,6 +149,7 @@ public class SmartHomesDriver {
                 plugKey = houseKey + "-" + splits[5] + "-" + splits[4];
                 property = Integer.valueOf(splits[3]);
                 timeStamp = Integer.valueOf(splits[1]);
+                load = Double.parseDouble(splits[2]);
                 // Code that assigns plugs to processes does not need to run once all is done
                 if( !(config.numPlugs == assignedRankbyPlug.size()) && !assignedRankbyPlug.containsKey(plugKey)){
                     if(assignedRankbyhouse.containsKey(houseKey)){
@@ -156,6 +165,7 @@ public class SmartHomesDriver {
                         assignedRankbyPlug.put(plugKey,temprank);
                         if(temprank == ParallelOps.worldProcRank) {
                             localPlugsMeans.put(plugKey,addSliceMeansMap());
+                            localPlugsMedians.put(plugKey,addSliceMedianMap());
                             localCounters.put(plugKey,new double[]{0.0,startTime,tempsliceCount});
                         }
                         ParallelOps.assignedPlugs[temprank] -= 1;
@@ -178,6 +188,7 @@ public class SmartHomesDriver {
                         assignedRankbyPlug.put(plugKey,currentcounter);
                         if(currentcounter == ParallelOps.worldProcRank) {
                             localPlugsMeans.put(plugKey,addSliceMeansMap());
+                            localPlugsMedians.put(plugKey,addSliceMedianMap());
                             localCounters.put(plugKey,new double[]{0.0,startTime,tempsliceCount});
                         }
                         ParallelOps.assignedPlugs[currentcounter] -= 1;
@@ -202,56 +213,60 @@ public class SmartHomesDriver {
 
                 if(assignedRankbyPlug.get(plugKey) == ParallelOps.worldProcRank && property == 1 ){
                     Map<Integer,Map<Integer, double[]>> temp = localPlugsMeans.get(plugKey);
+                    Map<Integer,Map<Integer, MedianHeap>> tempMedian = localPlugsMedians.get(plugKey);
                     double[] countertemp = localCounters.get(plugKey);
                     if(timeStamp - countertemp[1] >= basicSlice){ // TODO: check if this handles missing data
                        // if(timeStamp - currentTime > basicSlice){
 
                        // }
                         //if(plugKey.equals("0-0-11")) System.out.println("basic slice " + countertemp[2] + "   ++ " + (timeStamp - countertemp[1]));
-//                        temp.get(config.slices[0]).put((int)countertemp[2],temp.get(config.slices[0]).get((int)countertemp[2]) + countertemp[0]);
+//                      temp.get(config.slices[0]).put((int)countertemp[2],temp.get(config.slices[0]).get((int)countertemp[2]) + countertemp[0]);
                         temp.get(config.slices[0]).get((int)countertemp[2])[0] += countertemp[0];
+                        tempMedian.get(config.slices[0]).get((int)countertemp[2]).insertElement(countertemp[0]);
                         temp.get(config.slices[0]).get((int)countertemp[2])[1] += 1;
 
-                        countertemp[0] = Double.parseDouble(splits[2]);
+                        countertemp[0] = load;
+                        houseSums[Integer.parseInt(houseKey)*basicSliceCount + houseSliceCount] += load;
                         countertemp[1] += basicSlice * (int)((timeStamp - countertemp[1])/basicSlice); // if more than 1 time slices is jumped
                         countertemp[2] = (countertemp[2] + 1) % basicSliceCount;
                         // need to do calculations for other slices
                     }else{
 
-                        countertemp[0] += Double.parseDouble(splits[2]);
-                        houseSums[Integer.parseInt(houseKey)][houseSliceCount] += Double.parseDouble(splits[2]);
-                        // need to add value of equal after the reduce
+                        countertemp[0] += load;
+                        houseSums[Integer.parseInt(houseKey)*basicSliceCount + houseSliceCount] += load;
                     }
 
                 }
 
                 if((timeStamp - houseTime) == basicSlice){
-                    houseSliceCount += 1; //need to be sure that seconds are not missing in the data
-                    houseTime += basicSlice;
-                }
-            }
 
-            //Print test counts of means
-//            System.out.println("ttttttttttttttttttt");
-//            if(assignedRankbyPlug.get("0-0-11") == ParallelOps.worldProcRank){
-//                localPlugsMeans.get("0-0-11").get(config.slices[0]).forEach((K,V) -> {
-//                    System.out.println("slice " + K + " : " + V[0] + " : " + V[1]);
-//                });
-//            }
-            for (int i = 0; i < houseSums.length; i++) {
-                System.out.print(ParallelOps.worldProcRank + " : " + i + " : ");
-                for (int j = 0; j < 10; j++) {
-                    System.out.print(houseSums[i][j] + ",");
+                    ParallelOps.allReduceBuff(houseSums, MPI.SUM, houseSumsaccu);// the equal will also go into the house values rather than the next slice need to fix
+                    if(ParallelOps.worldProcRank == 0){
+                        // if rank is 0 write out the stream to the file.
+                        calculateAndWriteHousePred(out, houseTime, (houseSliceCount + 2) % basicSliceCount, load,houseSumsaccu, houseSumsCount);
+                    }
+                    houseSliceCount = (houseSliceCount + 1) % basicSliceCount; //need to be sure that seconds are not missing in the data
+                    houseTime += basicSlice;
+                    houseSumsCount += 1;
                 }
-                System.out.println();
             }
-          //  System.out.println(Arrays.deepToString(houseSums));
 
             ParallelOps.tearDownParallelism();
-            System.out.println(count);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private static void calculateAndWriteHousePred(BufferedWriter out, int currentTimeStamp, int predSlice, double curLoad, double[] houseSumsAcc, int histCount) {
+        int predTimeStamp = currentTimeStamp + 2*basicSlice;
+        double pred = curLoad; //correct
+        for (int i = 0; i < config.numHouses; i++) {
+            pred += (houseSumsAcc[i*basicSliceCount + predSlice] / histCount);
+            pred /= 2;
+            //out.write();
+        }
+
+
     }
 
     private static void readConfiguration(CommandLine cmd) {
@@ -292,6 +307,21 @@ public class SmartHomesDriver {
             int k = 1440/tempslice;
             for (int j = 0; j < k; j++) {
                 temp.put(j,new double[2]);
+            }
+            sliceMeans.put(tempslice, temp);
+        }
+
+        return  sliceMeans;
+    }
+
+    private static Map<Integer,Map<Integer, MedianHeap>> addSliceMedianMap(){
+        Map<Integer,Map<Integer, MedianHeap>> sliceMeans = new HashMap<Integer,Map<Integer, MedianHeap>>();
+        for (int i = 0; i < config.slices.length; i++) {
+            int tempslice = config.slices[i];
+            Map<Integer, MedianHeap> temp = new HashMap<Integer, MedianHeap>();
+            int k = 1440/tempslice;
+            for (int j = 0; j < k; j++) {
+                temp.put(j,new MedianHeap());
             }
             sliceMeans.put(tempslice, temp);
         }

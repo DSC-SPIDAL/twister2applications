@@ -18,6 +18,7 @@ public class SmartHomeSection {
             numPlugs = Integer.parseInt(getProperty(p, "NumPlugs", "2025"));
             numHouses = Integer.parseInt(getProperty(p, "NumHouses", "40"));
             slices =  Stream.of(getProperty(p, "TimeSlices", "1,5,15,60,120").split(",")).mapToInt(Integer::parseInt).toArray();
+            houseOutStream = getProperty(p,"houseOutStream","houseout.txt");
         } catch (IOException e) {
             throw new RuntimeException("IO exception occurred while reading configuration properties file", e);
         }
@@ -36,6 +37,7 @@ public class SmartHomeSection {
     }
 
     public String dataFile;
+    public String houseOutStream;
     public int numPlugs;
     public int numHouses;
     public int[] slices;
@@ -48,9 +50,9 @@ public class SmartHomeSection {
     }
 
     public String toString(boolean centerAligned) {
-        String[] params = {"DataFile", "NumPlugs", "NumHouses", "TimeSlices"};
+        String[] params = {"DataFile", "NumPlugs", "NumHouses", "TimeSlices", "houseOutStream"};
         Object[] args =
-            new Object[]{dataFile,numPlugs,numHouses,slices};
+            new Object[]{dataFile,numPlugs,numHouses,slices,houseOutStream};
 
         java.util.Optional<Integer> maxLength =
             Arrays.stream(params).map(String::length).reduce(Math::max);
