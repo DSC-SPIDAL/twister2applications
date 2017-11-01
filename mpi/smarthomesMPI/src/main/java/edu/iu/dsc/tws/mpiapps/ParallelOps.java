@@ -56,7 +56,7 @@ public class ParallelOps {
             }
         }
 //        doubleBuffer = MPI.newDoubleBuffer(SmartHomesDriver.config.numHouses*SmartHomesDriver.basicSliceCount);
-        doubleBuffer = MPI.newDoubleBuffer(40*1440);
+        doubleBuffer = MPI.newDoubleBuffer(40);
 
     }
 
