@@ -127,8 +127,9 @@ public class SmartHomesDriver {
             double[] houseSumsReducedCurrSlice = new double[config.numHouses];
             double[] houseSumsaccu = new double[config.numHouses*basicSliceCount];
             int houseSumsCount = 1;
+            System.out.println(config.houseOutStream);
             BufferedWriter out = new BufferedWriter(new FileWriter(config.houseOutStream), 400000);
-
+            out.write("Test the files write this");
             int houseTime = startTime;
             int houseSliceCount = 0;
 
@@ -214,25 +215,26 @@ public class SmartHomesDriver {
                 //Atcuall processing of each plug data and summarizing
                 // ONly hanldes plugs that are assined to it and if property is work no need to process for now
 
+                if((timeStamp - houseTime) == basicSlice){
+                    ParallelOps.allReduceBuff(houseSumsbySlice[houseSliceCount], MPI.SUM, houseSumsReducedCurrSlice);
+                    for (int i = 0; i < config.numHouses; i++) {
+                        houseMedians.get(houseKeyInt).get(config.slices[0]).get(houseSliceCount).insertElement(houseSumsReducedCurrSlice[i]);
+                    }
+                    // ParallelOps.allReduceBuff(houseSums, MPI.SUM, houseSumsaccu);// the equal will also go into the house values rather than the next slice need to fix
+                    if(ParallelOps.worldProcRank == 0){
+                        // if rank is 0 write out the stream to the file.
+                        calculateAndWriteHousePred(out, houseTime, houseSliceCount, houseSumsReducedCurrSlice,houseMedians);
+                    }
+                    houseSliceCount = (houseSliceCount + 1) % basicSliceCount; //need to be sure that seconds are not missing in the data
+                    houseTime += basicSlice;
+                    houseSumsCount += 1;
+                }
 
                 if(assignedRankbyPlug.get(plugKey) == ParallelOps.worldProcRank && property == 1 ){
                     Map<Integer,Map<Integer, MedianHeap>> tempMedian = localPlugsMedians.get(plugKey);
                     double[] countertemp = localCounters.get(plugKey);
 
-                    if((timeStamp - houseTime) == basicSlice){
-                        ParallelOps.allReduceBuff(houseSumsbySlice[houseSliceCount], MPI.SUM, houseSumsReducedCurrSlice);
-                        for (int i = 0; i < config.numHouses; i++) {
-                            houseMedians.get(houseKey).get(config.slices[0]).get(houseSliceCount).insertElement(houseSumsReducedCurrSlice[i]);
-                        }
-                       // ParallelOps.allReduceBuff(houseSums, MPI.SUM, houseSumsaccu);// the equal will also go into the house values rather than the next slice need to fix
-                        if(ParallelOps.worldProcRank == 0){
-                            // if rank is 0 write out the stream to the file.
-                            calculateAndWriteHousePred(out, houseTime, houseSliceCount, houseSumsReducedCurrSlice,houseMedians);
-                        }
-                        houseSliceCount = (houseSliceCount + 1) % basicSliceCount; //need to be sure that seconds are not missing in the data
-                        houseTime += basicSlice;
-                        houseSumsCount += 1;
-                    }
+
 
                     if(timeStamp - countertemp[1] >= basicSlice){ // TODO: check if this handles missing data
                         tempMedian.get(config.slices[0]).get((int)countertemp[2]).insertElement(countertemp[0]);
@@ -261,13 +263,13 @@ public class SmartHomesDriver {
         int predTimeStamp = currenSliceTimeStamp + 2*basicSlice;
         int predSlice = (curSlice + 2) % basicSliceCount;
         double pred = 0.0;
+        double tempmeadin = 0.0;
         for (int i = 0; i < config.numHouses; i++) {
-            pred = curLoad[i] + houseMedians.get(i).get(config.slices[0]).get(predSlice).getMedian();
+            tempmeadin = houseMedians.get(i).get(config.slices[0]).get(predSlice).getMedian();
+            pred = curLoad[i] + tempmeadin; //If we do not have any historical data do we just use the current load?
             pred /= 2;
-            out.write(predTimeStamp + "," + i + "," + pred);
+            out.write(predTimeStamp + "," + i + "," + String.format("%.3f", pred) + "\n");
         }
-
-
     }
 
     private static void readConfiguration(CommandLine cmd) {

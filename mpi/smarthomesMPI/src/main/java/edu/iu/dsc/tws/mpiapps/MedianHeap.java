@@ -47,6 +47,15 @@ public class MedianHeap {
     }
 
     public double getMedian(){
+        if(maxq.size() == 0 || minq.size() == 0){
+            if(maxq.size() == minq.size()){
+                return 0.0;
+            }else if(maxq.size() == 0){
+                return minq.peek();
+            }else{
+                return maxq.peek();
+            }
+        }
         if(maxq.size() > minq.size()){
             return maxq.peek();
         }else if(maxq.size() < minq.size()){
