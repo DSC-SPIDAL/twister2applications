@@ -56,7 +56,7 @@ public class Reduce {
       @Override
       public void cancel() {
       }
-    }).setParallelism(10);
+    });
 
     stringStream.map(new RichMapFunction<CollectiveData, Tuple2<Integer, CollectiveData>>() {
       @Override
@@ -90,7 +90,7 @@ public class Reduce {
           start = System.nanoTime();
         }
         count++;
-        if (count >= iterations) {
+        if (count >= iterations * 256) {
           System.out.println(count + " " + (System.nanoTime() - start) / 1000000 + " " + (integerStringTuple2.f1));
         }
       }
