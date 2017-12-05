@@ -41,6 +41,7 @@ public class Reduce {
             getRuntimeContext().getExecutionConfig().getGlobalJobParameters();
         size = p.getInt("size", 1);
         iterations = p.getInt("itr", 10000);
+        System.out.println("6666 iterations: " + iterations + " size: " + size);
       }
 
       @Override
@@ -80,6 +81,7 @@ public class Reduce {
         ParameterTool p = (ParameterTool)
             getRuntimeContext().getExecutionConfig().getGlobalJobParameters();
         iterations = p.getInt("itr", 10000);
+        System.out.println("7777 iterations: " + iterations);
       }
 
       @Override
