@@ -39,7 +39,7 @@ public class Reduce {
         super.open(parameters);
         ParameterTool p = (ParameterTool)
             getRuntimeContext().getExecutionConfig().getGlobalJobParameters();
-        size = p.getInt("size", 1);
+        size = p.getInt("size", 128000);
         iterations = p.getInt("itr", 10000);
         System.out.println("6666 iterations: " + iterations + " size: " + size);
       }
@@ -47,7 +47,7 @@ public class Reduce {
       @Override
       public void run(SourceContext<CollectiveData> sourceContext) throws Exception {
         while (count < iterations) {
-          CollectiveData i = new CollectiveData(1, 1);
+          CollectiveData i = new CollectiveData(size, 1);
           sourceContext.collect(i);
           count++;
         }
