@@ -91,7 +91,7 @@ public class Reduce {
         }
         count++;
         if (count >= iterations * 256) {
-          System.out.println(count + " " + (System.nanoTime() - start) / 1000000 + " " + (integerStringTuple2.f1));
+          System.out.println("Final: " + count + " " + (System.nanoTime() - start) / 1000000 + " " + (integerStringTuple2.f1));
         }
       }
     });
