@@ -4,13 +4,17 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 public class CollectiveData implements Serializable {
   private List<Integer> list = new ArrayList<>();
 
+  private Random random;
+
   public CollectiveData(int size, int value) {
+    random = new Random();
     for (int i = 0; i < size; i++) {
-      list.add(value);
+      list.add(random.nextInt());
     }
   }
 
