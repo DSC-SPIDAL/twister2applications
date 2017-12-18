@@ -1,6 +1,5 @@
 package edu.iu.dsc.tws.flinkapps;
 
-import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
@@ -14,8 +13,8 @@ public class Program {
 
     int size = params.getInt("size", 1);
     int itr = params.getInt("itr", 10);
-    Reduce reduce = new Reduce(size, itr, env, "");
-    reduce.execute();
+    StreamingReduce streamingReduce = new StreamingReduce(size, itr, env, "");
+    streamingReduce.execute();
     env.execute();
   }
 }

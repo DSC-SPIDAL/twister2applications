@@ -8,19 +8,18 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
-import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class Reduce {
+public class StreamingReduce {
   int size;
   int iterations;
   StreamExecutionEnvironment env;
   String outFile;
 
-  public Reduce(int size, int iterations, StreamExecutionEnvironment env, String outFile) {
+  public StreamingReduce(int size, int iterations, StreamExecutionEnvironment env, String outFile) {
     this.size = size;
     this.iterations = iterations;
     this.env = env;
