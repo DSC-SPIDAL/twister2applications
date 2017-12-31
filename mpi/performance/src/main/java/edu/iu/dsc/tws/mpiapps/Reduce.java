@@ -6,14 +6,24 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
 public class Reduce extends Collective {
+  private RandomString randomString;
+
+  private KryoSerializer kryoSerializer;
+
   public Reduce(int size, int iterations) {
     super(size, iterations);
+    this.randomString = new RandomString(size);
+    this.kryoSerializer = new KryoSerializer();
   }
 
   @Override
   public void execute() throws MPIException {
     IntBuffer intBuffer = MPI.newIntBuffer(size);
     IntBuffer receiveBuffer = MPI.newIntBuffer(size);
+
+    IntBuffer maxSend = MPI.newIntBuffer(1);
+    IntBuffer minSend = MPI.newIntBuffer(1);
+
     for (int i = 0; i < size; i++) {
       intBuffer.put(i);
     }
@@ -29,14 +39,20 @@ public class Reduce extends Collective {
         int length1 = byteBuffer.getInt();
         int length2 = byteBuffer1.getInt();
 
-        
+        byte[] firstBytes = new byte[length1];
+        byte[] secondBytes = new byte[length2];
+
+        byteBuffer.get(firstBytes);
+        byteBuffer.get(secondBytes);
+
+
       }
     }, true);
 
     for (int i = 0; i < iterations; i++) {
-      Datatype type = Datatype.createContiguous(1, MPI.BYTE);
-      type.commit();
-      MPI.COMM_WORLD.reduce(intBuffer, receiveBuffer, size, type, MPI.SUM, 0);
+      String next = randomString.nextRandomSizeString();
+      byte[]stringBytes = next.getBytes();
+      MPI.COMM_WORLD.reduce(intBuffer, receiveBuffer, size, MPI.BYTE, o, 0);
     }
   }
 }
