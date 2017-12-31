@@ -4,6 +4,7 @@ import mpi.*;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.util.HashMap;
 
 public class Reduce extends Collective {
   private RandomString randomString;
@@ -12,21 +13,18 @@ public class Reduce extends Collective {
 
   public Reduce(int size, int iterations) {
     super(size, iterations);
-    this.randomString = new RandomString(size);
+    this.randomString = new RandomString(size / 2);
     this.kryoSerializer = new KryoSerializer();
+    this.kryoSerializer.init(new HashMap());
   }
 
   @Override
   public void execute() throws MPIException {
-    IntBuffer intBuffer = MPI.newIntBuffer(size);
-    IntBuffer receiveBuffer = MPI.newIntBuffer(size);
+    ByteBuffer sendBuffer = MPI.newByteBuffer(size * 2);
+    ByteBuffer receiveBuffer = MPI.newByteBuffer(size * 2);
 
     IntBuffer maxSend = MPI.newIntBuffer(1);
     IntBuffer minSend = MPI.newIntBuffer(1);
-
-    for (int i = 0; i < size; i++) {
-      intBuffer.put(i);
-    }
 
     Op o = new Op(new UserFunction() {
       @Override
@@ -43,16 +41,36 @@ public class Reduce extends Collective {
         byte[] secondBytes = new byte[length2];
 
         byteBuffer.get(firstBytes);
-        byteBuffer.get(secondBytes);
+        byteBuffer1.get(secondBytes);
 
+        String firstString = (String) kryoSerializer.deserialize(firstBytes);
+        String secondString = (String) kryoSerializer.deserialize(secondBytes);
+        System.out.println("partial: " + firstString + ", " + secondString);
 
+//        byteBuffer1.clear();
+//        byteBuffer1.putInt(secondBytes.length);
+//        byteBuffer1.put(secondBytes);
       }
     }, true);
 
     for (int i = 0; i < iterations; i++) {
-      String next = randomString.nextRandomSizeString();
-      byte[]stringBytes = next.getBytes();
-      MPI.COMM_WORLD.reduce(intBuffer, receiveBuffer, size, MPI.BYTE, o, 0);
+      String next = randomString.nextString();
+      byte[] bytes = kryoSerializer.serialize(next);
+      System.out.println("Length: " + bytes.length + " out: " + next);
+      sendBuffer.clear();
+      sendBuffer.putInt(bytes.length);
+      sendBuffer.put(bytes);
+      MPI.COMM_WORLD.reduce(sendBuffer, receiveBuffer, size, MPI.BYTE, o, 0);
+
+      int receiveLength = receiveBuffer.getInt(0);
+      System.out.println("receive length: " + receiveLength);
+      byte[] receiveBytes = new byte[receiveLength];
+      receiveBuffer.position(receiveLength + 4);
+      receiveBuffer.flip();
+      receiveBuffer.getInt();
+      receiveBuffer.get(receiveBytes);
+      String rcv = new String(receiveBytes);
+      System.out.println(rcv);
     }
   }
 }
