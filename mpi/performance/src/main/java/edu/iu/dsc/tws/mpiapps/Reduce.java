@@ -20,22 +20,22 @@ public class Reduce extends Collective {
 
   @Override
   public void execute() throws MPIException {
-    ByteBuffer sendBuffer = MPI.newByteBuffer(size * 2);
-    ByteBuffer receiveBuffer = MPI.newByteBuffer(size * 2);
-
     IntBuffer maxSend = MPI.newIntBuffer(1);
     IntBuffer maxRecv = MPI.newIntBuffer(1);
     int rank = MPI.COMM_WORLD.getRank();
 
 
     for (int i = 0; i < iterations; i++) {
+      ByteBuffer sendBuffer = MPI.newByteBuffer(size * 2);
+      ByteBuffer receiveBuffer = MPI.newByteBuffer(size * 2);
+
       String next = randomString.nextRandomSizeString();
       byte[] bytes = kryoSerializer.serialize(next);
 //      System.out.println("Length: " + bytes.length + " out: " + next);
       maxSend.put(0, bytes.length);
       MPI.COMM_WORLD.allReduce(maxSend, maxRecv, 1, MPI.INT, MPI.MAX);
       int length = maxRecv.get(0) + 4;
-//      System.out.println("Max length: " + length);
+      System.out.println("Max length: " + length);
 
       sendBuffer.clear();
       sendBuffer.putInt(bytes.length);
@@ -74,6 +74,9 @@ public class Reduce extends Collective {
 
         byte[] firstBytes = new byte[length1];
         byte[] secondBytes = new byte[length2];
+
+        System.out.println("partial:" + length1 + " " + length2);
+        System.out.println(String.format("Partial:%d %d %d %d %d %d %d %d", inOut.position(), inOut.capacity(), inOut.limit(), length2, in.position(), in.capacity(), in.limit(), length1));
 
         in.get(firstBytes);
         inOut.get(secondBytes);
