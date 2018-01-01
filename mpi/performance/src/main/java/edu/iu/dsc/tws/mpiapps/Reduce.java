@@ -4,6 +4,7 @@ import mpi.*;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 
 public class Reduce extends Collective {
@@ -55,6 +56,7 @@ public class Reduce extends Collective {
 
     for (int i = 0; i < iterations; i++) {
       String next = randomString.nextString();
+//      String next = "12345";
       byte[] bytes = kryoSerializer.serialize(next);
       System.out.println("Length: " + bytes.length + " out: " + next);
       sendBuffer.clear();
@@ -69,7 +71,7 @@ public class Reduce extends Collective {
       receiveBuffer.flip();
       receiveBuffer.getInt();
       receiveBuffer.get(receiveBytes);
-      String rcv = new String(receiveBytes);
+      String rcv = (String) kryoSerializer.deserialize(receiveBytes);
       System.out.println(rcv);
     }
   }
