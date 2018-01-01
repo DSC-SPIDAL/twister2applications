@@ -64,7 +64,7 @@ public class RandomString {
   }
 
   public static void main(String[] args) {
-    RandomString r = new RandomString(100, new Random(), alphanum);
+    RandomString r = new RandomString(100, new Random(System.nanoTime()), alphanum);
     for (int i = 0; i < 1000; i++) {
       System.out.println(r.nextRandomSizeString());
     }
