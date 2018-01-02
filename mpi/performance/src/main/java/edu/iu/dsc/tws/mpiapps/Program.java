@@ -46,6 +46,9 @@ public class Program {
     if (collective == 0) {
       Reduce r = new Reduce(dataSize, iterations);
       r.execute();
+    } else if (collective == 1) {
+      IntReduce iR = new IntReduce(dataSize, iterations);
+      iR.execute();
     }
 
     long endTime = System.currentTimeMillis();
