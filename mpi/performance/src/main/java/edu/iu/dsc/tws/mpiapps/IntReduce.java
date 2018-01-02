@@ -83,17 +83,11 @@ public class IntReduce extends Collective {
         byte[] firstBytes = new byte[length1 * 4];
         byte[] secondBytes = new byte[length2 * 4];
 
-//        System.out.println("partial:" + length1 + " " + length2);
         System.out.println(String.format("%d Partial:%d %d %d %d %d %d %d %d", rank, inOut.position(),
             inOut.capacity(), inOut.limit(), length2, in.position(), in.capacity(), in.limit(), length1));
 
-//        in.get(firstBytes);
-//        inOut.get(secondBytes);
-//
-//        String firstString = (String) kryoSerializer.deserialize(firstBytes);
-//        String secondString = (String) kryoSerializer.deserialize(secondBytes);
-//        System.out.println("partial: " + firstString + ", " + secondString + " " + i
-//            + " " + secondBytes.length);
+        in.get(firstBytes);
+        inOut.get(secondBytes);
 
         inOut.clear();
         inOut.putInt(secondBytes.length / 4);

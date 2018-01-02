@@ -69,7 +69,6 @@ public class Reduce extends Collective {
         byte[] firstBytes = new byte[length1];
         byte[] secondBytes = new byte[length2];
 
-//      System.out.println("partial:" + length1 + " " + length2);
 //      System.out.println(String.format("Partial:%d %d %d %d %d %d %d %d", inOut.position(),
 //      inOut.capacity(), inOut.limit(), length2, in.position(), in.capacity(), in.limit(), length1));
         in.get(firstBytes);
@@ -77,8 +76,7 @@ public class Reduce extends Collective {
 
         String firstString = (String) kryoSerializer.deserialize(firstBytes);
         String secondString = (String) kryoSerializer.deserialize(secondBytes);
-//      System.out.println("partial: " + firstString + ", " + secondString + " " + i
-//          + " " + secondBytes.length);
+        secondBytes = kryoSerializer.serialize(secondString);
 
         inOut.clear();
         inOut.putInt(secondBytes.length);
