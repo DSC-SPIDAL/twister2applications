@@ -24,9 +24,17 @@ public class Program {
 
     int size = params.getInt("size", 1);
     int itr = params.getInt("itr", 10);
-    Reduce reduce = new Reduce(size, itr, env, "");
-    reduce.execute();
-    env.execute();
+    int col = params.getInt("col", 0);
+
+    if (col == 0) {
+      Reduce reduce = new Reduce(size, itr, env, "");
+      reduce.execute();
+      env.execute();
+    } else if (col == 1) {
+      Gather gather = new Gather(size, itr, env, "");
+      gather.execute();
+      env.execute();
+    }
   }
 
   private static void streaming(ParameterTool params) throws Exception {
@@ -36,6 +44,8 @@ public class Program {
 
     int size = params.getInt("size", 1);
     int itr = params.getInt("itr", 10);
+    int col = params.getInt("col", 0);
+
     StreamingReduce streamingReduce = new StreamingReduce(size, itr, env, "");
     streamingReduce.execute();
     env.execute();
