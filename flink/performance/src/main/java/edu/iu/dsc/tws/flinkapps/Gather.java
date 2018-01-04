@@ -7,6 +7,7 @@ import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
 
@@ -27,6 +28,13 @@ public class Gather {
     DataSet<String> stringStream = Generator.generateStringSet(env, size, iterations);
 
     DataSet<String> reduce = stringStream.map(new RichMapFunction<String, Tuple2<Integer, String>>() {
+      int pid;
+      @Override
+      public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        pid = getRuntimeContext().getIndexOfThisSubtask();
+      }
+
       @Override
       public Tuple2<Integer, String> map(String s) throws Exception {
         return new Tuple2<Integer, String>(0, s);
