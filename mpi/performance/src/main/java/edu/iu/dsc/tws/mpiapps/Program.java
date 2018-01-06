@@ -49,6 +49,9 @@ public class Program {
     } else if (collective == 1) {
       IntReduce iR = new IntReduce(dataSize, iterations);
       iR.execute();
+    } else if (collective == 2) {
+      Gather g = new Gather(dataSize, iterations);
+      g.execute();
     }
 
     long endTime = System.currentTimeMillis();

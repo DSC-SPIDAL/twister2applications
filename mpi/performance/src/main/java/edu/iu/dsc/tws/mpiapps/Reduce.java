@@ -11,9 +11,13 @@ public class Reduce extends Collective {
 
   private KryoSerializer kryoSerializer;
 
+  private long allReduceTime = 0;
+
+  private long reduceTime = 0;
+
   public Reduce(int size, int iterations) {
     super(size, iterations);
-    this.randomString = new RandomString(size / 2);
+    this.randomString = new RandomString(size);
     this.kryoSerializer = new KryoSerializer();
     this.kryoSerializer.init(new HashMap());
   }
@@ -29,14 +33,22 @@ public class Reduce extends Collective {
     for (int i = 0; i < iterations; i++) {
       String next = randomString.nextString();
       byte[] bytes = kryoSerializer.serialize(next);
+      long start = 0;
       maxSend.put(0, bytes.length);
+      start = System.nanoTime();
       MPI.COMM_WORLD.allReduce(maxSend, maxRecv, 1, MPI.INT, MPI.MAX);
+      reduceTime += System.nanoTime() - start;
       int length = maxRecv.get(0) + 4;
+
+      Datatype stringBytes = Datatype.createContiguous(length, MPI.BYTE);
+      stringBytes.commit();
 
       sendBuffer.clear();
       sendBuffer.putInt(bytes.length);
       sendBuffer.put(bytes);
-      MPI.COMM_WORLD.reduce(sendBuffer, receiveBuffer, length, MPI.BYTE, reduceOp(), 0);
+      start = System.nanoTime();
+      MPI.COMM_WORLD.reduce(sendBuffer, receiveBuffer, 1, stringBytes, reduceOp(), 0);
+      allReduceTime += System.nanoTime() - start;
 
       if (rank == 0) {
         int receiveLength = receiveBuffer.getInt(0);
@@ -46,12 +58,14 @@ public class Reduce extends Collective {
         receiveBuffer.getInt();
         receiveBuffer.get(receiveBytes);
         String rcv = (String) kryoSerializer.deserialize(receiveBytes);
-//        System.out.println(rcv);
       }
       receiveBuffer.clear();
       sendBuffer.clear();
       maxRecv.clear();
       maxSend.clear();
+    }
+    if (rank == 0) {
+      System.out.println("Final time: " + allReduceTime / 1000000 + " ," + reduceTime / 1000000);
     }
   }
 
@@ -69,8 +83,8 @@ public class Reduce extends Collective {
         byte[] firstBytes = new byte[length1];
         byte[] secondBytes = new byte[length2];
 
-        System.out.println(String.format("Partial:%d %d %d %d %d %d %d %d", inOut.position(),
-        inOut.capacity(), inOut.limit(), length2, in.position(), in.capacity(), in.limit(), length1));
+//        System.out.println(String.format("Partial:%d %d %d %d %d %d %d %d", inOut.position(),
+//          inOut.capacity(), inOut.limit(), length2, in.position(), in.capacity(), in.limit(), length1));
         in.get(firstBytes);
         inOut.get(secondBytes);
 
@@ -82,6 +96,6 @@ public class Reduce extends Collective {
         inOut.putInt(secondBytes.length);
         inOut.put(secondBytes);
       }
-    }, false);
+    }, true);
   }
 }
