@@ -78,6 +78,10 @@ public class Gather extends Collective {
       countReceive.clear();
       countSend.clear();
     }
+
+    if (rank == 0) {
+      System.out.println("Final time: " + allGatherTime / 1000000 + " ," + gatherTIme / 1000000);
+    }
   }
 
 
