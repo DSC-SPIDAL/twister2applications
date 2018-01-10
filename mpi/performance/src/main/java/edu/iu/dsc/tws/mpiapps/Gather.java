@@ -16,9 +16,9 @@ public class Gather extends Collective {
 
   private KryoSerializer kryoSerializer;
 
-  private long allReduceTime = 0;
+  private long allGatherTime = 0;
 
-  private long reduceTime = 0;
+  private long gatherTIme = 0;
 
   public Gather(int size, int iterations) {
     super(size, iterations);
@@ -34,14 +34,17 @@ public class Gather extends Collective {
     ByteBuffer sendBuffer = MPI.newByteBuffer(size * 2);
     ByteBuffer receiveBuffer = MPI.newByteBuffer(size * 2 * worldSize);
     IntBuffer countReceive = MPI.newIntBuffer(worldSize);
-
+    long start = 0;
     for (int itr = 0; itr < iterations; itr++) {
+
       String next = randomString.nextString();
       byte[] bytes = kryoSerializer.serialize(next);
 //      LOG.log(Level.INFO, String.format("%d Byte size: %d", rank, bytes.length));
       // now calculate the total number of characters
+      start = System.nanoTime();
       countSend.put(bytes.length);
       MPI.COMM_WORLD.allGather(countSend, 1, MPI.INT, countReceive, 1, MPI.INT);
+      allGatherTime += (System.nanoTime() - start);
 
       int[] receiveSizes = new int[worldSize];
       int[] displacements = new int[worldSize];
@@ -56,10 +59,11 @@ public class Gather extends Collective {
       sendBuffer.clear();
       sendBuffer.put(bytes);
 
+      start = System.nanoTime();
       // now lets receive the process names of each rank
       MPI.COMM_WORLD.allGatherv(sendBuffer, bytes.length, MPI.BYTE, receiveBuffer,
           receiveSizes, displacements, MPI.BYTE);
-
+      gatherTIme += (System.nanoTime() - start);
       if (rank == 0) {
         for (int i = 0; i < receiveSizes.length; i++) {
           byte[] c = new byte[receiveSizes[i]];
