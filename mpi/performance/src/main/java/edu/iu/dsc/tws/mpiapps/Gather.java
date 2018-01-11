@@ -61,8 +61,8 @@ public class Gather extends Collective {
 
       start = System.nanoTime();
       // now lets receive the process names of each rank
-      MPI.COMM_WORLD.allGatherv(sendBuffer, bytes.length, MPI.BYTE, receiveBuffer,
-          receiveSizes, displacements, MPI.BYTE);
+      MPI.COMM_WORLD.gatherv(sendBuffer, bytes.length, MPI.BYTE, receiveBuffer,
+          receiveSizes, displacements, MPI.BYTE, 0);
       gatherTIme += (System.nanoTime() - start);
       if (rank == 0) {
         for (int i = 0; i < receiveSizes.length; i++) {
