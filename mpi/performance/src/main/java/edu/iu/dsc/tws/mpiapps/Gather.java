@@ -83,7 +83,4 @@ public class Gather extends Collective {
       System.out.println("Final time: " + allGatherTime / 1000000 + " ," + gatherTIme / 1000000);
     }
   }
-
-
-
 }
