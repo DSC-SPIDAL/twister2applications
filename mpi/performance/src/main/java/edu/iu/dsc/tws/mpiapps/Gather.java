@@ -6,7 +6,6 @@ import mpi.MPIException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.HashMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Gather extends Collective {
