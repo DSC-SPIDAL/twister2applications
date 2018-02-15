@@ -1,7 +1,6 @@
 package edu.iu.dsc.tws.flinkapps;
 
 import edu.iu.dsc.tws.flinkapps.data.Generator;
-import edu.iu.dsc.tws.flinkapps.data.StringInputFormat;
 import org.apache.flink.api.common.functions.RichGroupReduceFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.DataSet;
