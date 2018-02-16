@@ -1,5 +1,6 @@
-package edu.iu.dsc.tws.flinkapps;
+package edu.iu.dsc.tws.flinkapps.stream;
 
+import edu.iu.dsc.tws.flinkapps.data.CollectiveData;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -89,7 +90,7 @@ public class StreamingReduce {
           start = System.nanoTime();
         }
         count++;
-        if (count >= iterations * 320) {
+        if (count >= iterations) {
           System.out.println("Final: " + count + " " + (System.nanoTime() - start) / 1000000 + " " + (integerStringTuple2.f1));
         }
       }

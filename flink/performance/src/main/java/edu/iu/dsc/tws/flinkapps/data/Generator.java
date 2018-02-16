@@ -7,4 +7,8 @@ public final class Generator {
   public static DataSet<String> generateStringSet(ExecutionEnvironment env, int length, int counts) {
     return env.createInput(new StringInputFormat(length, counts));
   }
+
+  public static DataSet<Integer> generateOneElementDataSet(ExecutionEnvironment env) {
+    return env.createInput(new IntegerInputFormat());
+  }
 }

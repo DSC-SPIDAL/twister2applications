@@ -1,4 +1,4 @@
-package edu.iu.dsc.tws.flinkapps;
+package edu.iu.dsc.tws.flinkapps.batch;
 
 import edu.iu.dsc.tws.flinkapps.data.Generator;
 import org.apache.flink.api.common.functions.RichMapFunction;
@@ -7,13 +7,13 @@ import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.core.fs.FileSystem;
 
-public class Reduce {
+public class AllReduce {
   private int size;
   private int iterations;
   private ExecutionEnvironment env;
   private String outFile;
 
-  public Reduce(int size, int iterations, ExecutionEnvironment env, String outFile) {
+  public AllReduce(int size, int iterations, ExecutionEnvironment env, String outFile) {
     this.size = size;
     this.iterations = iterations;
     this.env = env;
@@ -35,6 +35,14 @@ public class Reduce {
       }
     });
 
-    reduce.writeAsText("out.txt", FileSystem.WriteMode.OVERWRITE);
+    DataSet<Integer> s = Generator.generateOneElementDataSet(env);
+    s.map(new RichMapFunction<Integer, Integer>() {
+      @Override
+      public Integer map(Integer integer) throws Exception {
+        return integer;
+      }
+    }).withBroadcastSet(reduce, "reduce");
+
+    reduce.writeAsText(outFile, FileSystem.WriteMode.OVERWRITE);
   }
 }

@@ -1,4 +1,4 @@
-package edu.iu.dsc.tws.flinkapps;
+package edu.iu.dsc.tws.flinkapps.batch;
 
 import edu.iu.dsc.tws.flinkapps.data.Generator;
 import org.apache.flink.api.common.functions.RichGroupReduceFunction;
@@ -49,7 +49,7 @@ public class Gather {
       }
     });
 
-    reduce.writeAsText("out.txt", FileSystem.WriteMode.OVERWRITE);
+    reduce.writeAsText(outFile, FileSystem.WriteMode.OVERWRITE);
   }
 }
 

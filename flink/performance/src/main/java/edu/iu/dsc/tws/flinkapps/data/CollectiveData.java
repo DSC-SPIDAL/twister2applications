@@ -1,4 +1,4 @@
-package edu.iu.dsc.tws.flinkapps;
+package edu.iu.dsc.tws.flinkapps.data;
 
 import java.io.Serializable;
 import java.util.ArrayList;
