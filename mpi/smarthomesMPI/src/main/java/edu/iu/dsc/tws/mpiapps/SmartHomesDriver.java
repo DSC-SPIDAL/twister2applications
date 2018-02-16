@@ -258,9 +258,15 @@ public class SmartHomesDriver {
             e.printStackTrace();
         }
     }
+    private static void calculateAndWritePlugPred(BufferedWriter out, int currentSliceTimeStamp, int curSlice, double curLoad,HashMap <Integer, Map<Integer, Map<Integer, MedianHeap>>> plugMedians) throws IOException {
+        int predTimeStamp = currentSliceTimeStamp + 2*basicSlice;
+        int predSlice = (curSlice + 2) % basicSliceCount;
+        double pred = 0.0;
+        double tempmeadin = 0.0;
 
-    private static void calculateAndWriteHousePred(BufferedWriter out, int currenSliceTimeStamp, int curSlice, double curLoad[], HashMap<Integer, Map<Integer, Map<Integer, MedianHeap>>> houseMedians) throws IOException {
-        int predTimeStamp = currenSliceTimeStamp + 2*basicSlice;
+    }
+    private static void calculateAndWriteHousePred(BufferedWriter out, int currentSliceTimeStamp, int curSlice, double curLoad[], HashMap<Integer, Map<Integer, Map<Integer, MedianHeap>>> houseMedians) throws IOException {
+        int predTimeStamp = currentSliceTimeStamp + 2*basicSlice;
         int predSlice = (curSlice + 2) % basicSliceCount;
         double pred = 0.0;
         double tempmeadin = 0.0;
