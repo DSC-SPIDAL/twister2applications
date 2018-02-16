@@ -1,5 +1,6 @@
 package edu.iu.dsc.tws.flinkapps.data;
 
+import edu.iu.dsc.tws.apps.common.RandomString;
 import org.apache.flink.api.common.io.GenericInputFormat;
 
 import java.io.IOException;

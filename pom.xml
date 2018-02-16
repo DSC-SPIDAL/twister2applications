@@ -16,6 +16,7 @@
        <module>mpi</module>
        <module>storm</module>
        <module>twister2</module>
+       <module>common</module>
        <module>spark</module>
     </modules>
 

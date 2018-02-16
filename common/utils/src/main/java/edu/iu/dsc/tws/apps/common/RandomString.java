@@ -1,4 +1,4 @@
-package edu.iu.dsc.tws.flinkapps.data;
+package edu.iu.dsc.tws.apps.common;
 
 import java.io.Serializable;
 import java.security.SecureRandom;

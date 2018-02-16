@@ -5,16 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>twister2</groupId>
-    <artifactId>flink-performance</artifactId>
+    <artifactId>twister2-app-common-utils</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <dependencies>
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-streaming-java_2.11</artifactId>
-            <version>1.3.2</version>
-            <!--<scope>provided</scope>-->
-        </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
@@ -36,12 +30,16 @@
             <version>2.4</version>
         </dependency>
         <dependency>
-            <groupId>twister2</groupId>
-            <artifactId>twister2-app-common-utils</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <groupId>ompi</groupId>
+            <artifactId>ompijavabinding</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.esotericsoftware</groupId>
+            <artifactId>kryo</artifactId>
+            <version>4.0.0</version>
         </dependency>
     </dependencies>
-
     <build>
         <plugins>
             <plugin>
@@ -52,6 +50,27 @@
                     <source>1.8</source>
                     <target>1.8</target>
                 </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <archive>
+                        <manifest>
+                        </manifest>
+                    </archive>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

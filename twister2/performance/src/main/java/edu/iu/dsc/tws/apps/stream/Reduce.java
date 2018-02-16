@@ -1,9 +1,7 @@
 package edu.iu.dsc.tws.apps.stream;
 
-import edu.iu.dsc.tws.api.JobConfig;
-import edu.iu.dsc.tws.api.Twister2Submitter;
-import edu.iu.dsc.tws.api.basic.job.BasicJob;
 import edu.iu.dsc.tws.apps.data.IntData;
+import edu.iu.dsc.tws.apps.utils.CommandParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.comms.api.*;
@@ -12,17 +10,15 @@ import edu.iu.dsc.tws.comms.core.TWSNetwork;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
 import edu.iu.dsc.tws.comms.mpi.io.ReduceStreamingFinalReceiver;
 import edu.iu.dsc.tws.comms.mpi.io.ReduceStreamingPartialReceiver;
-import edu.iu.dsc.tws.rsched.core.ResourceAllocator;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
-import edu.iu.dsc.tws.rsched.spi.resource.ResourceContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class BaseReduceCommunication implements IContainer {
-  private static final Logger LOG = Logger.getLogger(BaseReduceCommunication.class.getName());
+public class Reduce implements IContainer {
+  private static final Logger LOG = Logger.getLogger(Reduce.class.getName());
 
   private DataFlowOperation reduce;
 
@@ -33,9 +29,10 @@ public class BaseReduceCommunication implements IContainer {
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
     LOG.log(Level.INFO, "Starting the example with container id: " + plan.getThisId());
+    CommandParameters parameters = CommandParameters.build(cfg);
 
     this.id = containerId;
-    int noOfTasksPerExecutor = NO_OF_TASKS / plan.noOfContainers();
+    int noOfTasksPerExecutor = parameters.getParallel() / plan.noOfContainers();
 
     // lets create the task plan
     TaskPlan taskPlan = Utils.createReduceTaskPlan(cfg, plan, NO_OF_TASKS);
@@ -48,8 +45,8 @@ public class BaseReduceCommunication implements IContainer {
     for (int i = 0; i < NO_OF_TASKS; i++) {
       sources.add(i);
     }
-    int dest = NO_OF_TASKS;
 
+    int dest = NO_OF_TASKS;
     Map<String, Object> newCfg = new HashMap<>();
 
     LOG.info("Setting up reduce dataflow operation");
@@ -161,21 +158,6 @@ public class BaseReduceCommunication implements IContainer {
   }
 
   public static void main(String[] args) {
-    // first load the configurations from command line and config files
-    Config config = ResourceAllocator.loadConfig(new HashMap<>());
 
-    // build JobConfig
-    JobConfig jobConfig = new JobConfig();
-
-    // build the job
-    BasicJob basicJob = BasicJob.newBuilder()
-        .setName("basic-hl-reduce")
-        .setContainerClass(BaseReduceCommunication.class.getName())
-        .setRequestResource(new ResourceContainer(2, 1024), 4)
-        .setConfig(jobConfig)
-        .build();
-
-    // now submit the job
-    Twister2Submitter.submitContainerJob(basicJob, config);
   }
 }
