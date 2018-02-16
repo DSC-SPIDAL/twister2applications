@@ -1,9 +1,6 @@
 package edu.iu.dsc.tws.flinkapps;
 
-import edu.iu.dsc.tws.flinkapps.batch.AllGather;
-import edu.iu.dsc.tws.flinkapps.batch.AllReduce;
-import edu.iu.dsc.tws.flinkapps.batch.Gather;
-import edu.iu.dsc.tws.flinkapps.batch.Reduce;
+import edu.iu.dsc.tws.flinkapps.batch.*;
 import edu.iu.dsc.tws.flinkapps.stream.StreamingReduce;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.utils.ParameterTool;
@@ -46,6 +43,14 @@ public class Program {
       env.execute();
     } else if (col == 3) {
       AllReduce reduce = new AllReduce(size, itr, env, outFile);
+      reduce.execute();
+      env.execute();
+    } else if (col == 4) {
+      KeyedGather gather = new KeyedGather(size, itr, env, outFile);
+      gather.execute();
+      env.execute();
+    } else if (col == 5) {
+      KeyedReduce reduce = new KeyedReduce(size, itr, env, outFile);
       reduce.execute();
       env.execute();
     }

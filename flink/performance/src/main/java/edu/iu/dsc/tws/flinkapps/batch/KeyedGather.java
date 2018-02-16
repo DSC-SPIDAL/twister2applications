@@ -36,6 +36,7 @@ public class KeyedGather {
         super.open(parameters);
         parallel = getRuntimeContext().getNumberOfParallelSubtasks();
         pid = getRuntimeContext().getIndexOfThisSubtask();
+        random = new Random();
       }
 
       @Override
@@ -47,7 +48,7 @@ public class KeyedGather {
       public void reduce(Iterable<Tuple2<Integer, String>> iterable, Collector<String> collector) throws Exception {
         String s = "";
         for (Tuple2<Integer, String> e : iterable) {
-          s += e.f1;
+          s = e.f1;
         }
         collector.collect(s);
       }
