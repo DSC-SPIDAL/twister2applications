@@ -3,7 +3,6 @@ package edu.iu.dsc.tws.flinkapps.batch;
 import edu.iu.dsc.tws.flinkapps.data.Generator;
 import org.apache.flink.api.common.functions.RichGroupReduceFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
-import org.apache.flink.api.common.functions.RichReduceFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.tuple.Tuple2;
