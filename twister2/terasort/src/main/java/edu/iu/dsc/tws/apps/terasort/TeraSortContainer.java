@@ -11,17 +11,29 @@ package edu.iu.dsc.tws.apps.terasort;//  Licensed under the Apache License, Vers
 //  limitations under the License.
 
 import edu.iu.dsc.tws.apps.terasort.utils.DataLoader;
+import edu.iu.dsc.tws.apps.terasort.utils.DataPartitioner;
 import edu.iu.dsc.tws.apps.terasort.utils.Record;
 import edu.iu.dsc.tws.apps.terasort.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
+import edu.iu.dsc.tws.comms.api.*;
 import edu.iu.dsc.tws.comms.core.TWSCommunication;
 import edu.iu.dsc.tws.comms.core.TWSNetwork;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
+import edu.iu.dsc.tws.comms.mpi.MPIDataFlowOperation;
+import edu.iu.dsc.tws.comms.mpi.io.GatherBatchFinalReceiver;
+import edu.iu.dsc.tws.comms.mpi.io.GatherBatchPartialReceiver;
+import edu.iu.dsc.tws.comms.tcp.net.Progress;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
+import mpi.MPI;
+import mpi.MPIException;
+import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.server.PrepRequestProcessor;
 
 import java.nio.file.Paths;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.RunnableFuture;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -36,6 +48,7 @@ public class TeraSortContainer implements IContainer {
 
     private int partitionSampleNodes;
     private int partitionSamplesPerNode;
+    private List<Integer> sampleNodes;
 
     private int id;
 
@@ -44,13 +57,19 @@ public class TeraSortContainer implements IContainer {
     private static final int NO_OF_TASKS = 8;
 
     private int noOfTasksPerExecutor = 2;
+    private long startTime = 0;
+
+    //Operations
+    private DataFlowOperation samplesGather;
+    private boolean samplingDone = false;
+    private List<Record[]> sampleData;
 
     @Override
     public void init(Config cfg, int containerId, ResourcePlan plan) {
         this.config = cfg;
         this.id = containerId;
         this.resourcePlan = plan;
-
+        sampleNodes = new ArrayList<>();
         this.noOfTasksPerExecutor = NO_OF_TASKS / plan.noOfContainers();
         //Need to get this from the Config
         inputFolder = cfg.getStringValue("input");
@@ -65,17 +84,220 @@ public class TeraSortContainer implements IContainer {
         TWSNetwork network = new TWSNetwork(cfg, taskPlan);
 
         TWSCommunication channel = network.getDataFlowTWSCommunication();
+
+        Set<Integer> sources = new HashSet<>();
+        for (int i = 0; i < NO_OF_TASKS; i++) {
+            sources.add(i);
+        }
+        int dest = NO_OF_TASKS;
+        Map<String, Object> newCfg = new HashMap<>();
+
+        samplesGather = channel.gather(newCfg, MessageType.OBJECT, 0, sources,
+                dest, new GatherBatchFinalReceiver(new SamplesCollectionReceiver()),
+                new GatherBatchPartialReceiver(dest));
+
         for (int i = 0; i < noOfTasksPerExecutor; i++) {
             int taskId = i;
-            LOG.info("Local rank: " + i);
-            String inputFile = Paths.get(inputFolder, filePrefix
-                    + id + "_" + Integer.toString(taskId)).toString();
-            String outputFile = Paths.get(outputFolder, filePrefix + Integer.toString(id)).toString();
-            List<Record> records = DataLoader.load(id, inputFile);
-            System.out.println("######## : Container id : " + id + "local id : "
-                    + taskId + " Records : " + records.size());
-
+            LOG.info(String.format("%d Starting %d", id, i + id * noOfTasksPerExecutor));
+            Thread mapThread = new Thread(new SampleKeyCollection(i + id * noOfTasksPerExecutor, taskId));
+            mapThread.start();
         }
 
+        while (true) {
+            try {
+                // progress the channel
+                channel.progress();
+                // we should progress the communication directive
+                samplesGather.progress();
+                Thread.yield();
+            } catch (Throwable t) {
+                LOG.log(Level.SEVERE, "Something bad happened", t);
+            }
+        }
+
+//        Thread progressSample = new Thread(new ProgressThread(channel, samplesGather));
+//        progressSample.start();
+//        while (!samplingDone){
+//            Thread.yield();
+//        }
+//        System.out.println("Got to results");
+//        LOG.info("Gather results (only the first int of each array)"
+//                + sampleData.size());
+
+
+
+    }
+
+    private class ProgressThread implements Runnable {
+        private TWSCommunication channel;
+        private DataFlowOperation operation;
+
+        public ProgressThread(TWSCommunication channel, DataFlowOperation operation) {
+            this.channel = channel;
+            this.operation = operation;
+        }
+
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    // progress the channel
+                    channel.progress();
+                    // we should progress the communication directive
+                    samplesGather.progress();
+                    Thread.yield();
+                } catch (Throwable t) {
+                    LOG.log(Level.SEVERE, "Something bad happened", t);
+                }
+            }
+        }
+    }
+
+    private PartitionTree buildPartitionTree(List<Record> records, DataFlowOperation samplesGather) {
+        // first create the partition communicator
+//        if (rank < partitionSampleNodes) {
+//            partitionCom = MPI.COMM_WORLD.split(0, rank);
+//        } else {
+//            partitionCom = MPI.COMM_WORLD.split(1, rank);
+//        }
+//
+        Record[] partitionRecords = new Record[partitionSamplesPerNode];
+        for (int i = 0; i < partitionSamplesPerNode; i++) {
+            partitionRecords[i] = records.get(i);
+        }
+
+        DataPartitioner partitioner = new DataPartitioner(samplesGather, partitionSamplesPerNode, NO_OF_TASKS);
+        byte[] selectedKeys = partitioner.execute(partitionRecords);
+//
+//        int noOfPartitions = worldSize - 1;
+//        if (selectedKeys.length / Record.KEY_SIZE != noOfPartitions) {
+//            String msg = "Selected keys( " + selectedKeys.length / Record.KEY_SIZE
+//                    + " ) generated is not equal to: " + noOfPartitions;
+//            LOG.log(Level.SEVERE, msg);
+//            throw new RuntimeException(msg);
+//        }
+//        // now build the tree
+//        Text[] partitions = new Text[noOfPartitions];
+//        for (int i = 0; i < noOfPartitions; i++) {
+//            Text t = new Text();
+//            t.set(selectedKeys, i * Record.KEY_SIZE, Record.KEY_SIZE);
+//
+//            partitions[i] = t;
+//        }
+//
+//        PartitionTree.TrieNode root = PartitionTree.buildTrie(partitions, 0, partitions.length, new Text(), 2);
+//        return new PartitionTree(root);
+        return null;
+    }
+
+    /**
+     * This task is used to collect samples from each data partition
+     * these collected records are used to create the key based partitiions
+     */
+    private class SampleKeyCollection implements Runnable {
+        private int task = 0;
+        private int localId = 0;
+        private int sendCount = 0;
+
+        SampleKeyCollection(int task, int local) {
+            this.task = task;
+            this.localId = local;
+        }
+
+        @Override
+        public void run() {
+            try {
+                LOG.log(Level.INFO, "Starting map worker: " + id);
+//      MPIBuffer data = new MPIBuffer(1024);
+                startTime = System.nanoTime();
+                String inputFile = Paths.get(inputFolder, filePrefix
+                        + id + "_" + Integer.toString(localId)).toString();
+                String outputFile = Paths.get(outputFolder, filePrefix + Integer.toString(id)).toString();
+                List<Record> records = DataLoader.load(id, inputFile);
+                Record[] partitionRecords = new Record[partitionSamplesPerNode];
+                for (int i = 0; i < partitionSamplesPerNode; i++) {
+                    partitionRecords[i] = records.get(i);
+                }
+
+                int flags = MessageFlags.FLAGS_LAST;
+                while (!samplesGather.send(task, partitionRecords, flags)) {
+                    // lets wait a litte and try again
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                Thread.yield();
+//                PartitionTree partitionTree = buildPartitionTree(records, samplesGather);
+                System.out.println("######## : Container id : " + id + "local id : "
+                        + localId + " Records : " + records.size());
+
+//                for (int i = 0; i < 1; i++) {
+//                    int[] data = {task, task * 100};
+//                    // lets generate a message
+////          KeyedContent mesage = new KeyedContent(task, data,
+////              MessageType.INTEGER, MessageType.OBJECT);
+////
+//                    //Set the last message with the corerct flag. Since we only send one message we set it
+//                    //on the first call itself
+//                    int flags = MessageFlags.FLAGS_LAST;
+//                    while (!aggregate.send(task, data, flags)) {
+//                        // lets wait a litte and try again
+//                        try {
+//                            Thread.sleep(1);
+//                        } catch (InterruptedException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                    Thread.yield();
+//                }
+                LOG.info(String.format("%d Done sending", id));
+            } catch (Throwable t) {
+                t.printStackTrace();
+            }
+        }
+    }
+
+    private class SamplesCollectionReceiver implements GatherBatchReceiver {
+        // lets keep track of the messages
+        // for each task we need to keep track of incoming messages
+        private List<Record[]> dataList;
+
+        private int count = 0;
+
+        private long start = System.nanoTime();
+
+        @Override
+        public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
+            dataList = new ArrayList<Record[]>();
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void receive(int target, Iterator<Object> it) {
+            int itercount = 0;
+            Object temp;
+
+            while (it.hasNext()) {
+                itercount++;
+                temp = it.next();
+                if (temp instanceof List) {
+                    List<Object> datalist = (List<Object>) temp;
+                    for (Object o : datalist) {
+                        Record[] data = (Record[]) o;
+                        dataList.add(data);
+                    }
+                } else {
+                    dataList.add((Record[]) temp);
+                }
+            }
+            sampleData = dataList;
+            samplingDone = true;
+        }
+
+        public void progress() {
+
+        }
     }
 }
