@@ -66,6 +66,10 @@ public class TeraSortContainer implements IContainer {
     private boolean samplingDone = false;
     private List<Record[]> sampleData;
 
+    private boolean broadcastDone = false;
+    private Text[] selectedKeys;
+    private PartitionTree tree;
+
     @Override
     public void init(Config cfg, int containerId, ResourcePlan plan) {
         this.config = cfg;
@@ -133,6 +137,12 @@ public class TeraSortContainer implements IContainer {
 
         Thread progressBroadcast = new Thread(new ProgressThread(null, keyBroadCast));
         progressBroadcast.start();
+
+        while (!broadcastDone){
+            Thread.yield();
+        }
+
+        //Completed broadbast
 
         while (true){
             //Waiting to make sure this thread does not die
@@ -346,8 +356,32 @@ public class TeraSortContainer implements IContainer {
 
         @Override
         public boolean onMessage(int source, int path, int target, int flags, Object object) {
-            System.out.printf("Source : %d, Target : %d, Value : %s ", source, target, ((Text[])object)[1].toString());
-            System.out.println(((Text[])object).length);
+            selectedKeys = (Text[])object;
+//            byte[] byteKeys = new byte[Record.KEY_SIZE * selectedKeys.length];
+            //calculate the tire
+//            for (int i = 0; i < selectedKeys.length; i++) {
+//            System.arraycopy(selectedKeys[i].getBytes(), 0,
+//                    byteKeys, i * Record.KEY_SIZE, Record.KEY_SIZE);
+//            }
+            int noOfPartitions = NO_OF_TASKS - 1;
+            if (selectedKeys.length != noOfPartitions) {
+                String msg = "Selected keys( " + selectedKeys.length
+                        + " ) generated is not equal to: " + noOfPartitions;
+                LOG.log(Level.SEVERE, msg);
+                throw new RuntimeException(msg);
+            }
+            // now build the tree
+//            Text[] partitions = new Text[noOfPartitions];
+//            for (int i = 0; i < noOfPartitions; i++) {
+//                Text t = new Text();
+//                t.set(byteKeys, i * Record.KEY_SIZE, Record.KEY_SIZE);
+//
+//                partitions[i] = t;
+//            }
+
+            PartitionTree.TrieNode root = PartitionTree.buildTrie(selectedKeys, 0, selectedKeys.length, new Text(), 2);
+            tree = new PartitionTree(root);
+            broadcastDone = true;
             return true;
         }
 
