@@ -107,7 +107,7 @@ public class TeraSortContainer implements IContainer {
 
         Thread progressSample = new Thread(new ProgressThread(channel, samplesGather));
         progressSample.start();
-
+        Text[] selected = new Text[0];
         if(id == 0){
             while (!samplingDone){
                 Thread.yield();
@@ -115,29 +115,19 @@ public class TeraSortContainer implements IContainer {
             System.out.println("Got to results at : " + id );
             LOG.info("Gather results (only the first int of each array)"
                     + sampleData.size());
-            byte[] selected = getSelectedKeys(sampleData);
+            selected = getSelectedKeys(sampleData);
         }else{
             System.out.println("Other process to results at : " + id );
         }
 
         //Not lets start the threads to get the records from the previous step
-        int[] temp = {1, 100};
-        if(id != 0){
-            temp = new int[]{2, 200};
-        }
 
-//        TaskPlan taskPlan2 = Utils.createReduceTaskPlan(cfg, plan, NO_OF_TASKS);
-//        //first get the communication config file
-//        TWSNetwork network2 = new TWSNetwork(cfg, taskPlan2);
-//
-//        TWSCommunication channel2 = network2.getDataFlowTWSCommunication();
-        
-        keyBroadCast = channel.broadCast(newCfg, MessageType.INTEGER, 0, dest,
+        keyBroadCast = channel.broadCast(newCfg, MessageType.OBJECT, 0, dest,
                 sources, new BCastReceive());
 
         if(id == 0){
             LOG.info(String.format("%d Starting Boardcast thread", id));
-            Thread mapThread = new Thread(new BoardCastKeys(NO_OF_TASKS, temp));
+            Thread mapThread = new Thread(new BoardCastKeys(NO_OF_TASKS, selected));
             mapThread.start();
         }
 
@@ -177,7 +167,7 @@ public class TeraSortContainer implements IContainer {
         }
     }
 
-    private byte[] getSelectedKeys(List<Record[]> records){
+    private Text[] getSelectedKeys(List<Record[]> records){
         List<Record> partitionRecordList = new ArrayList<>();
         for (Record[] recordList : records) {
             for (Record record : recordList) {
@@ -186,13 +176,15 @@ public class TeraSortContainer implements IContainer {
         }
         System.out.println("Total number of sample records : " + partitionRecordList.size());
         int noOfSelectedKeys = NO_OF_TASKS - 1;
-        byte[] selectedKeys = new byte[Record.KEY_SIZE * noOfSelectedKeys];
+//        byte[] selectedKeys = new byte[Record.KEY_SIZE * noOfSelectedKeys];
+        Text[] selectedKeys = new Text[noOfSelectedKeys];
         //Sort the collected records
         Collections.sort(partitionRecordList);
         int div = records.size() / NO_OF_TASKS;
         for (int i = 0; i < noOfSelectedKeys; i++) {
-            System.arraycopy(partitionRecordList.get((i + 1) * div).getKey().getBytes(), 0,
-                    selectedKeys, i * Record.KEY_SIZE, Record.KEY_SIZE);
+//            System.arraycopy(partitionRecordList.get((i + 1) * div).getKey().getBytes(), 0,
+//                    selectedKeys, i * Record.KEY_SIZE, Record.KEY_SIZE);
+            selectedKeys[i] = partitionRecordList.get((i + 1) * div).getKey();
         }
         return selectedKeys;
     }
@@ -284,9 +276,9 @@ public class TeraSortContainer implements IContainer {
     }
 
     private class BoardCastKeys implements Runnable{
-        int[] sendData;
+        Text[] sendData;
 
-        public BoardCastKeys(int taskId, int[] data){
+        public BoardCastKeys(int taskId, Text[] data){
             this.sendData = data;
         }
         @Override
@@ -354,8 +346,8 @@ public class TeraSortContainer implements IContainer {
 
         @Override
         public boolean onMessage(int source, int path, int target, int flags, Object object) {
-            System.out.printf("Source : %d, Target : %d, Value : %d ", source, target, ((int[])object)[1]);
-            System.out.println(((int[])object).length);
+            System.out.printf("Source : %d, Target : %d, Value : %s ", source, target, ((Text[])object)[1].toString());
+            System.out.println(((Text[])object).length);
             return true;
         }
 
