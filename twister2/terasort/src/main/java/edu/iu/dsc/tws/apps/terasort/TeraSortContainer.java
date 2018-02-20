@@ -10,7 +10,6 @@ package edu.iu.dsc.tws.apps.terasort;//  Licensed under the Apache License, Vers
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-import com.sun.org.apache.regexp.internal.RE;
 import edu.iu.dsc.tws.apps.terasort.utils.DataLoader;
 import edu.iu.dsc.tws.apps.terasort.utils.DataPartitioner;
 import edu.iu.dsc.tws.apps.terasort.utils.Record;
@@ -20,20 +19,14 @@ import edu.iu.dsc.tws.comms.api.*;
 import edu.iu.dsc.tws.comms.core.TWSCommunication;
 import edu.iu.dsc.tws.comms.core.TWSNetwork;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
-import edu.iu.dsc.tws.comms.mpi.MPIDataFlowOperation;
 import edu.iu.dsc.tws.comms.mpi.io.GatherBatchFinalReceiver;
 import edu.iu.dsc.tws.comms.mpi.io.GatherBatchPartialReceiver;
-import edu.iu.dsc.tws.comms.tcp.net.Progress;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
-import mpi.MPI;
-import mpi.MPIException;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.server.PrepRequestProcessor;
 
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.RunnableFuture;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -63,6 +56,7 @@ public class TeraSortContainer implements IContainer {
     //Operations
     private DataFlowOperation samplesGather;
     private DataFlowOperation keyBroadCast;
+    private DataFlowOperation partitionOp;
     private boolean samplingDone = false;
     private List<Record[]> sampleData;
 
@@ -92,8 +86,10 @@ public class TeraSortContainer implements IContainer {
         TWSCommunication channel = network.getDataFlowTWSCommunication();
 
         Set<Integer> sources = new HashSet<>();
+        Set<Integer> dests = new HashSet<>();
         for (int i = 0; i < NO_OF_TASKS; i++) {
             sources.add(i);
+            dests.add(i);
         }
         int dest = NO_OF_TASKS;
         Map<String, Object> newCfg = new HashMap<>();
@@ -116,9 +112,9 @@ public class TeraSortContainer implements IContainer {
             while (!samplingDone){
                 Thread.yield();
             }
-            System.out.println("Got to results at : " + id );
-            LOG.info("Gather results (only the first int of each array)"
-                    + sampleData.size());
+//            System.out.println("Got to results at : " + id );
+//            LOG.info("Gather results (only the first int of each array)"
+//                    + sampleData.size());
             selected = getSelectedKeys(sampleData);
         }else{
             System.out.println("Other process to results at : " + id );
@@ -142,7 +138,24 @@ public class TeraSortContainer implements IContainer {
             Thread.yield();
         }
 
+        TaskPlan taskPlan2 = Utils.createReduceTaskPlan(cfg, plan, NO_OF_TASKS);
+
+        TWSNetwork network2 = new TWSNetwork(cfg, taskPlan2);
+
+        TWSCommunication channel2 = network2.getDataFlowTWSCommunication();
         //Completed broadbast
+        partitionOp = channel2.partition(newCfg,MessageType.OBJECT,sources, dests,new FinalPartitionReceiver());
+        // now lets read all the data and distribute them to the correct tasks
+        for (int i = 0; i < noOfTasksPerExecutor; i++) {
+            int taskId = i;
+            LOG.info(String.format("%d Starting Distributer %d", id, i + id * noOfTasksPerExecutor));
+            Thread mapThread = new Thread(new DistributeData(i + id * noOfTasksPerExecutor, taskId));
+            mapThread.start();
+        }
+
+
+        Thread progressPartition = new Thread(new ProgressThread(channel2, partitionOp));
+        progressPartition.start();
 
         while (true){
             //Waiting to make sure this thread does not die
@@ -184,13 +197,13 @@ public class TeraSortContainer implements IContainer {
                 partitionRecordList.add(record);
             }
         }
-        System.out.println("Total number of sample records : " + partitionRecordList.size());
+//        System.out.println("Total number of sample records : " + partitionRecordList.size());
         int noOfSelectedKeys = NO_OF_TASKS - 1;
 //        byte[] selectedKeys = new byte[Record.KEY_SIZE * noOfSelectedKeys];
         Text[] selectedKeys = new Text[noOfSelectedKeys];
         //Sort the collected records
         Collections.sort(partitionRecordList);
-        int div = records.size() / NO_OF_TASKS;
+        int div = partitionRecordList.size() / NO_OF_TASKS;
         for (int i = 0; i < noOfSelectedKeys; i++) {
 //            System.arraycopy(partitionRecordList.get((i + 1) * div).getKey().getBytes(), 0,
 //                    selectedKeys, i * Record.KEY_SIZE, Record.KEY_SIZE);
@@ -199,7 +212,7 @@ public class TeraSortContainer implements IContainer {
         return selectedKeys;
     }
     private PartitionTree buildPartitionTree(List<Record[]> records, DataFlowOperation samplesGather) {
-        // first create the partition communicator
+        // first create the partitionOp communicator
 //        if (rank < partitionSampleNodes) {
 //            partitionCom = MPI.COMM_WORLD.split(0, rank);
 //        } else {
@@ -237,7 +250,7 @@ public class TeraSortContainer implements IContainer {
     }
 
     /**
-     * This task is used to collect samples from each data partition
+     * This task is used to collect samples from each data partitionOp
      * these collected records are used to create the key based partitiions
      */
     private class SampleKeyCollection implements Runnable {
@@ -258,8 +271,7 @@ public class TeraSortContainer implements IContainer {
                 startTime = System.nanoTime();
                 String inputFile = Paths.get(inputFolder, filePrefix
                         + id + "_" + Integer.toString(localId)).toString();
-                String outputFile = Paths.get(outputFolder, filePrefix + Integer.toString(id)).toString();
-                List<Record> records = DataLoader.load(id, inputFile);
+                List<Record> records = DataLoader.load(id, inputFile, partitionSamplesPerNode);
                 Record[] partitionRecords = new Record[partitionSamplesPerNode];
                 for (int i = 0; i < partitionSamplesPerNode; i++) {
                     partitionRecords[i] = records.get(i);
@@ -275,8 +287,8 @@ public class TeraSortContainer implements IContainer {
                     }
                 }
                 Thread.yield();
-                System.out.println("######## : Container id : " + id + "local id : "
-                        + localId + " Records : " + records.size());
+//                System.out.println("######## : Container id : " + id + "local id : "
+//                        + localId + " Records : " + records.size());
 
                 LOG.info(String.format("%d Done sending", id));
             } catch (Throwable t) {
@@ -305,6 +317,43 @@ public class TeraSortContainer implements IContainer {
 
         }
     }
+
+    private class DistributeData implements Runnable{
+        private int task = 0;
+        private int localId = 0;
+
+        public DistributeData(int task, int localId){
+            this.task = task;
+            this.localId = localId;
+        }
+        @Override
+        public void run() {
+            String inputFile = Paths.get(inputFolder, filePrefix
+                    + id + "_" + Integer.toString(localId)).toString();
+            String outputFile = Paths.get(outputFolder, filePrefix + Integer.toString(id)).toString();
+            List<Record> records = DataLoader.load(id, inputFile);
+            //sort the local records
+            //Collections.sort(records);
+
+            for (int i = 0; i < records.size(); i++) {
+                Record text = records.get(i);
+                int partition = tree.getPartition(text.getKey());
+                if(i % 7000 == 0){
+                    System.out.printf("Task id : %d Record : %d Partition number : %d Key value %s \n", task, i, partition, text.getKey().toString());
+                    while (!partitionOp.send(task, text, 0, partition)) {
+                        // lets wait a litte and try again
+                        try {
+                            Thread.sleep(1);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+
     private class SamplesCollectionReceiver implements GatherBatchReceiver {
         // lets keep track of the messages
         // for each task we need to keep track of incoming messages
@@ -387,6 +436,27 @@ public class TeraSortContainer implements IContainer {
 
         @Override
         public void progress() {
+        }
+    }
+
+    private class FinalPartitionReceiver implements MessageReceiver {
+
+        private long start = System.nanoTime();
+
+        @Override
+        public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
+        }
+
+        @Override
+        public boolean onMessage(int source, int path, int target, int flags, Object object) {
+            // add the object to the map
+            System.out.printf("Dest Task %d got message from Task %d with value %s \n", target,
+                    source, ((Record) object).getKey().toString());
+            return true;
+        }
+
+        public void progress() {
+
         }
     }
 }
