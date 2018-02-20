@@ -17,10 +17,11 @@ public class Program {
 
     int parallel = Integer.parseInt(args[0]);
     int containers = Integer.parseInt(args[1]);
-    int size = Integer.parseInt(args[2]);
-    int itr = Integer.parseInt(args[3]);
-    int col = Integer.parseInt(args[4]);
-    boolean stream = Boolean.parseBoolean(args[5]);
+    int tasks = Integer.parseInt(args[2]);
+    int size = Integer.parseInt(args[3]);
+    int itr = Integer.parseInt(args[4]);
+    int col = Integer.parseInt(args[5]);
+    boolean stream = Boolean.parseBoolean(args[6]);
 
     // build JobConfig
     JobConfig jobConfig = new JobConfig();
@@ -29,6 +30,7 @@ public class Program {
     jobConfig.put(Constants.ARGS_SIZE, Integer.toString(size));
     jobConfig.put(Constants.ARGS_PARALLEL, Integer.toString(parallel));
     jobConfig.put(Constants.ARGS_CONTAINERS, Integer.toString(containers));
+    jobConfig.put(Constants.ARGS_TASKS, Integer.toString(tasks));
 
     // build the job
     BasicJob basicJob = null;
@@ -37,14 +39,12 @@ public class Program {
         basicJob = BasicJob.newBuilder()
             .setName("basic-hl-reduce")
             .setContainerClass(Reduce.class.getName())
-            .setRequestResource(new ResourceContainer(2, 1024), 4)
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
             .setConfig(jobConfig)
             .build();
-      } else if (col == 1) {
-
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
       }
     }
-    // now submit the job
-    Twister2Submitter.submitContainerJob(basicJob, config);
   }
 }
