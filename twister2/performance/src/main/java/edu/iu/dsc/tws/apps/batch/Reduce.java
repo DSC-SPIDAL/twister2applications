@@ -1,6 +1,5 @@
-package edu.iu.dsc.tws.apps.stream;
+package edu.iu.dsc.tws.apps.batch;
 
-import edu.iu.dsc.tws.apps.data.IntData;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
@@ -8,8 +7,9 @@ import edu.iu.dsc.tws.comms.api.*;
 import edu.iu.dsc.tws.comms.core.TWSCommunication;
 import edu.iu.dsc.tws.comms.core.TWSNetwork;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
-import edu.iu.dsc.tws.comms.mpi.io.ReduceStreamingFinalReceiver;
-import edu.iu.dsc.tws.comms.mpi.io.ReduceStreamingPartialReceiver;
+import edu.iu.dsc.tws.comms.mpi.io.IntData;
+import edu.iu.dsc.tws.comms.mpi.io.ReduceBatchFinalReceiver;
+import edu.iu.dsc.tws.comms.mpi.io.ReduceBatchPartialReceiver;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 
@@ -22,45 +22,55 @@ public class Reduce implements IContainer {
 
   private DataFlowOperation reduce;
 
+  private ResourcePlan resourcePlan;
+
   private int id;
+
+  private Config config;
 
   private JobParameters jobParameters;
 
+  private long startSendingTime;
+
+  private long endReceiveTime;
+
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
+    LOG.log(Level.INFO, "Starting the example with container id: " + plan.getThisId());
     this.jobParameters = JobParameters.build(cfg);
+
+    this.config = cfg;
+    this.resourcePlan = plan;
     this.id = containerId;
-    int noOfTasksPerExecutor = jobParameters.getParallel() / plan.noOfContainers();
+    int noOfTasksPerExecutor = jobParameters.getTasks() / plan.noOfContainers();
 
     // lets create the task plan
     TaskPlan taskPlan = Utils.createReduceTaskPlan(cfg, plan, jobParameters.getTasks());
     //first get the communication config file
     TWSNetwork network = new TWSNetwork(cfg, taskPlan);
+
     TWSCommunication channel = network.getDataFlowTWSCommunication();
 
     Set<Integer> sources = new HashSet<>();
     for (int i = 0; i < jobParameters.getParallel(); i++) {
       sources.add(i);
     }
-
     int dest = jobParameters.getTasks();
+
     Map<String, Object> newCfg = new HashMap<>();
 
     LOG.info("Setting up reduce dataflow operation");
     try {
       // this method calls the init method
-      // I think this is wrong
       reduce = channel.reduce(newCfg, MessageType.OBJECT, 0, sources,
-          dest, new ReduceStreamingFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()),
-          new ReduceStreamingPartialReceiver(new IdentityFunction()));
+          dest, new ReduceBatchFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()),
+          new ReduceBatchPartialReceiver(dest, new IdentityFunction()));
 
       for (int i = 0; i < noOfTasksPerExecutor; i++) {
         // the map thread where data is produced
-        LOG.info(String.format("%d Starting %d", id, i + id * noOfTasksPerExecutor));
         Thread mapThread = new Thread(new MapWorker(i + id * noOfTasksPerExecutor));
         mapThread.start();
       }
-
       // we need to progress the communication
       while (true) {
         try {
@@ -83,6 +93,8 @@ public class Reduce implements IContainer {
    */
   private class MapWorker implements Runnable {
     private int task = 0;
+    private int sendCount = 0;
+
     MapWorker(int task) {
       this.task = task;
     }
@@ -91,21 +103,20 @@ public class Reduce implements IContainer {
     public void run() {
       try {
         LOG.log(Level.INFO, "Starting map worker: " + id);
+        startSendingTime = System.nanoTime();
         IntData data = generateData();
-        for (int i = 0; i < 11000; i++) {
+        int iterations = jobParameters.getIterations();
+        for (int i = 0; i < iterations; i++) {
           // lets generate a message
-          while (!reduce.send(task, data, 0)) {
+          int flag = 0;
+          if (i == iterations - 1) {
+            flag = MessageFlags.FLAGS_LAST;
+          }
+
+          while (!reduce.send(task, data, flag)) {
             // lets wait a litte and try again
-            try {
-              Thread.sleep(1);
-            } catch (InterruptedException e) {
-              e.printStackTrace();
-            }
+            reduce.progress();
           }
-          if (i % 1000 == 0) {
-            LOG.info(String.format("%d sent %d", id, i));
-          }
-          Thread.yield();
         }
         LOG.info(String.format("%d Done sending", id));
       } catch (Throwable t) {
@@ -132,25 +143,31 @@ public class Reduce implements IContainer {
     private int count = 0;
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
+
     }
 
     @Override
     public boolean receive(int target, Object object) {
       count++;
-      if (count % 100 == 0) {
-        LOG.info(String.format("Received %d", count));
+      if (count % 1 == 0) {
+        LOG.info(String.format("%d Received %d", target, count));
       }
       return true;
     }
   }
 
   public static class IdentityFunction implements ReduceFunction {
+    private int count = 0;
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
     }
 
     @Override
     public Object reduce(Object t1, Object t2) {
+      count++;
+      if (count % 100 == 0) {
+        LOG.info(String.format("Partial received %d", count));
+      }
       return t1;
     }
   }
