@@ -37,7 +37,7 @@ public class Program {
     if (!stream) {
       if (col == 0) {
         basicJob = BasicJob.newBuilder()
-            .setName("basic-hl-reduce")
+            .setName("reduce-bench")
             .setContainerClass(Reduce.class.getName())
             .setRequestResource(new ResourceContainer(2, 1024), containers)
             .setConfig(jobConfig)

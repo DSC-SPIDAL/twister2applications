@@ -32,8 +32,6 @@ public class Reduce implements IContainer {
 
   private long startSendingTime;
 
-  private long endReceiveTime;
-
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
     LOG.log(Level.INFO, "Starting the example with container id: " + plan.getThisId());
@@ -78,7 +76,6 @@ public class Reduce implements IContainer {
           channel.progress();
           // we should progress the communication directive
           reduce.progress();
-          Thread.yield();
         } catch (Throwable t) {
           t.printStackTrace();
         }
@@ -93,7 +90,6 @@ public class Reduce implements IContainer {
    */
   private class MapWorker implements Runnable {
     private int task = 0;
-    private int sendCount = 0;
 
     MapWorker(int task) {
       this.task = task;
@@ -101,27 +97,23 @@ public class Reduce implements IContainer {
 
     @Override
     public void run() {
-      try {
-        LOG.log(Level.INFO, "Starting map worker: " + id);
-        startSendingTime = System.nanoTime();
-        IntData data = generateData();
-        int iterations = jobParameters.getIterations();
-        for (int i = 0; i < iterations; i++) {
-          // lets generate a message
-          int flag = 0;
-          if (i == iterations - 1) {
-            flag = MessageFlags.FLAGS_LAST;
-          }
-
-          while (!reduce.send(task, data, flag)) {
-            // lets wait a litte and try again
-            reduce.progress();
-          }
+      LOG.log(Level.INFO, "Starting map worker: " + id);
+      startSendingTime = System.nanoTime();
+      IntData data = generateData();
+      int iterations = jobParameters.getIterations();
+      for (int i = 0; i < iterations; i++) {
+        // lets generate a message
+        int flag = 0;
+        if (i == iterations - 1) {
+          flag = MessageFlags.FLAGS_LAST;
         }
-        LOG.info(String.format("%d Done sending", id));
-      } catch (Throwable t) {
-        t.printStackTrace();
+
+        while (!reduce.send(task, data, flag)) {
+          // lets wait a litte and try again
+          reduce.progress();
+        }
       }
+      LOG.info(String.format("%d Done sending", id));
     }
   }
 
@@ -131,7 +123,7 @@ public class Reduce implements IContainer {
    * @return IntData
    */
   private IntData generateData() {
-    int s = 64000;
+    int s = jobParameters.getSize();
     int[] d = new int[s];
     for (int i = 0; i < s; i++) {
       d[i] = i;
@@ -139,24 +131,21 @@ public class Reduce implements IContainer {
     return new IntData(d);
   }
 
-  public static class FinalReduceReceiver implements ReduceReceiver {
+  public class FinalReduceReceiver implements ReduceReceiver {
     private int count = 0;
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
-
     }
 
     @Override
     public boolean receive(int target, Object object) {
-      count++;
-      if (count % 1 == 0) {
-        LOG.info(String.format("%d Received %d", target, count));
-      }
+      long time = System.nanoTime() - startSendingTime;
+      LOG.info(String.format("%d Finished %d", target, time));
       return true;
     }
   }
 
-  public static class IdentityFunction implements ReduceFunction {
+  public class IdentityFunction implements ReduceFunction {
     private int count = 0;
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
