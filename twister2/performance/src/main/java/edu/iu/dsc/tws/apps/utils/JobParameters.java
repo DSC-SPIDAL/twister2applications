@@ -58,4 +58,16 @@ public class JobParameters {
     int tasks = Integer.parseInt(cfg.getStringValue(Constants.ARGS_CONTAINERS));
     return new JobParameters(size, iterations, col, parallel, containers, tasks);
   }
+
+  @Override
+  public String toString() {
+    return "JobParameters{" +
+        "size=" + size +
+        ", iterations=" + iterations +
+        ", col=" + col +
+        ", parallel=" + parallel +
+        ", containers=" + containers +
+        ", tasks=" + tasks +
+        '}';
+  }
 }
