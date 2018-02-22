@@ -1,4 +1,5 @@
-package edu.iu.dsc.tws.apps.terasort;//  Licensed under the Apache License, Version 2.0 (the "License");
+package edu.iu.dsc.tws.apps.terasort;
+//  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
 //
@@ -24,10 +25,12 @@ import edu.iu.dsc.tws.comms.mpi.io.GatherBatchPartialReceiver;
 import edu.iu.dsc.tws.data.memory.OperationMemoryManager;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
+import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.Text;
 
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -117,8 +120,6 @@ public class TeraSortContainer implements IContainer {
 //            LOG.info("Gather results (only the first int of each array)"
 //                    + sampleData.size());
             selected = getSelectedKeys(sampleData);
-        } else {
-            System.out.println("Other process to results at : " + id);
         }
 
         //Not lets start the threads to get the records from the previous step
@@ -138,17 +139,23 @@ public class TeraSortContainer implements IContainer {
         while (!broadcastDone) {
             Thread.yield();
         }
-
-//        TaskPlan taskPlan2 = Utils.createReduceTaskPlan(cfg, plan, NO_OF_TASKS);
-//
-//        TWSNetwork network2 = new TWSNetwork(cfg, taskPlan2);
-//
-//        TWSCommunication channel2 = network2.getDataFlowTWSCommunication();
         //Completed broadbast
         edgeCount++;
+        Map<Integer, List<Integer>> expectedIds = new HashMap<>();
+        for (int i = 0; i < NO_OF_TASKS; i++) {
+            expectedIds.put(i, new ArrayList<>());
+            for (int j = 0; j < NO_OF_TASKS; j++) {
+                if (!(i == j)) {
+                    expectedIds.get(i).add(j);
+
+                }
+            }
+        }
+        FinalPartitionReceiver finalPartitionRec = new FinalPartitionReceiver();
         partitionOp = channel.partition(newCfg, MessageType.OBJECT, edgeCount,
-                sources, dests, new FinalPartitionReceiver());
-        partitionOp.setMemoryMapped(true);
+                sources, dests, finalPartitionRec);
+        finalPartitionRec.setMap(expectedIds);
+//        partitionOp.setMemoryMapped(true);
         // now lets read all the data and distribute them to the correct tasks
         for (int i = 0; i < noOfTasksPerExecutor; i++) {
             int taskId = i;
@@ -345,6 +352,8 @@ public class TeraSortContainer implements IContainer {
             for (int i = 0; i < records.size(); i++) {
                 Record text = records.get(i);
                 int partition = tree.getPartition(text.getKey());
+                //TODO this is a hack need to find why 7 is not returned and why -1 is given instead
+                //sorting might not be working
                 while (!partitionOp.send(task, text, 0, partition)) {
                     // lets wait a litte and try again
                     try {
@@ -355,6 +364,21 @@ public class TeraSortContainer implements IContainer {
                 }
 
             }
+            //Send messages to all tasks to let them know that the messages are finished
+            for (int i = 0; i < NO_OF_TASKS; i++) {
+                if (i == task) continue;
+                int flags = MessageFlags.FLAGS_LAST;
+                while (!partitionOp.send(task, records.get(records.size() - 1), flags, i)) {
+                    // lets wait a litte and try again
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+            }
+
 
         }
     }
@@ -445,37 +469,68 @@ public class TeraSortContainer implements IContainer {
     }
 
     private class FinalPartitionReceiver implements MessageReceiver {
-
+        private Map<Integer, Map<Integer, Boolean>> finished;
         private long start = System.nanoTime();
         int count = 0;
 
         @Override
         public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
+            finished = new ConcurrentHashMap<>();
+            for (Integer integer : expectedIds.keySet()) {
+                Map<Integer, Boolean> perTarget = new HashMap<>();
+                for (Integer integer1 : expectedIds.get(integer)) {
+                    perTarget.put(integer1, false);
+                }
+                finished.put(integer, perTarget);
+            }
         }
 
         @Override
         public boolean onMessage(int source, int path, int target, int flags, Object object) {
             // add the object to the map
-            if(!(object instanceof OperationMemoryManager)){
-                System.out.println("Error should not get here ######################");
+            if ((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) {
+                Thread.yield();
+//                System.out.println("$$$ " + target + " : " + source);
+                finished.get(target).put(source, true);
             }
-            if(count % 100 == 0){
-                if(object instanceof OperationMemoryManager){
-                    OperationMemoryManager opmm = (OperationMemoryManager)object;
-                    System.out.printf("Dest Task %d got message from Task %d with value %s \n", target,
-                            source, opmm.toString());
-                }else{
-                    System.out.printf("Dest Task %d got message from Task %d with value %s \n", target,
-                            source, "##########");
-                }
+            if (count % 100 == 0) {
+//                if(object instanceof OperationMemoryManager){
+//                    OperationMemoryManager opmm = (OperationMemoryManager)object;
+//                    System.out.printf("Dest Task %d got message from Task %d with value %s \n", target,
+//                            source, opmm.toString());
+//                }else{
+//                    System.out.printf("Dest Task %d got message from Task %d with value %s \n", target,
+//                            source, "##########");
+//                }
 
+            }
+            if (((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) && isAllFinished(target)) {
+                System.out.printf("Total Number of records for Task %d is : %d", target, count);
             }
             count++;
             return true;
         }
 
+        private boolean isAllFinished(int target) {
+            boolean isDone = true;
+            for (Boolean bol : finished.get(target).values()) {
+                isDone &= bol;
+            }
+            return isDone;
+        }
+
         public void progress() {
 
+        }
+
+        public void setMap(Map<Integer, List<Integer>> expectedIds) {
+            for (Integer integer : expectedIds.keySet()) {
+                Map<Integer, Boolean> perTarget = new HashMap<>();
+                for (Integer integer1 : expectedIds.get(integer)) {
+                    perTarget.put(integer1, false);
+                }
+                finished.put(integer, perTarget);
+            }
         }
     }
 }
