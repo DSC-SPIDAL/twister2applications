@@ -53,7 +53,7 @@ public class Reduce implements IContainer {
       // I think this is wrong
       reduce = channel.reduce(newCfg, MessageType.OBJECT, 0, sources,
           dest, new ReduceStreamingFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()),
-          new ReduceStreamingPartialReceiver(dest, new IdentityFunction()));
+          new ReduceStreamingPartialReceiver(dest,  new IdentityFunction()));
 
       for (int i = 0; i < noOfTasksPerExecutor; i++) {
         // the map thread where data is produced

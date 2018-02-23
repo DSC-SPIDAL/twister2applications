@@ -59,28 +59,26 @@ public class Reduce implements IContainer {
 
     Map<String, Object> newCfg = new HashMap<>();
 
-    LOG.info("Setting up reduce dataflow operation");
+    LOG.info(String.format("Setting up reduce dataflow operation %s %d", sources, dest));
     try {
       // this method calls the init method
       reduce = channel.reduce(newCfg, MessageType.OBJECT, 0, sources,
           dest, new ReduceBatchFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()),
           new ReduceBatchPartialReceiver(dest, new IdentityFunction()));
 
-      for (int i = 0; i < noOfTasksPerExecutor; i++) {
+      Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
+      for (int i : tasksOfExecutor) {
         // the map thread where data is produced
-        Thread mapThread = new Thread(new MapWorker(i + id * noOfTasksPerExecutor));
+        Thread mapThread = new Thread(new MapWorker(i));
         mapThread.start();
       }
+
       // we need to progress the communication
       while (true) {
-        try {
           // progress the channel
           channel.progress();
           // we should progress the communication directive
           reduce.progress();
-        } catch (Throwable t) {
-          t.printStackTrace();
-        }
       }
     } catch (Throwable t) {
       t.printStackTrace();
