@@ -22,11 +22,7 @@ public class Reduce implements IContainer {
 
   private DataFlowOperation reduce;
 
-  private ResourcePlan resourcePlan;
-
   private int id;
-
-  private Config config;
 
   private JobParameters jobParameters;
 
@@ -36,8 +32,6 @@ public class Reduce implements IContainer {
   public void init(Config cfg, int containerId, ResourcePlan plan) {
     LOG.log(Level.INFO, "Starting the example with container id: " + plan.getThisId());
     this.jobParameters = JobParameters.build(cfg);
-    this.config = cfg;
-    this.resourcePlan = plan;
     this.id = containerId;
 
     // lets create the task plan
@@ -50,8 +44,6 @@ public class Reduce implements IContainer {
 
     Set<Integer> sources = new HashSet<>();
     Integer noOfSourceTasks = jobParameters.getTaskStages().get(0);
-    int noOfTasksPerExecutor = noOfSourceTasks / plan.noOfContainers();
-
     for (int i = 0; i < noOfSourceTasks; i++) {
       sources.add(i);
     }
@@ -60,28 +52,25 @@ public class Reduce implements IContainer {
     Map<String, Object> newCfg = new HashMap<>();
 
     LOG.info(String.format("Setting up reduce dataflow operation %s %d", sources, dest));
-    try {
-      // this method calls the init method
-      reduce = channel.reduce(newCfg, MessageType.OBJECT, 0, sources,
-          dest, new ReduceBatchFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()),
-          new ReduceBatchPartialReceiver(dest, new IdentityFunction()));
+    // this method calls the init method
+    FinalReduceReceiver reduceReceiver = new FinalReduceReceiver();
+    reduce = channel.reduce(newCfg, MessageType.OBJECT, 0, sources,
+        dest, new ReduceBatchFinalReceiver(new IdentityFunction(), reduceReceiver),
+        new ReduceBatchPartialReceiver(dest, new IdentityFunction()));
 
-      Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
-      for (int i : tasksOfExecutor) {
-        // the map thread where data is produced
-        Thread mapThread = new Thread(new MapWorker(i));
-        mapThread.start();
-      }
+    Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
+    for (int i : tasksOfExecutor) {
+      // the map thread where data is produced
+      Thread mapThread = new Thread(new MapWorker(i));
+      mapThread.start();
+    }
 
-      // we need to progress the communication
-      while (true) {
-          // progress the channel
-          channel.progress();
-          // we should progress the communication directive
-          reduce.progress();
-      }
-    } catch (Throwable t) {
-      t.printStackTrace();
+    // we need to progress the communication
+    while (!reduceReceiver.isDone()) {
+        // progress the channel
+        channel.progress();
+        // we should progress the communication directive
+        reduce.progress();
     }
   }
 
@@ -89,7 +78,7 @@ public class Reduce implements IContainer {
    * We are running the map in a separate thread
    */
   private class MapWorker implements Runnable {
-    private int task = 0;
+    private int task;
 
     MapWorker(int task) {
       this.task = task;
@@ -97,17 +86,14 @@ public class Reduce implements IContainer {
 
     @Override
     public void run() {
-      LOG.log(Level.INFO, "Starting map worker: " + id);
       startSendingTime = System.nanoTime();
       IntData data = generateData();
       int iterations = jobParameters.getIterations();
       for (int i = 0; i < iterations; i++) {
-        // lets generate a message
         int flag = 0;
         if (i == iterations - 1) {
           flag = MessageFlags.FLAGS_LAST;
         }
-
         while (!reduce.send(task, data, flag)) {
           // lets wait a litte and try again
           reduce.progress();
@@ -132,7 +118,7 @@ public class Reduce implements IContainer {
   }
 
   public class FinalReduceReceiver implements ReduceReceiver {
-    private int count = 0;
+    boolean done = false;
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
     }
@@ -141,7 +127,12 @@ public class Reduce implements IContainer {
     public boolean receive(int target, Object object) {
       long time = System.nanoTime() - startSendingTime;
       LOG.info(String.format("%d Finished %d", target, time));
+      done = true;
       return true;
+    }
+
+    private boolean isDone() {
+      return done;
     }
   }
 
