@@ -8,8 +8,8 @@ import edu.iu.dsc.tws.comms.api.*;
 import edu.iu.dsc.tws.comms.core.TWSCommunication;
 import edu.iu.dsc.tws.comms.core.TWSNetwork;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
-import edu.iu.dsc.tws.comms.mpi.io.ReduceStreamingFinalReceiver;
-import edu.iu.dsc.tws.comms.mpi.io.ReduceStreamingPartialReceiver;
+import edu.iu.dsc.tws.comms.mpi.io.reduce.ReduceStreamingFinalReceiver;
+import edu.iu.dsc.tws.comms.mpi.io.reduce.ReduceStreamingPartialReceiver;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 
@@ -30,20 +30,21 @@ public class Reduce implements IContainer {
   public void init(Config cfg, int containerId, ResourcePlan plan) {
     this.jobParameters = JobParameters.build(cfg);
     this.id = containerId;
-    int noOfTasksPerExecutor = jobParameters.getParallel() / plan.noOfContainers();
+    Integer noOfSourceTasks = jobParameters.getTaskStages().get(0);
+    int noOfTasksPerExecutor = noOfSourceTasks / plan.noOfContainers();
 
     // lets create the task plan
-    TaskPlan taskPlan = Utils.createReduceTaskPlan(cfg, plan, jobParameters.getTasks());
+    TaskPlan taskPlan = Utils.createReduceTaskPlan(cfg, plan, jobParameters.getTaskStages());
     //first get the communication config file
     TWSNetwork network = new TWSNetwork(cfg, taskPlan);
     TWSCommunication channel = network.getDataFlowTWSCommunication();
 
     Set<Integer> sources = new HashSet<>();
-    for (int i = 0; i < jobParameters.getParallel(); i++) {
+    for (int i = 0; i < noOfSourceTasks; i++) {
       sources.add(i);
     }
 
-    int dest = jobParameters.getTasks();
+    int dest = noOfSourceTasks;
     Map<String, Object> newCfg = new HashMap<>();
 
     LOG.info("Setting up reduce dataflow operation");
@@ -52,7 +53,7 @@ public class Reduce implements IContainer {
       // I think this is wrong
       reduce = channel.reduce(newCfg, MessageType.OBJECT, 0, sources,
           dest, new ReduceStreamingFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()),
-          new ReduceStreamingPartialReceiver(new IdentityFunction()));
+          new ReduceStreamingPartialReceiver(dest, new IdentityFunction()));
 
       for (int i = 0; i < noOfTasksPerExecutor; i++) {
         // the map thread where data is produced

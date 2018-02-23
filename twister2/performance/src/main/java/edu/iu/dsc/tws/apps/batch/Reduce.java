@@ -8,8 +8,8 @@ import edu.iu.dsc.tws.comms.core.TWSCommunication;
 import edu.iu.dsc.tws.comms.core.TWSNetwork;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
 import edu.iu.dsc.tws.comms.mpi.io.IntData;
-import edu.iu.dsc.tws.comms.mpi.io.ReduceBatchFinalReceiver;
-import edu.iu.dsc.tws.comms.mpi.io.ReduceBatchPartialReceiver;
+import edu.iu.dsc.tws.comms.mpi.io.reduce.ReduceBatchFinalReceiver;
+import edu.iu.dsc.tws.comms.mpi.io.reduce.ReduceBatchPartialReceiver;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 
@@ -36,24 +36,26 @@ public class Reduce implements IContainer {
   public void init(Config cfg, int containerId, ResourcePlan plan) {
     LOG.log(Level.INFO, "Starting the example with container id: " + plan.getThisId());
     this.jobParameters = JobParameters.build(cfg);
-
     this.config = cfg;
     this.resourcePlan = plan;
     this.id = containerId;
-    int noOfTasksPerExecutor = jobParameters.getTasks() / plan.noOfContainers();
 
     // lets create the task plan
-    TaskPlan taskPlan = Utils.createReduceTaskPlan(cfg, plan, jobParameters.getTasks());
+    TaskPlan taskPlan = Utils.createReduceTaskPlan(cfg, plan, jobParameters.getTaskStages());
+    LOG.info("Task plan: " + taskPlan);
+
     //first get the communication config file
     TWSNetwork network = new TWSNetwork(cfg, taskPlan);
-
     TWSCommunication channel = network.getDataFlowTWSCommunication();
 
     Set<Integer> sources = new HashSet<>();
-    for (int i = 0; i < jobParameters.getParallel(); i++) {
+    Integer noOfSourceTasks = jobParameters.getTaskStages().get(0);
+    int noOfTasksPerExecutor = noOfSourceTasks / plan.noOfContainers();
+
+    for (int i = 0; i < noOfSourceTasks; i++) {
       sources.add(i);
     }
-    int dest = jobParameters.getTasks();
+    int dest = noOfSourceTasks;
 
     Map<String, Object> newCfg = new HashMap<>();
 

@@ -19,8 +19,8 @@ import edu.iu.dsc.tws.comms.api.*;
 import edu.iu.dsc.tws.comms.core.TWSCommunication;
 import edu.iu.dsc.tws.comms.core.TWSNetwork;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
-import edu.iu.dsc.tws.comms.mpi.io.GatherBatchFinalReceiver;
-import edu.iu.dsc.tws.comms.mpi.io.GatherBatchPartialReceiver;
+import edu.iu.dsc.tws.comms.mpi.io.gather.GatherBatchFinalReceiver;
+import edu.iu.dsc.tws.comms.mpi.io.gather.GatherBatchPartialReceiver;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 import org.apache.hadoop.io.Text;
@@ -144,7 +144,7 @@ public class TeraSortContainer implements IContainer {
 
         TWSCommunication channel2 = network2.getDataFlowTWSCommunication();
         //Completed broadbast
-        partitionOp = channel2.partition(newCfg,MessageType.OBJECT,sources, dests,new FinalPartitionReceiver());
+        partitionOp = channel2.partition(newCfg,MessageType.OBJECT, 0, sources, dests,new FinalPartitionReceiver());
         // now lets read all the data and distribute them to the correct tasks
         for (int i = 0; i < noOfTasksPerExecutor; i++) {
             int taskId = i;

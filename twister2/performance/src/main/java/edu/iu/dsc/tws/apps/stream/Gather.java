@@ -1,6 +1,7 @@
 package edu.iu.dsc.tws.apps.stream;
 
 import edu.iu.dsc.tws.apps.common.RandomString;
+import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.comms.api.DataFlowOperation;
@@ -28,12 +29,13 @@ public class Gather implements IContainer {
 
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
+    JobParameters jobParameters = JobParameters.build(cfg);
     this.id = containerId;
     int noOfTasksPerExecutor = NO_OF_TASKS / plan.noOfContainers();
     this.randomString = new RandomString(128000, new Random(), RandomString.alphanum);
 
     // lets create the task plan
-    TaskPlan taskPlan = Utils.createReduceTaskPlan(cfg, plan, NO_OF_TASKS);
+    TaskPlan taskPlan = Utils.createReduceTaskPlan(cfg, plan, jobParameters.getTaskStages());
     //first get the communication config file
     TWSNetwork network = new TWSNetwork(cfg, taskPlan);
 
