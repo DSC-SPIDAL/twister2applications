@@ -6,6 +6,9 @@ import edu.iu.dsc.tws.comms.api.DataFlowOperation;
 import edu.iu.dsc.tws.comms.api.MessageFlags;
 import edu.iu.dsc.tws.comms.mpi.io.IntData;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ReduceWorker implements Runnable {
   private long startSendingTime;
 
@@ -17,11 +20,14 @@ public class ReduceWorker implements Runnable {
 
   private JobParameters jobParameters;
 
+  private List<Long> startOfMessages;
+
   public ReduceWorker(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator) {
     this.task = task;
     this.jobParameters = jobParameters;
     this.operation = op;
     this.generator = dataGenerator;
+    this.startOfMessages = new ArrayList<>();
   }
 
   @Override
@@ -30,6 +36,7 @@ public class ReduceWorker implements Runnable {
     IntData data = generator.generateData();
     int iterations = jobParameters.getIterations();
     for (int i = 0; i < iterations; i++) {
+      startOfMessages.add(System.nanoTime());
       int flag = 0;
       if (i == iterations - 1) {
         flag = MessageFlags.FLAGS_LAST;
@@ -43,5 +50,9 @@ public class ReduceWorker implements Runnable {
 
   public long getStartSendingTime() {
     return startSendingTime;
+  }
+
+  public List<Long> getStartOfEachMessage() {
+    return startOfMessages;
   }
 }
