@@ -1,5 +1,6 @@
 package edu.iu.dsc.tws.apps.batch;
 
+import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
@@ -7,7 +8,6 @@ import edu.iu.dsc.tws.comms.api.*;
 import edu.iu.dsc.tws.comms.core.TWSCommunication;
 import edu.iu.dsc.tws.comms.core.TWSNetwork;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
-import edu.iu.dsc.tws.comms.mpi.io.IntData;
 import edu.iu.dsc.tws.comms.mpi.io.reduce.ReduceBatchFinalReceiver;
 import edu.iu.dsc.tws.comms.mpi.io.reduce.ReduceBatchPartialReceiver;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
@@ -33,6 +33,7 @@ public class Reduce implements IContainer {
     LOG.log(Level.INFO, "Starting the example with container id: " + plan.getThisId());
     this.jobParameters = JobParameters.build(cfg);
     this.id = containerId;
+    DataGenerator dataGenerator = new DataGenerator(jobParameters);
 
     // lets create the task plan
     TaskPlan taskPlan = Utils.createReduceTaskPlan(cfg, plan, jobParameters.getTaskStages());
@@ -59,9 +60,11 @@ public class Reduce implements IContainer {
         new ReduceBatchPartialReceiver(dest, new IdentityFunction()));
 
     Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
+    Worker worker = null;
     for (int i : tasksOfExecutor) {
+      worker = new Worker(i, jobParameters, reduce, dataGenerator);
       // the map thread where data is produced
-      Thread mapThread = new Thread(new MapWorker(i));
+      Thread mapThread = new Thread(worker);
       mapThread.start();
     }
 
@@ -71,50 +74,10 @@ public class Reduce implements IContainer {
         channel.progress();
         // we should progress the communication directive
         reduce.progress();
-    }
-  }
-
-  /**
-   * We are running the map in a separate thread
-   */
-  private class MapWorker implements Runnable {
-    private int task;
-
-    MapWorker(int task) {
-      this.task = task;
-    }
-
-    @Override
-    public void run() {
-      startSendingTime = System.nanoTime();
-      IntData data = generateData();
-      int iterations = jobParameters.getIterations();
-      for (int i = 0; i < iterations; i++) {
-        int flag = 0;
-        if (i == iterations - 1) {
-          flag = MessageFlags.FLAGS_LAST;
+        if (worker != null) {
+          startSendingTime = worker.getStartSendingTime();
         }
-        while (!reduce.send(task, data, flag)) {
-          // lets wait a litte and try again
-          reduce.progress();
-        }
-      }
-      LOG.info(String.format("%d Done sending", id));
     }
-  }
-
-  /**
-   * Generate data with an integer array
-   *
-   * @return IntData
-   */
-  private IntData generateData() {
-    int s = jobParameters.getSize();
-    int[] d = new int[s];
-    for (int i = 0; i < s; i++) {
-      d[i] = i;
-    }
-    return new IntData(d);
   }
 
   public class FinalReduceReceiver implements ReduceReceiver {
@@ -125,7 +88,7 @@ public class Reduce implements IContainer {
 
     @Override
     public boolean receive(int target, Object object) {
-      long time = System.nanoTime() - startSendingTime;
+      long time = (System.nanoTime() - startSendingTime) / 1000000;
       LOG.info(String.format("%d Finished %d", target, time));
       done = true;
       return true;
