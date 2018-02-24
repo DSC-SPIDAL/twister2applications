@@ -1,5 +1,6 @@
 package edu.iu.dsc.tws.apps.stream;
 
+import edu.iu.dsc.tws.apps.batch.AllReduce;
 import edu.iu.dsc.tws.apps.batch.IdentityFunction;
 import edu.iu.dsc.tws.apps.batch.ReduceWorker;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
@@ -32,7 +33,7 @@ public class AllReduceStream implements IContainer {
 
   private Map<Integer, ReduceWorker> reduceWorker = new HashMap<>();
 
-  private List<Integer> tasksOfExecutor;
+  private List<Integer> tasksOfThisExec;
 
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
@@ -67,9 +68,10 @@ public class AllReduceStream implements IContainer {
     // this method calls the init method
     FinalReduceReceiver reduceReceiver = new FinalReduceReceiver();
     reduce = channel.allReduce(newCfg, MessageType.OBJECT, 0, 1, sources,
-        dests, middle, new IdentityFunction(), reduceReceiver, true);
+        dests, middle, new IdentityFunction(), reduceReceiver, false);
 
     Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
+    tasksOfThisExec = new ArrayList<Integer>(tasksOfExecutor);
     for (int i : tasksOfExecutor) {
       ReduceWorker worker = new ReduceWorker(i, jobParameters, reduce, dataGenerator);
       reduceWorker.put(i, worker);
@@ -111,7 +113,7 @@ public class AllReduceStream implements IContainer {
       LOG.info(String.format("%d Finished %d", target, time));
 
       if (timesForTarget.size() == jobParameters.getIterations()) {
-        List<Long> times = reduceWorker.get(tasksOfExecutor.get(0)).getStartOfEachMessage();
+        List<Long> times = reduceWorker.get(tasksOfThisExec.get(0)).getStartOfEachMessage();
 
         long average = 0;
         for (int i = 0; i < times.size(); i++) {
