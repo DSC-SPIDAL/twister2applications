@@ -6,7 +6,7 @@ import edu.iu.dsc.tws.comms.api.DataFlowOperation;
 import edu.iu.dsc.tws.comms.api.MessageFlags;
 import edu.iu.dsc.tws.comms.mpi.io.IntData;
 
-public class Worker implements Runnable {
+public class ReduceWorker implements Runnable {
   private long startSendingTime;
 
   private int task;
@@ -17,7 +17,7 @@ public class Worker implements Runnable {
 
   private JobParameters jobParameters;
 
-  public Worker(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator) {
+  public ReduceWorker(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator) {
     this.task = task;
     this.jobParameters = jobParameters;
     this.operation = op;

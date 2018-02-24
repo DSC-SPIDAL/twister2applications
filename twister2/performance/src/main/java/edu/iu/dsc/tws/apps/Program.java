@@ -3,6 +3,7 @@ package edu.iu.dsc.tws.apps;
 import edu.iu.dsc.tws.api.JobConfig;
 import edu.iu.dsc.tws.api.Twister2Submitter;
 import edu.iu.dsc.tws.api.basic.job.BasicJob;
+import edu.iu.dsc.tws.apps.batch.AllReduce;
 import edu.iu.dsc.tws.apps.batch.Reduce;
 import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.rsched.core.ResourceAllocator;
@@ -37,6 +38,15 @@ public class Program {
         basicJob = BasicJob.newBuilder()
             .setName("reduce-bench")
             .setContainerClass(Reduce.class.getName())
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
+            .setConfig(jobConfig)
+            .build();
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
+      } else if (col == 1) {
+        basicJob = BasicJob.newBuilder()
+            .setName("all-reduce-bench")
+            .setContainerClass(AllReduce.class.getName())
             .setRequestResource(new ResourceContainer(2, 1024), containers)
             .setConfig(jobConfig)
             .build();
