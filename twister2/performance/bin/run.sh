@@ -2,4 +2,4 @@
 
 APP_DIR=/home/supun/dev/projects/twister2/twister2applications
 
-./bin/twister2 submit nodesmpi jar $APP_DIR/twister2/performance/target/twister2-performance-1.0-SNAPSHOT-jar-with-dependencies.jar edu.iu.dsc.tws.apps.Program 4 64000 1000 1 false "8,8"
+./bin/twister2 submit nodesmpi jar $APP_DIR/twister2/performance/target/twister2-performance-1.0-SNAPSHOT-jar-with-dependencies.jar edu.iu.dsc.tws.apps.Program 4 64000 1000 1 false "8,8,1"

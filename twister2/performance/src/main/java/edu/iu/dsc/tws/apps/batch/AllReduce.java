@@ -44,7 +44,7 @@ public class AllReduce implements IContainer {
     TWSCommunication channel = network.getDataFlowTWSCommunication();
 
     Set<Integer> sources = new HashSet<>();
-    int middle = jobParameters.getTaskStages().get(0);
+    int middle = jobParameters.getTaskStages().get(0) + jobParameters.getTaskStages().get(1);
     Integer noOfSourceTasks = jobParameters.getTaskStages().get(0);
     for (int i = 0; i < noOfSourceTasks; i++) {
       sources.add(i);
@@ -52,7 +52,7 @@ public class AllReduce implements IContainer {
     Set<Integer> dests = new HashSet<>();
     int noOfDestTasks = jobParameters.getTaskStages().get(1);
     for (int i = 0; i < noOfDestTasks; i++) {
-      dests.add(i);
+      dests.add(i + sources.size());
     }
 
     Map<String, Object> newCfg = new HashMap<>();
@@ -94,7 +94,6 @@ public class AllReduce implements IContainer {
     public boolean receive(int target, Object object) {
       long time = (System.nanoTime() - startSendingTime) / 1000000;
       LOG.info(String.format("%d Finished %d", target, time));
-      done = true;
       return true;
     }
 
