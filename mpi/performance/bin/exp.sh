@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-./run.sh 4 0 10000 1000
+./run.sh 4 4 100000 10000

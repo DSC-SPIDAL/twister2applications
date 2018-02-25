@@ -6,7 +6,7 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.HashMap;
 
-public class Reduce extends Collective {
+public class AllReduce extends Collective {
   private RandomString randomString;
 
   private KryoSerializer kryoSerializer;
@@ -15,7 +15,7 @@ public class Reduce extends Collective {
 
   private long reduceTime = 0;
 
-  public Reduce(int size, int iterations) {
+  public AllReduce(int size, int iterations) {
     super(size, iterations);
     this.randomString = new RandomString(size);
     this.kryoSerializer = new KryoSerializer();
@@ -47,7 +47,7 @@ public class Reduce extends Collective {
       sendBuffer.putInt(bytes.length);
       sendBuffer.put(bytes);
       start = System.nanoTime();
-      MPI.COMM_WORLD.reduce(sendBuffer, receiveBuffer, 1, stringBytes, reduceOp(), 0);
+      MPI.COMM_WORLD.allReduce(sendBuffer, receiveBuffer, 1, stringBytes, reduceOp());
       allReduceTime += System.nanoTime() - start;
 
       if (rank == 0) {
