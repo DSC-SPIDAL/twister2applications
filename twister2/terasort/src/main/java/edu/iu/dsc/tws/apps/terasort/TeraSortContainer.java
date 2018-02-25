@@ -20,11 +20,13 @@ import edu.iu.dsc.tws.comms.api.*;
 import edu.iu.dsc.tws.comms.core.TWSCommunication;
 import edu.iu.dsc.tws.comms.core.TWSNetwork;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
-import edu.iu.dsc.tws.comms.mpi.io.GatherBatchFinalReceiver;
-import edu.iu.dsc.tws.comms.mpi.io.GatherBatchPartialReceiver;
+import edu.iu.dsc.tws.comms.mpi.io.KeyedContent;
+import edu.iu.dsc.tws.comms.mpi.io.gather.GatherBatchFinalReceiver;
+import edu.iu.dsc.tws.comms.mpi.io.gather.GatherBatchPartialReceiver;
 import edu.iu.dsc.tws.data.memory.OperationMemoryManager;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
+import org.apache.avro.io.parsing.Symbol;
 import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.Text;
 
@@ -56,6 +58,8 @@ public class TeraSortContainer implements IContainer {
 
     private int noOfTasksPerExecutor = 2;
     private long startTime = 0;
+    private long startTimePartition = 0;
+    private long endTimePartition = 0;
 
     //Operations
     private DataFlowOperation samplesGather;
@@ -67,6 +71,8 @@ public class TeraSortContainer implements IContainer {
     private boolean broadcastDone = false;
     private Text[] selectedKeys;
     private PartitionTree tree;
+
+    private boolean reduceDone = false;
 
     @Override
     public void init(Config cfg, int containerId, ResourcePlan plan) {
@@ -151,8 +157,10 @@ public class TeraSortContainer implements IContainer {
                 }
             }
         }
+
+        startTimePartition = System.currentTimeMillis();
         FinalPartitionReceiver finalPartitionRec = new FinalPartitionReceiver();
-        partitionOp = channel.partition(newCfg, MessageType.OBJECT, edgeCount,
+        partitionOp = channel.partition(newCfg, MessageType.BYTE, MessageType.BYTE, edgeCount,
                 sources, dests, finalPartitionRec);
         finalPartitionRec.setMap(expectedIds);
 //        partitionOp.setMemoryMapped(true);
@@ -168,6 +176,11 @@ public class TeraSortContainer implements IContainer {
         Thread progressPartition = new Thread(new ProgressThread(null, partitionOp));
         progressPartition.start();
 
+        while (!reduceDone) {
+            Thread.yield();
+        }
+        endTimePartition = System.currentTimeMillis();
+        System.out.println("Time taken for partition Operation : " + (endTimePartition - startTimePartition));
         while (true) {
             //Waiting to make sure this thread does not die
             Thread.yield();
@@ -348,13 +361,13 @@ public class TeraSortContainer implements IContainer {
             List<Record> records = DataLoader.load(id, inputFile);
             //sort the local records
             //Collections.sort(records);
-
-            for (int i = 0; i < records.size(); i++) {
+            KeyedContent keyedContent = null;
+            for (int i = 0; i < 10; i++) {
                 Record text = records.get(i);
                 int partition = tree.getPartition(text.getKey());
-                //TODO this is a hack need to find why 7 is not returned and why -1 is given instead
-                //sorting might not be working
-                while (!partitionOp.send(task, text, 0, partition)) {
+                keyedContent = new KeyedContent(text.getKey().getBytes(), text.getText().getBytes(),
+                        MessageType.BYTE, MessageType.BYTE);
+                while (!partitionOp.send(task, keyedContent, 0, partition)) {
                     // lets wait a litte and try again
                     try {
                         Thread.sleep(1);
@@ -366,9 +379,11 @@ public class TeraSortContainer implements IContainer {
             }
             //Send messages to all tasks to let them know that the messages are finished
             for (int i = 0; i < NO_OF_TASKS; i++) {
-                if (i == task) continue;
+                if (i == task) {
+                    continue;
+                }
                 int flags = MessageFlags.FLAGS_LAST;
-                while (!partitionOp.send(task, records.get(records.size() - 1), flags, i)) {
+                while (!partitionOp.send(task, keyedContent, flags, i)) {
                     // lets wait a litte and try again
                     try {
                         Thread.sleep(1);
@@ -376,7 +391,6 @@ public class TeraSortContainer implements IContainer {
                         e.printStackTrace();
                     }
                 }
-
             }
 
 
@@ -477,7 +491,7 @@ public class TeraSortContainer implements IContainer {
         public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
             finished = new ConcurrentHashMap<>();
             for (Integer integer : expectedIds.keySet()) {
-                Map<Integer, Boolean> perTarget = new HashMap<>();
+                Map<Integer, Boolean> perTarget = new ConcurrentHashMap<>();
                 for (Integer integer1 : expectedIds.get(integer)) {
                     perTarget.put(integer1, false);
                 }
@@ -489,23 +503,12 @@ public class TeraSortContainer implements IContainer {
         public boolean onMessage(int source, int path, int target, int flags, Object object) {
             // add the object to the map
             if ((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) {
-                Thread.yield();
-//                System.out.println("$$$ " + target + " : " + source);
                 finished.get(target).put(source, true);
             }
-            if (count % 100 == 0) {
-//                if(object instanceof OperationMemoryManager){
-//                    OperationMemoryManager opmm = (OperationMemoryManager)object;
-//                    System.out.printf("Dest Task %d got message from Task %d with value %s \n", target,
-//                            source, opmm.toString());
-//                }else{
-//                    System.out.printf("Dest Task %d got message from Task %d with value %s \n", target,
-//                            source, "##########");
-//                }
 
-            }
             if (((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) && isAllFinished(target)) {
-                System.out.printf("Total Number of records for Task %d is : %d", target, count);
+                System.out.printf("Total Number of records for Task %d is : %d \n", target, count);
+                reduceDone = true;
             }
             count++;
             return true;
@@ -525,7 +528,7 @@ public class TeraSortContainer implements IContainer {
 
         public void setMap(Map<Integer, List<Integer>> expectedIds) {
             for (Integer integer : expectedIds.keySet()) {
-                Map<Integer, Boolean> perTarget = new HashMap<>();
+                Map<Integer, Boolean> perTarget = new ConcurrentHashMap<>();
                 for (Integer integer1 : expectedIds.get(integer)) {
                     perTarget.put(integer1, false);
                 }
