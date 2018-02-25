@@ -4,6 +4,7 @@ import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourceContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
+import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlanUtils;
 
 import java.util.*;
 import java.util.logging.Logger;
@@ -14,36 +15,31 @@ public final class Utils {
   private Utils() {
   }
 
-  public static TaskPlan createReduceTaskPlan(Config cfg, ResourcePlan plan, int noOfTasks) {
+  public static TaskPlan createReduceTaskPlan(Config cfg, ResourcePlan plan, List<Integer> noOfTaskEachStage) {
     int noOfContainers = plan.noOfContainers();
     Map<Integer, Set<Integer>> executorToGraphNodes = new HashMap<>();
     Map<Integer, Set<Integer>> groupsToExeuctors = new HashMap<>();
     int thisExecutor = plan.getThisId();
 
     List<ResourceContainer> containers = plan.getContainers();
-    Map<String, List<ResourceContainer>> containersPerNode = new HashMap<>();
-    for (ResourceContainer c : containers) {
-      String processName = (String) c.getProperty("PROCESS_NAME");
-      List<ResourceContainer> containerList;
-      if (!containersPerNode.containsKey(processName)) {
-        containerList = new ArrayList<>();
-        containersPerNode.put(processName, containerList);
-      } else {
-        containerList = containersPerNode.get(processName);
-      }
-      containerList.add(c);
-    }
+    Map<String, List<ResourceContainer>> containersPerNode = ResourcePlanUtils.getContainersPerNode(containers);
 
-    int taskPerExecutor = noOfTasks / noOfContainers;
-    for (int i = 0; i < noOfContainers; i++) {
-      Set<Integer> nodesOfExecutor = new HashSet<>();
-      for (int j = 0; j < taskPerExecutor; j++) {
-        nodesOfExecutor.add(i * taskPerExecutor + j);
+    int totalTasksPreviously = 0;
+    for (int noOfTasks : noOfTaskEachStage) {
+      int currentExecutorId = 0;
+      for (int i = 0; i < noOfTasks; i++) {
+        Set<Integer> nodesOfExecutor;
+        if (executorToGraphNodes.get(currentExecutorId) == null) {
+          nodesOfExecutor = new HashSet<>();
+        } else {
+          nodesOfExecutor = executorToGraphNodes.get(currentExecutorId);
+        }
+        nodesOfExecutor.add(totalTasksPreviously + i);
+        executorToGraphNodes.put(currentExecutorId, nodesOfExecutor);
+        // we go to the next executor
+        currentExecutorId = nextExecutorId(currentExecutorId, noOfContainers);
       }
-      if (i == 0) {
-        nodesOfExecutor.add(noOfTasks);
-      }
-      executorToGraphNodes.put(i, nodesOfExecutor);
+      totalTasksPreviously += noOfTasks;
     }
 
     int i = 0;
@@ -57,5 +53,30 @@ public final class Utils {
     }
 
     return new TaskPlan(executorToGraphNodes, groupsToExeuctors, thisExecutor);
+  }
+
+  private static int nextExecutorId(int current, int noOfContainers) {
+    if (current < noOfContainers - 1) {
+      return ++current;
+    } else {
+      return 0;
+    }
+  }
+
+  public static Set<Integer> getTasksOfExecutor(int exec, TaskPlan plan, List<Integer> noOfTaskEachStage, int stage) {
+    Set<Integer> out = new HashSet<>();
+    int noOfTasks = noOfTaskEachStage.get(stage);
+    int total = 0;
+    for (int i = 0; i < stage; i++) {
+      total += noOfTaskEachStage.get(i);
+    }
+
+    Set<Integer> tasksOfExec = plan.getChannelsOfExecutor(exec);
+    for (int i = 0; i < noOfTasks; i++) {
+      if (tasksOfExec.contains(i + total)) {
+        out.add(i + total);
+      }
+    }
+    return out;
   }
 }

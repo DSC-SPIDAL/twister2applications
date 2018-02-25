@@ -23,11 +23,10 @@ import edu.iu.dsc.tws.comms.core.TaskPlan;
 import edu.iu.dsc.tws.comms.mpi.io.KeyedContent;
 import edu.iu.dsc.tws.comms.mpi.io.gather.GatherBatchFinalReceiver;
 import edu.iu.dsc.tws.comms.mpi.io.gather.GatherBatchPartialReceiver;
-import edu.iu.dsc.tws.data.memory.OperationMemoryManager;
+
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
-import org.apache.avro.io.parsing.Symbol;
-import org.apache.hadoop.io.BooleanWritable;
+
 import org.apache.hadoop.io.Text;
 
 import java.nio.file.Paths;
@@ -157,7 +156,6 @@ public class TeraSortContainer implements IContainer {
                 }
             }
         }
-
         startTimePartition = System.currentTimeMillis();
         FinalPartitionReceiver finalPartitionRec = new FinalPartitionReceiver();
         partitionOp = channel.partition(newCfg, MessageType.BYTE, MessageType.BYTE, edgeCount,
