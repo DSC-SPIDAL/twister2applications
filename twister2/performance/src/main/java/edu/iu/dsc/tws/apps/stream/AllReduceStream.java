@@ -1,6 +1,5 @@
 package edu.iu.dsc.tws.apps.stream;
 
-import edu.iu.dsc.tws.apps.batch.AllReduce;
 import edu.iu.dsc.tws.apps.batch.IdentityFunction;
 import edu.iu.dsc.tws.apps.batch.ReduceWorker;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
@@ -31,13 +30,13 @@ public class AllReduceStream implements IContainer {
 
   private long startSendingTime;
 
-  private Map<Integer, ReduceWorker> reduceWorker = new HashMap<>();
+  private Map<Integer, ReduceWorker> reduceWorkers = new HashMap<>();
 
   private List<Integer> tasksOfThisExec;
 
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
-    LOG.log(Level.INFO, "Starting the example with container id: " + plan.getThisId());
+    LOG.log(Level.INFO, "Starting AllReduceStreaming Example");
     this.jobParameters = JobParameters.build(cfg);
     this.id = containerId;
     DataGenerator dataGenerator = new DataGenerator(jobParameters);
@@ -68,26 +67,27 @@ public class AllReduceStream implements IContainer {
     // this method calls the init method
     FinalReduceReceiver reduceReceiver = new FinalReduceReceiver();
     reduce = channel.allReduce(newCfg, MessageType.OBJECT, 0, 1, sources,
-        dests, middle, new IdentityFunction(), reduceReceiver, false);
+        dests, middle, new IdentityFunction(), reduceReceiver, true);
 
     Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
-    tasksOfThisExec = new ArrayList<Integer>(tasksOfExecutor);
+    tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
+    ReduceWorker reduceWorker = null;
     for (int i : tasksOfExecutor) {
-      ReduceWorker worker = new ReduceWorker(i, jobParameters, reduce, dataGenerator);
-      reduceWorker.put(i, worker);
+      reduceWorker = new ReduceWorker(i, jobParameters, reduce, dataGenerator);
+      reduceWorkers.put(i, reduceWorker);
       // the map thread where data is produced
-      Thread mapThread = new Thread(worker);
+      Thread mapThread = new Thread(reduceWorker);
       mapThread.start();
     }
 
     // we need to progress the communication
-    while (!reduceReceiver.isDone()) {
+    while (true) {
       // progress the channel
       channel.progress();
       // we should progress the communication directive
       reduce.progress();
       if (reduceWorker != null) {
-        startSendingTime = reduceWorker.get(0).getStartSendingTime();
+        startSendingTime = reduceWorker.getStartSendingTime();
       }
     }
   }
@@ -99,6 +99,7 @@ public class AllReduceStream implements IContainer {
 
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
+      LOG.info(String.format("Initialize: " + expectedIds));
       for (Map.Entry<Integer, List<Integer>> e : expectedIds.entrySet()) {
         times.put(e.getKey(), new ArrayList<>());
       }
@@ -106,20 +107,25 @@ public class AllReduceStream implements IContainer {
 
     @Override
     public boolean receive(int target, Object object) {
-      long time = (System.nanoTime() - startSendingTime) / 1000000;
-
+      long time = (System.currentTimeMillis() - startSendingTime);
+//      LOG.info(String.format("%d times %s", id, times));
       List<Long> timesForTarget = times.get(target);
-      timesForTarget.add(System.nanoTime());
-      LOG.info(String.format("%d Finished %d", target, time));
+      timesForTarget.add(System.currentTimeMillis());
+//      LOG.info(String.format("%d Finished %d %d %d", id, target, time, times.get(target).size()));
 
-      if (timesForTarget.size() == jobParameters.getIterations()) {
-        List<Long> times = reduceWorker.get(tasksOfThisExec.get(0)).getStartOfEachMessage();
+      try {
+        if (timesForTarget.size() >= jobParameters.getIterations()) {
+          List<Long> times = reduceWorkers.get(tasksOfThisExec.get(0)).getStartOfEachMessage();
 
-        long average = 0;
-        for (int i = 0; i < times.size(); i++) {
-          average += (timesForTarget.get(i) - times.get(i));
+          long average = 0;
+          for (int i = 0; i < times.size(); i++) {
+            average += (timesForTarget.get(i) - times.get(i));
+          }
+          LOG.info(String.format("%d Average: %d", id, average / (times.size())));
+          done = true;
         }
-        LOG.info("Average: " + average / times.size());
+      } catch (Throwable r) {
+        LOG.log(Level.SEVERE, String.format("%d excpetion %s %s", id, tasksOfThisExec, reduceWorkers.keySet()), r);
       }
 
       return true;

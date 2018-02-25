@@ -79,4 +79,8 @@ public final class Utils {
     }
     return out;
   }
+
+  public synchronized static long getTime() {
+    return System.nanoTime();
+  }
 }

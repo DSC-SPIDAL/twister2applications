@@ -35,11 +35,11 @@ public class ReduceWorker implements Runnable {
 
   @Override
   public void run() {
-    startSendingTime = System.nanoTime();
+    startSendingTime = System.currentTimeMillis();
     IntData data = generator.generateData();
     int iterations = jobParameters.getIterations();
     for (int i = 0; i < iterations; i++) {
-      startOfMessages.add(System.nanoTime());
+      startOfMessages.add(System.currentTimeMillis());
       int flag = 0;
       if (i == iterations - 1) {
         flag = MessageFlags.FLAGS_LAST;
@@ -47,7 +47,11 @@ public class ReduceWorker implements Runnable {
 //      LOG.info("Sending message");
       while (!operation.send(task, data, flag)) {
         // lets wait a litte and try again
-        operation.progress();
+        try {
+          Thread.sleep(1);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
       }
     }
   }

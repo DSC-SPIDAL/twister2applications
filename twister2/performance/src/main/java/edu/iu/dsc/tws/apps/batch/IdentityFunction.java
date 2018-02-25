@@ -19,7 +19,7 @@ public class IdentityFunction implements ReduceFunction {
   @Override
   public Object reduce(Object t1, Object t2) {
     count++;
-    if (count % 100 == 0) {
+    if (count % 1000 == 0) {
       LOG.info(String.format("Partial received %d", count));
     }
     return t1;
