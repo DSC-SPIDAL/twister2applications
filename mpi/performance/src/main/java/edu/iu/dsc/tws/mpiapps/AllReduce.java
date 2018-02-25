@@ -29,9 +29,9 @@ public class AllReduce extends Collective {
     int rank = MPI.COMM_WORLD.getRank();
     ByteBuffer sendBuffer = MPI.newByteBuffer(size * 2);
     ByteBuffer receiveBuffer = MPI.newByteBuffer(size * 2);
+    String next = randomString.nextString();
 
     for (int i = 0; i < iterations; i++) {
-      String next = randomString.nextString();
       byte[] bytes = kryoSerializer.serialize(next);
       long start = 0;
       maxSend.put(0, bytes.length);
