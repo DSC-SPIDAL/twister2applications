@@ -1,6 +1,7 @@
 package edu.iu.dsc.tws.apps.stream;
 
 import edu.iu.dsc.tws.apps.batch.IdentityFunction;
+import edu.iu.dsc.tws.apps.batch.IntReduceWorker;
 import edu.iu.dsc.tws.apps.batch.ReduceWorker;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
@@ -19,8 +20,8 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class AllReduceStream implements IContainer {
-  private static final Logger LOG = Logger.getLogger(AllReduceStream.class.getName());
+public class IntAllReduceStream implements IContainer {
+  private static final Logger LOG = Logger.getLogger(IntAllReduceStream.class.getName());
 
   private DataFlowOperation reduce;
 
@@ -30,7 +31,7 @@ public class AllReduceStream implements IContainer {
 
   private long startSendingTime;
 
-  private Map<Integer, ReduceWorker> reduceWorkers = new HashMap<>();
+  private Map<Integer, IntReduceWorker> reduceWorkers = new HashMap<>();
 
   private List<Integer> tasksOfThisExec;
 
@@ -66,14 +67,14 @@ public class AllReduceStream implements IContainer {
     LOG.info(String.format("Setting up reduce dataflow operation %s %s", sources, dests));
     // this method calls the init method
     FinalReduceReceiver reduceReceiver = new FinalReduceReceiver();
-    reduce = channel.allReduce(newCfg, MessageType.OBJECT, 0, 1, sources,
+    reduce = channel.allReduce(newCfg, MessageType.INTEGER, 0, 1, sources,
         dests, middle, new IdentityFunction(), reduceReceiver, true);
 
     Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
     tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
-    ReduceWorker reduceWorker = null;
+    IntReduceWorker reduceWorker = null;
     for (int i : tasksOfExecutor) {
-      reduceWorker = new ReduceWorker(i, jobParameters, reduce, dataGenerator);
+      reduceWorker = new IntReduceWorker(i, jobParameters, reduce, dataGenerator);
       reduceWorkers.put(i, reduceWorker);
       // the map thread where data is produced
       Thread mapThread = new Thread(reduceWorker);
@@ -108,10 +109,8 @@ public class AllReduceStream implements IContainer {
     @Override
     public boolean receive(int target, Object object) {
       long time = (System.currentTimeMillis() - startSendingTime);
-//      LOG.info(String.format("%d times %s", id, times));
       List<Long> timesForTarget = times.get(target);
       timesForTarget.add(System.currentTimeMillis());
-//      LOG.info(String.format("%d Finished %d %d %d", id, target, time, times.get(target).size()));
 
       try {
         if (timesForTarget.size() >= jobParameters.getIterations()) {

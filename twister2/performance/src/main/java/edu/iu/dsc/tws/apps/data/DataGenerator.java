@@ -22,4 +22,13 @@ public class DataGenerator {
     }
     return new IntData(d);
   }
+
+  public int[] generateIntData() {
+    int s = jobParameters.getSize();
+    int[] d = new int[s];
+    for (int i = 0; i < s; i++) {
+      d[i] = i;
+    }
+    return d;
+  }
 }

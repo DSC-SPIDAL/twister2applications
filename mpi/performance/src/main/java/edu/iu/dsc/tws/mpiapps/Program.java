@@ -52,6 +52,12 @@ public class Program {
     } else if (collective == 2) {
       Gather g = new Gather(dataSize, iterations);
       g.execute();
+    } else if (collective == 3) {
+      IntAllReduce allReduce = new IntAllReduce(dataSize, iterations);
+      allReduce.execute();
+    } else if (collective == 4) {
+      AllReduce allReduce = new AllReduce(dataSize, iterations);
+      allReduce.execute();
     }
 
     long endTime = System.currentTimeMillis();

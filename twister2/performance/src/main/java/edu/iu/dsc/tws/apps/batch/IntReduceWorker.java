@@ -4,14 +4,13 @@ import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.comms.api.DataFlowOperation;
 import edu.iu.dsc.tws.comms.api.MessageFlags;
-import edu.iu.dsc.tws.comms.mpi.io.IntData;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-public class ReduceWorker implements Runnable {
-  private static final Logger LOG = Logger.getLogger(ReduceWorker.class.getName());
+public class IntReduceWorker implements Runnable {
+  private static final Logger LOG = Logger.getLogger(IntReduceWorker.class.getName());
 
   private long startSendingTime;
 
@@ -25,7 +24,7 @@ public class ReduceWorker implements Runnable {
 
   private List<Long> startOfMessages;
 
-  public ReduceWorker(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator) {
+  public IntReduceWorker(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator) {
     this.task = task;
     this.jobParameters = jobParameters;
     this.operation = op;
@@ -36,7 +35,7 @@ public class ReduceWorker implements Runnable {
   @Override
   public void run() {
     startSendingTime = System.currentTimeMillis();
-    IntData data = generator.generateData();
+    int[] data = generator.generateIntData();
     int iterations = jobParameters.getIterations();
     for (int i = 0; i < iterations; i++) {
       startOfMessages.add(System.currentTimeMillis());

@@ -7,14 +7,14 @@ import java.nio.IntBuffer;
 import java.util.HashMap;
 import java.util.Random;
 
-public class IntReduce extends Collective {
+public class IntAllReduce extends Collective {
   private KryoSerializer kryoSerializer;
 
   private Random random;
 
   private int rank;
 
-  public IntReduce(int size, int iterations) {
+  public IntAllReduce(int size, int iterations) {
     super(size, iterations);
     this.kryoSerializer = new KryoSerializer();
     this.kryoSerializer.init(new HashMap());
@@ -38,26 +38,24 @@ public class IntReduce extends Collective {
       IntBuffer receiveBuffer = MPI.newIntBuffer(size + 4);
 
       int[] bytes = new int[size];
-      System.out.println("Length: " + bytes.length);
+//      System.out.println("Length: " + bytes.length);
       maxSend.put(0, bytes.length);
       MPI.COMM_WORLD.allReduce(maxSend, maxRecv, 1, MPI.INT, MPI.MAX);
       int length = maxRecv.get(0) + 4;
-      System.out.println("Max length: " + length);
+//      System.out.println("Max length: " + length);
 
       sendBuffer.clear();
       sendBuffer.put(bytes.length);
       sendBuffer.put(bytes);
-      MPI.COMM_WORLD.reduce(sendBuffer, receiveBuffer, length, MPI.INT, reduceOp(rank), 0);
+      MPI.COMM_WORLD.allReduce(sendBuffer, receiveBuffer, length, MPI.INT, reduceOp(rank));
 
       if (rank == 0) {
         int receiveLength = receiveBuffer.get(0);
-//        System.out.println("receive length: " + receiveLength + " limit: " + receiveBuffer.limit());
         int[] receiveBytes = new int[receiveLength];
         receiveBuffer.position(receiveLength + 4);
         receiveBuffer.flip();
         receiveBuffer.get();
         receiveBuffer.get(receiveBytes);
-//        System.out.println(rcv);
       }
       receiveBuffer.clear();
       sendBuffer.clear();
@@ -77,12 +75,12 @@ public class IntReduce extends Collective {
       public void call(ByteBuffer in, ByteBuffer inOut, int i, Datatype datatype) throws MPIException {
         int length1 = in.getInt();
         int length2 = inOut.getInt();
-        System.out.println(datatype.getName());
+//        System.out.println(datatype.getName());
         byte[] firstBytes = new byte[length1 * 4];
         byte[] secondBytes = new byte[length2 * 4];
 
-        System.out.println(String.format("%d Partial:%d %d %d %d %d %d %d %d", rank, inOut.position(),
-            inOut.capacity(), inOut.limit(), length2, in.position(), in.capacity(), in.limit(), length1));
+//        System.out.println(String.format("%d Partial:%d %d %d %d %d %d %d %d", rank, inOut.position(),
+//            inOut.capacity(), inOut.limit(), length2, in.position(), in.capacity(), in.limit(), length1));
 
         in.get(firstBytes);
         inOut.get(secondBytes);
