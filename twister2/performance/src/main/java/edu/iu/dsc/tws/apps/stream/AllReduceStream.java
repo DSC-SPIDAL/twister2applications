@@ -111,7 +111,6 @@ public class AllReduceStream implements IContainer {
 //      LOG.info(String.format("%d times %s", id, times));
       List<Long> timesForTarget = times.get(target);
       timesForTarget.add(System.currentTimeMillis());
-//      LOG.info(String.format("%d Finished %d %d %d", id, target, time, times.get(target).size()));
 
       try {
         if (timesForTarget.size() >= jobParameters.getIterations()) {
@@ -123,6 +122,7 @@ public class AllReduceStream implements IContainer {
           }
           LOG.info(String.format("%d Average: %d", id, average / (times.size())));
           done = true;
+          LOG.info(String.format("%d Finished %d %d", id, target, time));
         }
       } catch (Throwable r) {
         LOG.log(Level.SEVERE, String.format("%d excpetion %s %s", id, tasksOfThisExec, reduceWorkers.keySet()), r);

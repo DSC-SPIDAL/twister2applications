@@ -120,6 +120,7 @@ public class IntAllReduceStream implements IContainer {
           for (int i = 0; i < times.size(); i++) {
             average += (timesForTarget.get(i) - times.get(i));
           }
+          LOG.info(String.format("%d Finished %d %d", id, target, time));
           LOG.info(String.format("%d Average: %d", id, average / (times.size())));
           done = true;
         }
