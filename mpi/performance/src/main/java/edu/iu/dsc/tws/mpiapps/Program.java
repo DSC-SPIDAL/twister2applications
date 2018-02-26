@@ -42,7 +42,10 @@ public class Program {
 
   public void execute(String []args) throws MPIException {
     readProgramArgs(args);
-    System.out.println(String.format("Collective %d with size %d and iteration %d", collective, dataSize, iterations));
+    int rank = MPI.COMM_WORLD.getRank();
+    if (rank == 0) {
+      System.out.println(String.format("Collective %d with size %d and iteration %d", collective, dataSize, iterations));
+    }
     long startTime = System.currentTimeMillis();
     if (collective == 0) {
       Reduce r = new Reduce(dataSize, iterations);
@@ -72,7 +75,6 @@ public class Program {
 
     long endTime = System.currentTimeMillis();
     long time = endTime - startTime;
-    int rank = MPI.COMM_WORLD.getRank();
     if (rank == 0) {
       System.out.println(String.format("Collective %d with size %d and iteration %d took %d", collective, dataSize, iterations, time));
     }
