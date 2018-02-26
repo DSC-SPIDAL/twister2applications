@@ -87,7 +87,10 @@ public class ReduceStream implements IContainer {
           channel.progress();
           // we should progress the communication directive
           reduce.progress();
-          Thread.yield();
+
+          if (reduceWorker != null) {
+            startSendingTime = reduceWorker.getStartSendingTime();
+          }
         } catch (Throwable t) {
           t.printStackTrace();
         }
