@@ -67,7 +67,7 @@ public class AllReduce implements IContainer {
     ReduceWorker reduceWorker = null;
     for (int i : tasksOfExecutor) {
       reduceWorker = new ReduceWorker(i, jobParameters, reduce, dataGenerator);
-      // the map thread where data is produced
+      // the map thread where datacols is produced
       Thread mapThread = new Thread(reduceWorker);
       mapThread.start();
     }

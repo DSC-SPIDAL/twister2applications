@@ -76,7 +76,7 @@ public class IntAllReduceStream implements IContainer {
     for (int i : tasksOfExecutor) {
       reduceWorker = new IntReduceWorker(i, jobParameters, reduce, dataGenerator);
       reduceWorkers.put(i, reduceWorker);
-      // the map thread where data is produced
+      // the map thread where datacols is produced
       Thread mapThread = new Thread(reduceWorker);
       mapThread.start();
     }

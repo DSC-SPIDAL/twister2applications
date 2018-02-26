@@ -56,7 +56,7 @@ public class Reduce implements IContainer {
           new ReduceStreamingPartialReceiver(dest,  new IdentityFunction()));
 
       for (int i = 0; i < noOfTasksPerExecutor; i++) {
-        // the map thread where data is produced
+        // the map thread where datacols is produced
         LOG.info(String.format("%d Starting %d", id, i + id * noOfTasksPerExecutor));
         Thread mapThread = new Thread(new MapWorker(i + id * noOfTasksPerExecutor));
         mapThread.start();
@@ -116,7 +116,7 @@ public class Reduce implements IContainer {
   }
 
   /**
-   * Generate data with an integer array
+   * Generate datacols with an integer array
    *
    * @return IntData
    */

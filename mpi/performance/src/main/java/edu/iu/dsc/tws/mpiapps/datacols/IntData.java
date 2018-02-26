@@ -1,4 +1,4 @@
-package edu.iu.dsc.tws.mpiapps;
+package edu.iu.dsc.tws.mpiapps.datacols;
 
 public class IntData {
   private int[] data;

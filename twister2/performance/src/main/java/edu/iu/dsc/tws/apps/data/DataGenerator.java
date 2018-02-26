@@ -10,7 +10,7 @@ public class DataGenerator {
     this.jobParameters = jobParameters;
   }
   /**
-   * Generate data with an integer array
+   * Generate datacols with an integer array
    *
    * @return IntData
    */

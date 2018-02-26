@@ -168,7 +168,7 @@ public class TeraSortContainer implements IContainer {
                 sources, dests, finalPartitionRec);
         finalPartitionRec.setMap(expectedIds);
         partitionOp.setMemoryMapped(true);
-        // now lets read all the data and distribute them to the correct tasks
+        // now lets read all the datacols and distribute them to the correct tasks
         for (int i = 0; i < noOfTasksPerExecutor; i++) {
             int taskId = i;
             LOG.info(String.format("%d Starting Distributer %d", id, i + id * noOfTasksPerExecutor));
@@ -279,7 +279,7 @@ public class TeraSortContainer implements IContainer {
     }
 
     /**
-     * This task is used to collect samples from each data partitionOp
+     * This task is used to collect samples from each datacols partitionOp
      * these collected records are used to create the key based partitiions
      */
     private class SampleKeyCollection implements Runnable {
@@ -296,7 +296,7 @@ public class TeraSortContainer implements IContainer {
         public void run() {
             try {
                 LOG.log(Level.INFO, "Starting map worker: " + id);
-//      MPIBuffer data = new MPIBuffer(1024);
+//      MPIBuffer datacols = new MPIBuffer(1024);
                 startTime = System.nanoTime();
                 String inputFile = Paths.get(inputFolder, filePrefix
                         + id + "_" + Integer.toString(localId)).toString();

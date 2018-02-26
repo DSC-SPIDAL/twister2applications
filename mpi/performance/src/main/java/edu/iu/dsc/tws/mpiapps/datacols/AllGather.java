@@ -1,16 +1,16 @@
-package edu.iu.dsc.tws.mpiapps;
+package edu.iu.dsc.tws.mpiapps.datacols;
 
+import edu.iu.dsc.tws.mpiapps.Collective;
+import edu.iu.dsc.tws.mpiapps.KryoSerializer;
+import edu.iu.dsc.tws.mpiapps.RandomString;
 import mpi.MPI;
 import mpi.MPIException;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.HashMap;
-import java.util.logging.Logger;
 
-public class Gather extends Collective {
-  private static final Logger LOG = Logger.getLogger(Gather.class.getName());
-
+public class AllGather extends Collective {
   private RandomString randomString;
 
   private KryoSerializer kryoSerializer;
@@ -19,7 +19,7 @@ public class Gather extends Collective {
 
   private long gatherTIme = 0;
 
-  public Gather(int size, int iterations) {
+  public AllGather(int size, int iterations) {
     super(size, iterations);
     this.randomString = new RandomString(size);
     this.kryoSerializer = new KryoSerializer();
@@ -60,8 +60,8 @@ public class Gather extends Collective {
 
       start = System.nanoTime();
       // now lets receive the process names of each rank
-      MPI.COMM_WORLD.gatherv(sendBuffer, bytes.length, MPI.BYTE, receiveBuffer,
-          receiveSizes, displacements, MPI.BYTE, 0);
+      MPI.COMM_WORLD.allGatherv(sendBuffer, bytes.length, MPI.BYTE, receiveBuffer,
+          receiveSizes, displacements, MPI.BYTE);
       gatherTIme += (System.nanoTime() - start);
       if (rank == 0) {
         for (int i = 0; i < receiveSizes.length; i++) {
@@ -83,3 +83,4 @@ public class Gather extends Collective {
     }
   }
 }
+
