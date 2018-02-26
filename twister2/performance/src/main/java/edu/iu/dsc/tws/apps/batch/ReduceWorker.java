@@ -44,14 +44,9 @@ public class ReduceWorker implements Runnable {
       if (i == iterations - 1) {
         flag = MessageFlags.FLAGS_LAST;
       }
-//      LOG.info("Sending message");
       while (!operation.send(task, data, flag)) {
         // lets wait a litte and try again
-        try {
-          Thread.sleep(1);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
+        operation.progress();
       }
     }
   }

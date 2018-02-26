@@ -1,6 +1,7 @@
 package edu.iu.dsc.tws.apps.stream;
 
-import edu.iu.dsc.tws.apps.data.IntData;
+import edu.iu.dsc.tws.apps.batch.ReduceWorker;
+import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
@@ -17,34 +18,47 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class Reduce implements IContainer {
-  private static final Logger LOG = Logger.getLogger(Reduce.class.getName());
-
+public class ReduceStream implements IContainer {
+  private static final Logger LOG = Logger.getLogger(ReduceStream.class.getName());
   private DataFlowOperation reduce;
+
+  private ResourcePlan resourcePlan;
 
   private int id;
 
+  private Config config;
+
   private JobParameters jobParameters;
+
+  private long startSendingTime;
+
+  private Map<Integer, ReduceWorker> reduceWorkers = new HashMap<>();
+
+  private List<Integer> tasksOfThisExec;
 
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
+    LOG.log(Level.INFO, "Starting the example with container id: " + plan.getThisId());
+
     this.jobParameters = JobParameters.build(cfg);
     this.id = containerId;
-    Integer noOfSourceTasks = jobParameters.getTaskStages().get(0);
-    int noOfTasksPerExecutor = noOfSourceTasks / plan.noOfContainers();
+    DataGenerator dataGenerator = new DataGenerator(jobParameters);
 
     // lets create the task plan
     TaskPlan taskPlan = Utils.createReduceTaskPlan(cfg, plan, jobParameters.getTaskStages());
+    LOG.info("Task plan: " + taskPlan);
     //first get the communication config file
     TWSNetwork network = new TWSNetwork(cfg, taskPlan);
+
     TWSCommunication channel = network.getDataFlowTWSCommunication();
 
     Set<Integer> sources = new HashSet<>();
+    Integer noOfSourceTasks = jobParameters.getTaskStages().get(0);
     for (int i = 0; i < noOfSourceTasks; i++) {
       sources.add(i);
     }
+    int dest = jobParameters.getTaskStages().get(0);
 
-    int dest = noOfSourceTasks;
     Map<String, Object> newCfg = new HashMap<>();
 
     LOG.info("Setting up reduce dataflow operation");
@@ -53,12 +67,16 @@ public class Reduce implements IContainer {
       // I think this is wrong
       reduce = channel.reduce(newCfg, MessageType.OBJECT, 0, sources,
           dest, new ReduceStreamingFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()),
-          new ReduceStreamingPartialReceiver(dest,  new IdentityFunction()));
+          new ReduceStreamingPartialReceiver(dest, new IdentityFunction()));
 
-      for (int i = 0; i < noOfTasksPerExecutor; i++) {
+      Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
+      tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
+      ReduceWorker reduceWorker = null;
+      for (int i : tasksOfExecutor) {
+        reduceWorker = new ReduceWorker(i, jobParameters, reduce, dataGenerator);
+        reduceWorkers.put(i, reduceWorker);
         // the map thread where datacols is produced
-        LOG.info(String.format("%d Starting %d", id, i + id * noOfTasksPerExecutor));
-        Thread mapThread = new Thread(new MapWorker(i + id * noOfTasksPerExecutor));
+        Thread mapThread = new Thread(reduceWorker);
         mapThread.start();
       }
 
@@ -79,68 +97,39 @@ public class Reduce implements IContainer {
     }
   }
 
-  /**
-   * We are running the map in a separate thread
-   */
-  private class MapWorker implements Runnable {
-    private int task = 0;
-    MapWorker(int task) {
-      this.task = task;
-    }
+  public class FinalReduceReceiver implements ReduceReceiver {
+    Map<Integer, List<Long>> times = new HashMap<>();
 
-    @Override
-    public void run() {
-      try {
-        LOG.log(Level.INFO, "Starting map worker: " + id);
-        IntData data = generateData();
-        for (int i = 0; i < 11000; i++) {
-          // lets generate a message
-          while (!reduce.send(task, data, 0)) {
-            // lets wait a litte and try again
-            try {
-              Thread.sleep(1);
-            } catch (InterruptedException e) {
-              e.printStackTrace();
-            }
-          }
-          if (i % 1000 == 0) {
-            LOG.info(String.format("%d sent %d", id, i));
-          }
-          Thread.yield();
-        }
-        LOG.info(String.format("%d Done sending", id));
-      } catch (Throwable t) {
-        t.printStackTrace();
-      }
-    }
-  }
-
-  /**
-   * Generate datacols with an integer array
-   *
-   * @return IntData
-   */
-  private IntData generateData() {
-    int s = 64000;
-    int[] d = new int[s];
-    for (int i = 0; i < s; i++) {
-      d[i] = i;
-    }
-    return new IntData(d);
-  }
-
-  public static class FinalReduceReceiver implements ReduceReceiver {
-    private int count = 0;
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
+      LOG.info(String.format("Initialize: " + expectedIds));
+      for (Map.Entry<Integer, List<Integer>> e : expectedIds.entrySet()) {
+        times.put(e.getKey(), new ArrayList<>());
+      }
     }
 
     @Override
     public boolean receive(int target, Object object) {
-      count++;
-      if (count % 100 == 0) {
-        LOG.info(String.format("Received %d", count));
+      long time = (System.currentTimeMillis() - startSendingTime);
+//      LOG.info(String.format("%d times %s", id, times));
+      List<Long> timesForTarget = times.get(target);
+      timesForTarget.add(System.currentTimeMillis());
+
+      try {
+        if (timesForTarget.size() >= jobParameters.getIterations()) {
+          List<Long> times = reduceWorkers.get(tasksOfThisExec.get(0)).getStartOfEachMessage();
+
+          long average = 0;
+          for (int i = 0; i < times.size(); i++) {
+            average += (timesForTarget.get(i) - times.get(i));
+          }
+          LOG.info(String.format("%d Average: %d", id, average / (times.size())));
+          LOG.info(String.format("%d Finished %d %d", id, target, time));
+        }
+      } catch (Throwable r) {
+        LOG.log(Level.SEVERE, String.format("%d excpetion %s %s", id, tasksOfThisExec, reduceWorkers.keySet()), r);
       }
+
       return true;
     }
   }
