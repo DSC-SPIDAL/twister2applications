@@ -58,6 +58,9 @@ public class Program {
     } else if (collective == 4) {
       AllReduce allReduce = new AllReduce(dataSize, iterations);
       allReduce.execute();
+    }  else if (collective == 5) {
+      AllGather allReduce = new AllGather(dataSize, iterations);
+      allReduce.execute();
     }
 
     long endTime = System.currentTimeMillis();
