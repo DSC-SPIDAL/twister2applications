@@ -24,11 +24,17 @@ import edu.iu.dsc.tws.comms.mpi.io.KeyedContent;
 import edu.iu.dsc.tws.comms.mpi.io.gather.GatherBatchFinalReceiver;
 import edu.iu.dsc.tws.comms.mpi.io.gather.GatherBatchPartialReceiver;
 
+import edu.iu.dsc.tws.data.memory.OperationMemoryManager;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.hadoop.io.ObjectWritable;
 import org.apache.hadoop.io.Text;
 
+import java.io.DataOutputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,7 +61,7 @@ public class TeraSortContainer implements IContainer {
     private ResourcePlan resourcePlan;
     private static final int NO_OF_TASKS = 8;
 
-    private int noOfTasksPerExecutor = 2;
+    private int noOfTasksPerExecutor = 2                                                                                                                                                                                                                                                                                                                                    ;
     private long startTime = 0;
     private long startTimePartition = 0;
     private long endTimePartition = 0;
@@ -161,7 +167,7 @@ public class TeraSortContainer implements IContainer {
         partitionOp = channel.partition(newCfg, MessageType.BYTE, MessageType.BYTE, edgeCount,
                 sources, dests, finalPartitionRec);
         finalPartitionRec.setMap(expectedIds);
-//        partitionOp.setMemoryMapped(true);
+        partitionOp.setMemoryMapped(true);
         // now lets read all the data and distribute them to the correct tasks
         for (int i = 0; i < noOfTasksPerExecutor; i++) {
             int taskId = i;
@@ -355,12 +361,12 @@ public class TeraSortContainer implements IContainer {
         public void run() {
             String inputFile = Paths.get(inputFolder, filePrefix
                     + id + "_" + Integer.toString(localId)).toString();
-            String outputFile = Paths.get(outputFolder, filePrefix + Integer.toString(id)).toString();
+
             List<Record> records = DataLoader.load(id, inputFile);
             //sort the local records
             //Collections.sort(records);
             KeyedContent keyedContent = null;
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 200; i++) {
                 Record text = records.get(i);
                 int partition = tree.getPartition(text.getKey());
                 keyedContent = new KeyedContent(text.getKey().getBytes(), text.getText().getBytes(),
@@ -482,12 +488,15 @@ public class TeraSortContainer implements IContainer {
 
     private class FinalPartitionReceiver implements MessageReceiver {
         private Map<Integer, Map<Integer, Boolean>> finished;
+        private String outputFile;
         private long start = System.nanoTime();
         int count = 0;
 
         @Override
         public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
             finished = new ConcurrentHashMap<>();
+            //TODO need to remove last record otherwise valsort will not show correct order
+            outputFile = Paths.get(outputFolder, filePrefix + Integer.toString(id)).toString();
             for (Integer integer : expectedIds.keySet()) {
                 Map<Integer, Boolean> perTarget = new ConcurrentHashMap<>();
                 for (Integer integer1 : expectedIds.get(integer)) {
@@ -506,10 +515,53 @@ public class TeraSortContainer implements IContainer {
 
             if (((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) && isAllFinished(target)) {
                 System.out.printf("Total Number of records for Task %d is : %d \n", target, count);
+                if (object instanceof OperationMemoryManager) {
+                    OperationMemoryManager opmm = (OperationMemoryManager) object;
+//                    System.out.println("Operation ID" + opmm.getOperationID());
+                    String taskout = outputFile + "_" + target;
+                    Iterator<Object> data = opmm.iterator();
+                    Object temp;
+                    List<Record> recordList = new ArrayList<Record>();
+                    Record[] recordsArray;
+                    Record tempRecord;
+                    while (data.hasNext()) {
+                        temp = data.next();
+                        if (temp instanceof ImmutablePair) {
+                            ImmutablePair<Object, Object> dataPair = (ImmutablePair<Object, Object>) temp;
+                            if (dataPair.getValue() instanceof List) {
+                                for (Object databytes : (List) dataPair.getValue()) {
+                                    tempRecord = new Record(new Text((byte[]) dataPair.getKey()),
+                                            new Text(((byte[]) databytes)));
+                                    recordList.add(tempRecord);
+                                }
+
+
+                            }
+                        }
+                    }
+                    save(recordList.toArray(new Record[0]), taskout);
+                    System.out.println("DataList Legth : " + recordList.size());
+                }
                 reduceDone = true;
             }
             count++;
             return true;
+        }
+
+        public void save(Record[] records, String outFileName) {
+            DataOutputStream os;
+            try {
+                os = new DataOutputStream(new FileOutputStream(outFileName));
+                for (int i = 0; i < records.length; i++) {
+                    Record r = records[i];
+                    os.write(r.getKey().getBytes(), 0, Record.KEY_SIZE);
+                    os.write(r.getText().getBytes(), 0, Record.DATA_SIZE);
+                }
+                os.close();
+            } catch (IOException e) {
+                LOG.log(Level.SEVERE, "Failed write to disc", e);
+                throw new RuntimeException(e);
+            }
         }
 
         private boolean isAllFinished(int target) {
@@ -533,5 +585,7 @@ public class TeraSortContainer implements IContainer {
                 finished.put(integer, perTarget);
             }
         }
+
+
     }
 }
