@@ -26,6 +26,7 @@ public class Program {
     int col = Integer.parseInt(args[3]);
     boolean stream = Boolean.parseBoolean(args[4]);
     String taskStages = args[5];
+    String gap = args[6];
 
     // build JobConfig
     JobConfig jobConfig = new JobConfig();
@@ -34,6 +35,7 @@ public class Program {
     jobConfig.put(Constants.ARGS_SIZE, Integer.toString(size));
     jobConfig.put(Constants.ARGS_CONTAINERS, Integer.toString(containers));
     jobConfig.put(Constants.ARGS_TASK_STAGES, taskStages);
+    jobConfig.put(Constants.ARGS_GAP, gap);
 
     // build the job
     BasicJob basicJob = null;
@@ -69,7 +71,7 @@ public class Program {
     } else {
       if (col == 0) {
         basicJob = BasicJob.newBuilder()
-            .setName("all-reduce-stream-bench")
+            .setName("reduce-stream-bench")
             .setContainerClass(ReduceStream.class.getName())
             .setRequestResource(new ResourceContainer(2, 1024), containers)
             .setConfig(jobConfig)

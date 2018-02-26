@@ -3,6 +3,7 @@ package edu.iu.dsc.tws.apps.stream;
 import edu.iu.dsc.tws.apps.batch.IdentityFunction;
 import edu.iu.dsc.tws.apps.batch.ReduceWorker;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
+import edu.iu.dsc.tws.apps.data.DataSave;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
@@ -15,6 +16,7 @@ import edu.iu.dsc.tws.comms.core.TaskPlan;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 
+import javax.xml.crypto.Data;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -115,11 +117,14 @@ public class AllReduceStream implements IContainer {
       try {
         if (timesForTarget.size() >= jobParameters.getIterations()) {
           List<Long> times = reduceWorkers.get(tasksOfThisExec.get(0)).getStartOfEachMessage();
-
+          List<Long> latencies = new ArrayList<>();
           long average = 0;
           for (int i = 0; i < times.size(); i++) {
-            average += (timesForTarget.get(i) - times.get(i));
+            long l = timesForTarget.get(i) - times.get(i);
+            average += l;
+            latencies.add(l);
           }
+          DataSave.saveList("allreaduce-stream.txt", latencies);
           LOG.info(String.format("%d Average: %d", id, average / (times.size())));
           done = true;
           LOG.info(String.format("%d Finished %d %d", id, target, time));

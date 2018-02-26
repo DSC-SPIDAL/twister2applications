@@ -25,12 +25,15 @@ public class ReduceWorker implements Runnable {
 
   private List<Long> startOfMessages;
 
+  private int gap;
+
   public ReduceWorker(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator) {
     this.task = task;
     this.jobParameters = jobParameters;
     this.operation = op;
     this.generator = dataGenerator;
     this.startOfMessages = new ArrayList<>();
+    this.gap = jobParameters.getGap();
   }
 
   @Override
@@ -47,6 +50,13 @@ public class ReduceWorker implements Runnable {
       while (!operation.send(task, data, flag)) {
         // lets wait a litte and try again
         operation.progress();
+      }
+      if (gap > 0) {
+        try {
+          Thread.sleep(2);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
       }
     }
   }
