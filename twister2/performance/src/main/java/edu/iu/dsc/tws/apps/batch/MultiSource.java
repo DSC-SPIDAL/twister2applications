@@ -45,11 +45,14 @@ public class MultiSource implements Runnable {
     int nextIndex = 0;
     for (int i = 0; i < iterations; i++) {
       nextIndex = nextIndex % noOfDestinations;
+      if (i >= iterations - destinations.size()) {
+        System.out.println(String.format("i %d iter %d nextIndex %d", i, iterations, nextIndex));
+        nextIndex = iterations - i - 1;
+      }
       int dest = destinations.get(nextIndex);
       nextIndex++;
-
       int flag = 0;
-      if (i == iterations - 1) {
+      if (i >= iterations - destinations.size()) {
         flag = MessageFlags.FLAGS_LAST;
       }
       while (!operation.send(task, data, flag, dest)) {
