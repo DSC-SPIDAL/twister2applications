@@ -1,12 +1,9 @@
 package edu.iu.dsc.tws.mpiapps.cols;
 
 import edu.iu.dsc.tws.mpiapps.Collective;
-import edu.iu.dsc.tws.mpiapps.KryoSerializer;
-import edu.iu.dsc.tws.mpiapps.RandomString;
 import mpi.*;
 
 import java.nio.IntBuffer;
-import java.util.HashMap;
 
 public class AllReduce extends Collective {
 

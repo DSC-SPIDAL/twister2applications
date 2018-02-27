@@ -1,8 +1,9 @@
 package edu.iu.dsc.tws.mpiapps.datacols;
 
 import edu.iu.dsc.tws.mpiapps.Collective;
+import edu.iu.dsc.tws.mpiapps.DataGenUtils;
 import edu.iu.dsc.tws.mpiapps.KryoSerializer;
-import edu.iu.dsc.tws.mpiapps.RandomString;
+import edu.iu.dsc.tws.mpiapps.data.IntData;
 import mpi.*;
 
 import java.nio.ByteBuffer;
@@ -10,8 +11,6 @@ import java.nio.IntBuffer;
 import java.util.HashMap;
 
 public class AllReduce extends Collective {
-  private RandomString randomString;
-
   private KryoSerializer kryoSerializer;
 
   private long allReduceTime = 0;
@@ -20,7 +19,6 @@ public class AllReduce extends Collective {
 
   public AllReduce(int size, int iterations) {
     super(size, iterations);
-    this.randomString = new RandomString(size);
     this.kryoSerializer = new KryoSerializer();
     this.kryoSerializer.init(new HashMap());
   }
@@ -30,9 +28,9 @@ public class AllReduce extends Collective {
     IntBuffer maxSend = MPI.newIntBuffer(1);
     IntBuffer maxRecv = MPI.newIntBuffer(1);
     int rank = MPI.COMM_WORLD.getRank();
-    ByteBuffer sendBuffer = MPI.newByteBuffer(size * 2);
-    ByteBuffer receiveBuffer = MPI.newByteBuffer(size * 2);
-    String next = randomString.nextString();
+    ByteBuffer sendBuffer = MPI.newByteBuffer(size * 5);
+    ByteBuffer receiveBuffer = MPI.newByteBuffer(size * 5);
+    Object next = DataGenUtils.generateData(size);
 
     for (int i = 0; i < iterations; i++) {
       byte[] bytes = kryoSerializer.serialize(next);
@@ -60,7 +58,7 @@ public class AllReduce extends Collective {
         receiveBuffer.flip();
         receiveBuffer.getInt();
         receiveBuffer.get(receiveBytes);
-        String rcv = (String) kryoSerializer.deserialize(receiveBytes);
+        IntData rcv = (IntData) kryoSerializer.deserialize(receiveBytes);
       }
       receiveBuffer.clear();
       sendBuffer.clear();
@@ -89,8 +87,8 @@ public class AllReduce extends Collective {
         in.get(firstBytes);
         inOut.get(secondBytes);
 
-        String firstString = (String) kryoSerializer.deserialize(firstBytes);
-        String secondString = (String) kryoSerializer.deserialize(secondBytes);
+        IntData firstString = (IntData) kryoSerializer.deserialize(firstBytes);
+        IntData secondString = (IntData) kryoSerializer.deserialize(secondBytes);
         secondBytes = kryoSerializer.serialize(secondString);
 
         inOut.clear();
