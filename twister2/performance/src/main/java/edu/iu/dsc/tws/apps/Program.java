@@ -7,6 +7,7 @@ import edu.iu.dsc.tws.apps.batch.AllReduce;
 import edu.iu.dsc.tws.apps.batch.MultiReduce;
 import edu.iu.dsc.tws.apps.batch.Reduce;
 import edu.iu.dsc.tws.apps.stream.AllReduceStream;
+import edu.iu.dsc.tws.apps.stream.GatherStream;
 import edu.iu.dsc.tws.apps.stream.IntAllReduceStream;
 import edu.iu.dsc.tws.apps.stream.ReduceStream;
 import edu.iu.dsc.tws.common.config.Config;
@@ -91,6 +92,15 @@ public class Program {
         basicJob = BasicJob.newBuilder()
             .setName("all-reduce-stream-bench")
             .setContainerClass(IntAllReduceStream.class.getName())
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
+            .setConfig(jobConfig)
+            .build();
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
+      } else if (col == 3) {
+        basicJob = BasicJob.newBuilder()
+            .setName("gather-stream-bench")
+            .setContainerClass(GatherStream.class.getName())
             .setRequestResource(new ResourceContainer(2, 1024), containers)
             .setConfig(jobConfig)
             .build();

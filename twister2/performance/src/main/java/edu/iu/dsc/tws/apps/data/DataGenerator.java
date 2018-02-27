@@ -1,13 +1,19 @@
 package edu.iu.dsc.tws.apps.data;
 
+import edu.iu.dsc.tws.apps.common.RandomString;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.comms.mpi.io.IntData;
+
+import java.util.Random;
 
 public class DataGenerator {
   JobParameters jobParameters;
 
+  RandomString randomString;
+
   public DataGenerator(JobParameters jobParameters) {
     this.jobParameters = jobParameters;
+    randomString = new RandomString(jobParameters.getSize(), new Random(), RandomString.alphanum);
   }
   /**
    * Generate datacols with an integer array
@@ -30,5 +36,9 @@ public class DataGenerator {
       d[i] = i;
     }
     return d;
+  }
+
+  public String generateStringData() {
+    return randomString.nextString();
   }
 }

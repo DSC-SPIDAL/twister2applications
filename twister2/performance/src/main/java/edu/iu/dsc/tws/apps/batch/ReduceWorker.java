@@ -27,6 +27,18 @@ public class ReduceWorker implements Runnable {
 
   private int gap;
 
+  private boolean genString;
+
+  public ReduceWorker(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator, boolean getString) {
+    this.task = task;
+    this.jobParameters = jobParameters;
+    this.operation = op;
+    this.generator = dataGenerator;
+    this.startOfMessages = new ArrayList<>();
+    this.gap = jobParameters.getGap();
+    this.genString = getString;
+  }
+
   public ReduceWorker(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator) {
     this.task = task;
     this.jobParameters = jobParameters;
@@ -34,6 +46,7 @@ public class ReduceWorker implements Runnable {
     this.generator = dataGenerator;
     this.startOfMessages = new ArrayList<>();
     this.gap = jobParameters.getGap();
+    this.genString = false;
   }
 
   @Override
