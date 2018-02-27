@@ -37,9 +37,8 @@ public class Gather extends Collective {
     ByteBuffer receiveBuffer = MPI.newByteBuffer(size * 2 * worldSize);
     IntBuffer countReceive = MPI.newIntBuffer(worldSize);
     long start = 0;
+    String next = randomString.nextString();
     for (int itr = 0; itr < iterations; itr++) {
-
-      String next = randomString.nextString();
       byte[] bytes = kryoSerializer.serialize(next);
 //      LOG.log(Level.INFO, String.format("%d Byte size: %d", rank, bytes.length));
       // now calculate the total number of characters
