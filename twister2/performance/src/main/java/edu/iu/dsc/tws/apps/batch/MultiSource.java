@@ -9,7 +9,7 @@ import edu.iu.dsc.tws.comms.mpi.io.IntData;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MultiReduceWorker implements Runnable {
+public class MultiSource implements Runnable {
   private long startSendingTime;
 
   private int task;
@@ -22,7 +22,7 @@ public class MultiReduceWorker implements Runnable {
 
   private List<Integer> destinations;
 
-  public MultiReduceWorker(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator) {
+  public MultiSource(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator) {
     this.task = task;
     this.jobParameters = jobParameters;
     this.operation = op;

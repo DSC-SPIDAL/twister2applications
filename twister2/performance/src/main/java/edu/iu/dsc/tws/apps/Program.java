@@ -4,6 +4,7 @@ import edu.iu.dsc.tws.api.JobConfig;
 import edu.iu.dsc.tws.api.Twister2Submitter;
 import edu.iu.dsc.tws.api.basic.job.BasicJob;
 import edu.iu.dsc.tws.apps.batch.AllReduce;
+import edu.iu.dsc.tws.apps.batch.MultiGather;
 import edu.iu.dsc.tws.apps.batch.MultiReduce;
 import edu.iu.dsc.tws.apps.batch.Reduce;
 import edu.iu.dsc.tws.apps.stream.*;
@@ -60,6 +61,15 @@ public class Program {
         basicJob = BasicJob.newBuilder()
             .setName("multi-reduce-bench")
             .setContainerClass(MultiReduce.class.getName())
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
+            .setConfig(jobConfig)
+            .build();
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
+      }  else if (col == 4) {
+        basicJob = BasicJob.newBuilder()
+            .setName("multi-gather-bench")
+            .setContainerClass(MultiGather.class.getName())
             .setRequestResource(new ResourceContainer(2, 1024), containers)
             .setConfig(jobConfig)
             .build();

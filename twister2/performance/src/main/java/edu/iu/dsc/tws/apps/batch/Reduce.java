@@ -60,11 +60,11 @@ public class Reduce implements IContainer {
         new ReduceBatchPartialReceiver(dest, new IdentityFunction()));
 
     Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
-    ReduceWorker reduceWorker = null;
+    Source source = null;
     for (int i : tasksOfExecutor) {
-      reduceWorker = new ReduceWorker(i, jobParameters, reduce, dataGenerator);
+      source = new Source(i, jobParameters, reduce, dataGenerator);
       // the map thread where datacols is produced
-      Thread mapThread = new Thread(reduceWorker);
+      Thread mapThread = new Thread(source);
       mapThread.start();
     }
 
@@ -74,8 +74,8 @@ public class Reduce implements IContainer {
         channel.progress();
         // we should progress the communication directive
         reduce.progress();
-        if (reduceWorker != null) {
-          startSendingTime = reduceWorker.getStartSendingTime();
+        if (source != null) {
+          startSendingTime = source.getStartSendingTime();
         }
     }
   }

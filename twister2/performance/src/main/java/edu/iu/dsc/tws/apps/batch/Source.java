@@ -4,14 +4,13 @@ import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.comms.api.DataFlowOperation;
 import edu.iu.dsc.tws.comms.api.MessageFlags;
-import edu.iu.dsc.tws.comms.mpi.io.IntData;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-public class ReduceWorker implements Runnable {
-  private static final Logger LOG = Logger.getLogger(ReduceWorker.class.getName());
+public class Source implements Runnable {
+  private static final Logger LOG = Logger.getLogger(Source.class.getName());
 
   private long startSendingTime;
 
@@ -29,7 +28,7 @@ public class ReduceWorker implements Runnable {
 
   private boolean genString;
 
-  public ReduceWorker(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator, boolean getString) {
+  public Source(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator, boolean getString) {
     this.task = task;
     this.jobParameters = jobParameters;
     this.operation = op;
@@ -39,7 +38,7 @@ public class ReduceWorker implements Runnable {
     this.genString = getString;
   }
 
-  public ReduceWorker(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator) {
+  public Source(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator) {
     this.task = task;
     this.jobParameters = jobParameters;
     this.operation = op;

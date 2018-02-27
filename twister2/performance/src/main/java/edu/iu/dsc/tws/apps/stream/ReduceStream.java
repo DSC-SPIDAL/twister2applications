@@ -1,6 +1,6 @@
 package edu.iu.dsc.tws.apps.stream;
 
-import edu.iu.dsc.tws.apps.batch.ReduceWorker;
+import edu.iu.dsc.tws.apps.batch.Source;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.data.DataSave;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
@@ -33,7 +33,7 @@ public class ReduceStream implements IContainer {
 
   private long startSendingTime;
 
-  private Map<Integer, ReduceWorker> reduceWorkers = new HashMap<>();
+  private Map<Integer, Source> reduceWorkers = new HashMap<>();
 
   private List<Integer> tasksOfThisExec;
 
@@ -72,12 +72,12 @@ public class ReduceStream implements IContainer {
 
       Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
       tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
-      ReduceWorker reduceWorker = null;
+      Source source = null;
       for (int i : tasksOfExecutor) {
-        reduceWorker = new ReduceWorker(i, jobParameters, reduce, dataGenerator);
-        reduceWorkers.put(i, reduceWorker);
+        source = new Source(i, jobParameters, reduce, dataGenerator);
+        reduceWorkers.put(i, source);
         // the map thread where datacols is produced
-        Thread mapThread = new Thread(reduceWorker);
+        Thread mapThread = new Thread(source);
         mapThread.start();
       }
 
@@ -89,8 +89,8 @@ public class ReduceStream implements IContainer {
           // we should progress the communication directive
           reduce.progress();
 
-          if (reduceWorker != null) {
-            startSendingTime = reduceWorker.getStartSendingTime();
+          if (source != null) {
+            startSendingTime = source.getStartSendingTime();
           }
         } catch (Throwable t) {
           t.printStackTrace();

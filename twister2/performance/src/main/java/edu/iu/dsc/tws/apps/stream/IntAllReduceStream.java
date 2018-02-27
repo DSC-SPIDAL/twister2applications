@@ -2,7 +2,6 @@ package edu.iu.dsc.tws.apps.stream;
 
 import edu.iu.dsc.tws.apps.batch.IdentityFunction;
 import edu.iu.dsc.tws.apps.batch.IntReduceWorker;
-import edu.iu.dsc.tws.apps.batch.ReduceWorker;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
