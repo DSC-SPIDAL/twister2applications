@@ -52,7 +52,12 @@ public class ReduceWorker implements Runnable {
   @Override
   public void run() {
     startSendingTime = System.currentTimeMillis();
-    IntData data = generator.generateData();
+    Object data;
+    if (genString) {
+      data = generator.generateStringData();
+    } else {
+      data = generator.generateData();
+    }
     int iterations = jobParameters.getIterations();
     for (int i = 0; i < iterations; i++) {
       startOfMessages.add(System.currentTimeMillis());
