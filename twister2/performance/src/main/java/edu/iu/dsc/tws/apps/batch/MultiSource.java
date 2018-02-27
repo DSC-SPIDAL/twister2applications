@@ -46,7 +46,6 @@ public class MultiSource implements Runnable {
     for (int i = 0; i < iterations; i++) {
       nextIndex = nextIndex % noOfDestinations;
       if (i >= iterations - destinations.size()) {
-        System.out.println(String.format("i %d iter %d nextIndex %d", i, iterations, nextIndex));
         nextIndex = iterations - i - 1;
       }
       int dest = destinations.get(nextIndex);
