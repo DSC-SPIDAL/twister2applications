@@ -71,6 +71,9 @@ public class Program {
     } else if (collective == 7) {
       edu.iu.dsc.tws.mpiapps.cols.AllReduce allReduce = new edu.iu.dsc.tws.mpiapps.cols.AllReduce(dataSize, iterations);
       allReduce.execute();
+    } else if (collective == 8) {
+      AllGather allGather = new AllGather(dataSize, iterations);
+      allGather.execute();
     }
 
     long endTime = System.currentTimeMillis();

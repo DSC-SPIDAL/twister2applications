@@ -7,12 +7,11 @@ import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.comms.api.DataFlowOperation;
-import edu.iu.dsc.tws.comms.api.GatherBatchReceiver;
+import edu.iu.dsc.tws.comms.api.MessageReceiver;
 import edu.iu.dsc.tws.comms.api.MessageType;
 import edu.iu.dsc.tws.comms.core.TWSCommunication;
 import edu.iu.dsc.tws.comms.core.TWSNetwork;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
-import edu.iu.dsc.tws.comms.mpi.io.gather.StreamingFinalGatherReceiver;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 
@@ -60,7 +59,12 @@ public class AllGatherStream implements IContainer {
     for (int i = 0; i < noOfSourceTasks; i++) {
       sources.add(i);
     }
-    int dest = jobParameters.getTaskStages().get(0);
+    Set<Integer> dests = new HashSet<>();
+    int noOfDestTasks = jobParameters.getTaskStages().get(1);
+    for (int i = 0; i < noOfDestTasks; i++) {
+      dests.add(i + sources.size());
+    }
+    int middle = jobParameters.getTaskStages().get(0) + jobParameters.getTaskStages().get(1);
 
     Map<String, Object> newCfg = new HashMap<>();
 
@@ -68,8 +72,8 @@ public class AllGatherStream implements IContainer {
     try {
       // this method calls the init method
       // I think this is wrong
-      reduce = channel.gather(newCfg, MessageType.OBJECT, 0, sources,
-          dest, new StreamingFinalGatherReceiver(new FinalReduceReceiver()));
+      reduce = channel.allGather(newCfg, MessageType.OBJECT, 0, 1, sources,
+          dests, middle, new FinalReduceReceiver());
 
       Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
       tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
@@ -102,7 +106,7 @@ public class AllGatherStream implements IContainer {
     }
   }
 
-  public class FinalReduceReceiver implements GatherBatchReceiver {
+  public class FinalReduceReceiver implements MessageReceiver {
     Map<Integer, List<Long>> times = new HashMap<>();
 
     @Override
@@ -114,9 +118,8 @@ public class AllGatherStream implements IContainer {
     }
 
     @Override
-    public void receive(int target, Iterator<Object> iterator) {
+    public boolean onMessage(int source, int path, int target, int flags, Object object) {
       long time = (System.currentTimeMillis() - startSendingTime);
-//      LOG.info(String.format("%d times %s", id, times));
       List<Long> timesForTarget = times.get(target);
       timesForTarget.add(System.currentTimeMillis());
 
@@ -137,7 +140,13 @@ public class AllGatherStream implements IContainer {
       } catch (Throwable r) {
         LOG.log(Level.SEVERE, String.format("%d excpetion %s %s", id, tasksOfThisExec, reduceWorkers.keySet()), r);
       }
+
+      return true;
     }
 
+    @Override
+    public void progress() {
+
+    }
   }
 }
