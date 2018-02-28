@@ -1,6 +1,7 @@
 package edu.iu.dsc.tws.flinkapps;
 
 import edu.iu.dsc.tws.flinkapps.batch.*;
+import edu.iu.dsc.tws.flinkapps.iter.ReduceIterative;
 import edu.iu.dsc.tws.flinkapps.stream.StreamingReduce;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.utils.ParameterTool;
@@ -16,6 +17,8 @@ public class Program {
       batch(params);
     } else if (mode == 1) {
       streaming(params);
+    } else if (mode == 2) {
+      iterative(params);
     }
   }
 
@@ -67,6 +70,20 @@ public class Program {
 
     StreamingReduce streamingReduce = new StreamingReduce(size, itr, env, "");
     streamingReduce.execute();
+    env.execute();
+  }
+
+  private static void iterative(ParameterTool params) throws Exception {
+    ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+    env.getConfig().setGlobalJobParameters(params);
+
+    int size = params.getInt("size", 1);
+    int itr = params.getInt("itr", 10);
+    int col = params.getInt("col", 0);
+    String out = params.get("out", "out.txt");
+
+    ReduceIterative  reduce = new ReduceIterative(size, itr, env, out);
+    reduce.execute();
     env.execute();
   }
 }
