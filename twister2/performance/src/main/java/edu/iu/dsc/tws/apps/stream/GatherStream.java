@@ -38,7 +38,7 @@ public class GatherStream implements IContainer {
 
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
-    LOG.log(Level.INFO, "Starting the example with container id: " + plan.getThisId());
+    LOG.log(Level.FINE, "Starting the example with container id: " + plan.getThisId());
 
     this.jobParameters = JobParameters.build(cfg);
     this.id = containerId;
@@ -46,7 +46,7 @@ public class GatherStream implements IContainer {
 
     // lets create the task plan
     TaskPlan taskPlan = Utils.createReduceTaskPlan(cfg, plan, jobParameters.getTaskStages());
-    LOG.info("Task plan: " + taskPlan);
+    LOG.log(Level.FINE,"Task plan: " + taskPlan);
     //first get the communication config file
     TWSNetwork network = new TWSNetwork(cfg, taskPlan);
 
@@ -61,7 +61,7 @@ public class GatherStream implements IContainer {
 
     Map<String, Object> newCfg = new HashMap<>();
 
-    LOG.info("Setting up reduce dataflow operation");
+    LOG.log(Level.FINE,"Setting up reduce dataflow operation");
     try {
       // this method calls the init method
       // I think this is wrong
@@ -104,7 +104,7 @@ public class GatherStream implements IContainer {
 
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
-      LOG.info(String.format("Initialize: " + expectedIds));
+      LOG.log(Level.FINE, String.format("Initialize: " + expectedIds));
       for (Map.Entry<Integer, List<Integer>> e : expectedIds.entrySet()) {
         times.put(e.getKey(), new ArrayList<>());
       }
