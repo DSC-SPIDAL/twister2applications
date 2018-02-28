@@ -43,7 +43,7 @@ public class NBReduce extends Collective {
     int rank = MPI.COMM_WORLD.getRank();
     Object next = DataGenUtils.generateData(size);
 
-    int maxPending = 16;
+    int maxPending = 1;
     Queue<ByteBuffer> sendBuffers = new ArrayBlockingQueue<>(maxPending);
     Queue<ByteBuffer> recvBuffers = new ArrayBlockingQueue<>(maxPending);
 
@@ -65,6 +65,8 @@ public class NBReduce extends Collective {
         if (sendBuffer == null || receiveBuffer == null) {
           throw new RuntimeException("Buffer null");
         }
+        sendBuffer.clear();
+        receiveBuffer.clear();
 
         sendBuffer.putInt(bytes.length);
         sendBuffer.put(bytes);
@@ -76,30 +78,32 @@ public class NBReduce extends Collective {
         receiveRequestQueue.add(new RequestInfo(sendBuffer, receiveBuffer, bytes, dataR));
       }
 
-      RequestInfo receiveRequest = receiveRequestQueue.peek();
-      if (receiveRequest.request.testStatus() != null) {
-        RequestInfo info = receiveRequestQueue.poll();
+      while (receiveRequestQueue.size() >= maxPending) {
+        RequestInfo receiveRequest = receiveRequestQueue.peek();
+        if (receiveRequest != null && receiveRequest.request != null && receiveRequest.request.testStatus() != null) {
+          RequestInfo info = receiveRequestQueue.poll();
 
-        ByteBuffer sendBuffer = info.sendBuffer;
-        ByteBuffer receiveBuffer = info.recvBuffer;
+          ByteBuffer sendBuffer = info.sendBuffer;
+          ByteBuffer receiveBuffer = info.recvBuffer;
 
-        sendBuffer.clear();
-        if (rank == 0) {
-          int receiveLength = receiveBuffer.getInt(0);
-          System.out.println("Receve: " + receiveLength);
-          byte[] receiveBytes = new byte[receiveLength];
-          receiveBuffer.position(receiveLength + 4);
-          receiveBuffer.flip();
-          receiveBuffer.getInt();
-          receiveBuffer.get(receiveBytes);
-          IntData rcv = (IntData) kryoSerializer.deserialize(receiveBytes);
+          sendBuffer.clear();
+          if (rank == 0) {
+            int receiveLength = receiveBuffer.getInt(0);
+            System.out.println("Receve: " + receiveLength);
+            byte[] receiveBytes = new byte[receiveLength];
+            receiveBuffer.position(receiveLength + 4);
+            receiveBuffer.flip();
+            receiveBuffer.getInt();
+            receiveBuffer.get(receiveBytes);
+            IntData rcv = (IntData) kryoSerializer.deserialize(receiveBytes);
+          }
+          receiveBuffer.clear();
+          sendBuffer.clear();
+          sendBuffers.add(sendBuffer);
+          recvBuffers.add(receiveBuffer);
+
+          completed++;
         }
-        receiveBuffer.clear();
-        sendBuffer.clear();
-        sendBuffers.add(sendBuffer);
-        recvBuffers.add(receiveBuffer);
-
-        completed++;
       }
     }
 
