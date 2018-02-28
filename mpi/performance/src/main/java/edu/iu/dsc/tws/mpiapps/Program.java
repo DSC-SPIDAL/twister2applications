@@ -1,6 +1,7 @@
 package edu.iu.dsc.tws.mpiapps;
 
 import edu.iu.dsc.tws.mpiapps.datacols.*;
+import edu.iu.dsc.tws.mpiapps.nonblocking.NBReduce;
 import mpi.MPI;
 import mpi.MPIException;
 import org.apache.commons.cli.*;
@@ -73,6 +74,9 @@ public class Program {
       allReduce.execute();
     } else if (collective == 8) {
       AllGather allGather = new AllGather(dataSize, iterations);
+      allGather.execute();
+    } else if (collective == 9) {
+      NBReduce allGather = new NBReduce(dataSize, iterations);
       allGather.execute();
     }
 
