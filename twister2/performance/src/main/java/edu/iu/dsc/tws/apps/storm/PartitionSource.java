@@ -37,6 +37,8 @@ public class PartitionSource {
 
   private int nextIndex = 0;
 
+  private int executorId;
+
   public PartitionSource(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator, boolean getString) {
     this.task = task;
     this.jobParameters = jobParameters;
@@ -65,7 +67,7 @@ public class PartitionSource {
     }
   }
 
-  public PartitionSource(int task, JobParameters jobParameters, DataGenerator dataGenerator) {
+  public PartitionSource(int task, JobParameters jobParameters, DataGenerator dataGenerator, int executorId) {
     this.task = task;
     this.jobParameters = jobParameters;
     this.generator = dataGenerator;
@@ -73,6 +75,7 @@ public class PartitionSource {
     this.gap = jobParameters.getGap();
     this.genString = false;
     this.destinations = new ArrayList<>();
+    this.executorId = executorId;
 
     int fistStage = jobParameters.getTaskStages().get(0);
     int secondStage = jobParameters.getTaskStages().get(1);
@@ -119,6 +122,7 @@ public class PartitionSource {
         // lets wait a litte and try again
         operation.progress();
       }
+      LOG.info(String.format("%d number of sends %d", executorId, currentIteration));
       currentIteration++;
     }
   }

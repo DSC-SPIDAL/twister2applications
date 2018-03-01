@@ -71,7 +71,7 @@ public class PartitionStream implements IContainer {
 
         sourcesToReceiveMapping.put(i, receiveTask);
 
-        PartitionSource source = new PartitionSource(i, jobParameters, firstPartition, dataGenerator);
+        PartitionSource source = new PartitionSource(i, jobParameters, dataGenerator, id);
         partitionSources.put(i, source);
       }
       firstPartition = channel.partition(newCfg, MessageType.OBJECT, 0, sources,
