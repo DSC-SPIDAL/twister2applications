@@ -30,10 +30,9 @@
             <version>2.4</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.storm</groupId>
-            <artifactId>storm-core</artifactId>
-            <version>1.2.1</version>
-            <!--<scope>provided</scope>-->
+            <groupId>com.twitter.heron</groupId>
+            <artifactId>heron-storm</artifactId>
+            <version>0.17.6</version>
         </dependency>
     </dependencies>
 

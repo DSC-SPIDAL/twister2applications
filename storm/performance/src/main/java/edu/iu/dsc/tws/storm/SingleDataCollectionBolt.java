@@ -1,11 +1,11 @@
 package edu.iu.dsc.tws.storm;
 
-import org.apache.storm.task.OutputCollector;
-import org.apache.storm.task.TopologyContext;
-import org.apache.storm.topology.OutputFieldsDeclarer;
-import org.apache.storm.topology.base.BaseRichBolt;
-import org.apache.storm.tuple.Fields;
-import org.apache.storm.tuple.Tuple;
+import com.twitter.heron.api.bolt.BaseRichBolt;
+import com.twitter.heron.api.bolt.OutputCollector;
+import com.twitter.heron.api.topology.OutputFieldsDeclarer;
+import com.twitter.heron.api.topology.TopologyContext;
+import com.twitter.heron.api.tuple.Tuple;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,13 +16,13 @@ public class SingleDataCollectionBolt extends BaseRichBolt {
   private OutputCollector outputCollector;
   private int count = 0;
   private boolean debug = false;
-  private long printInveral = 0;
+  private int printInveral = 0;
   private TopologyContext context;
 
   @Override
   public void prepare(Map stormConf, TopologyContext topologyContext, OutputCollector outputCollector) {
     this.debug = (boolean) stormConf.get(Constants.ARGS_DEBUG);
-    this.printInveral = (long) stormConf.get(Constants.ARGS_PRINT_INTERVAL);
+    this.printInveral = (int) stormConf.get(Constants.ARGS_PRINT_INTERVAL);
 
     this.outputCollector = outputCollector;
     this.context = topologyContext;

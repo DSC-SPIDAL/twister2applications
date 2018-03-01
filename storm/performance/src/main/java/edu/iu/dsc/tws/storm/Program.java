@@ -1,13 +1,13 @@
 package edu.iu.dsc.tws.storm;
 
+import com.twitter.heron.api.Config;
+import com.twitter.heron.api.HeronSubmitter;
+import com.twitter.heron.api.topology.TopologyBuilder;
+import com.twitter.heron.simulator.Simulator;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.Options;
-import org.apache.storm.Config;
-import org.apache.storm.LocalCluster;
-import org.apache.storm.StormSubmitter;
-import org.apache.storm.topology.TopologyBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,12 +108,12 @@ public class Program {
     // we are going to deploy on a real cluster
     if (!local) {
       Properties props = System.getProperties();
-      conf.setNumWorkers(streamManagers);
-      StormSubmitter.submitTopology(name, conf, builder.createTopology());
+      conf.setNumStmgrs(streamManagers);
+      HeronSubmitter.submitTopology(name, conf, builder.createTopology());
     } else {
       try {
         // deploy on a local cluster
-        LocalCluster cluster = new LocalCluster();
+        Simulator cluster = new Simulator();
         cluster.submitTopology("test", conf, builder.createTopology());
         Thread.sleep(120000);
         cluster.shutdown();

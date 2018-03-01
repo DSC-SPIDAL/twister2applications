@@ -1,10 +1,10 @@
 package edu.iu.dsc.tws.storm;
 
-import org.apache.storm.spout.SpoutOutputCollector;
-import org.apache.storm.task.TopologyContext;
-import org.apache.storm.topology.OutputFieldsDeclarer;
-import org.apache.storm.topology.base.BaseRichSpout;
-import org.apache.storm.tuple.Fields;
+import com.twitter.heron.api.spout.BaseRichSpout;
+import com.twitter.heron.api.spout.SpoutOutputCollector;
+import com.twitter.heron.api.topology.OutputFieldsDeclarer;
+import com.twitter.heron.api.topology.TopologyContext;
+import com.twitter.heron.api.tuple.Fields;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,15 +17,15 @@ import java.util.*;
 public class CollectiveAckSpout extends BaseRichSpout {
   private static Logger LOG = LoggerFactory.getLogger(CollectiveAckSpout.class);
 
-  private long noOfMessages = 0;
-  private long noOfEmptyMessages = 1000;
-  private List<Long> messageSizes = new ArrayList<Long>();
+  private int noOfMessages = 0;
+  private int noOfEmptyMessages = 1000;
+  private List<Integer> messageSizes = new ArrayList<Integer>();
   private int currentSendIndex = 0;
   private SpoutOutputCollector collector;
   private int currentSendCount = 0;
   private byte []data = null;
   private int outstandingTuples = 0;
-  private long maxOutstandingTuples = 100;
+  private int maxOutstandingTuples = 100;
   private boolean debug;
   private int totalSendCount = 0;
   private int ackReceiveCount = 0;
@@ -33,18 +33,18 @@ public class CollectiveAckSpout extends BaseRichSpout {
   private String fileName;
   private String id;
   private long start = 0;
-  private long printInveral = 0;
+  private int printInveral = 0;
   private long lastSendTime = 0;
   private boolean startFailing = false;
   private int totalAckCount = 0;
   private int totalFailCount = 0;
   private boolean fileWritten = false;
-  private long spoutParallel = 1;
-  private long parallel = 1;
+  private int spoutParallel = 1;
+  private int parallel = 1;
   private Map<String, Long> emitTimes = new HashMap<>();
   private boolean latency = false;
   private List<Long> times = new ArrayList<>();
-  private long streamManagers = 0;
+  private int streamManagers = 0;
   private long sendGap = 0;
   private long getLastSendTime = 0;
   private TopologyContext context;
@@ -58,28 +58,32 @@ public class CollectiveAckSpout extends BaseRichSpout {
 
   @Override
   public void open(Map stormConf, TopologyContext topologyContext, SpoutOutputCollector outputCollector) {
-    noOfMessages = (Long) stormConf.get(Constants.ARGS_THRPUT_NO_MSGS);
-    messageSizes = (List<Long>) stormConf.get(Constants.ARGS_THRPUT_SIZES);
-    noOfEmptyMessages = (Long) stormConf.get(Constants.ARGS_THRPUT_NO_EMPTY_MSGS);
-    this.collector = outputCollector;
-    this.debug = (boolean) stormConf.get(Constants.ARGS_DEBUG);
-    fileName = (String) stormConf.get(Constants.ARGS_THRPUT_FILENAME);
-    printInveral = (long) stormConf.get(Constants.ARGS_PRINT_INTERVAL);
-    id = topologyContext.getThisComponentId() + "_" + topologyContext.getThisTaskId();
-    start = System.currentTimeMillis();
-    lastSendTime = System.currentTimeMillis();
-    spoutParallel = (long) stormConf.get(Constants.ARGS_SPOUT_PARALLEL);
-    parallel = (long) stormConf.get(Constants.ARGS_PARALLEL);
-    maxOutstandingTuples = (long) stormConf.get(Constants.ARGS_MAX_PENDING);
-    streamManagers = (long) stormConf.get(Constants.ARGS_SREAM_MGRS);
-    String mode = (String) stormConf.get(Constants.ARGS_MODE);
-    long messagesPerSecond = (Long) stormConf.get(Constants.ARGS_RATE);
-    latency = true;
-    if (messagesPerSecond > 0) {
-      sendGap = 1000000000 / messagesPerSecond;
+    try {
+      noOfMessages = (int) stormConf.get(Constants.ARGS_THRPUT_NO_MSGS);
+      messageSizes = (List<Integer>) stormConf.get(Constants.ARGS_THRPUT_SIZES);
+      noOfEmptyMessages = (int) stormConf.get(Constants.ARGS_THRPUT_NO_EMPTY_MSGS);
+      this.collector = outputCollector;
+      this.debug = (boolean) stormConf.get(Constants.ARGS_DEBUG);
+      fileName = (String) stormConf.get(Constants.ARGS_THRPUT_FILENAME);
+      printInveral = (int) stormConf.get(Constants.ARGS_PRINT_INTERVAL);
+      id = topologyContext.getThisComponentId() + "_" + topologyContext.getThisTaskId();
+      start = System.currentTimeMillis();
+      lastSendTime = System.currentTimeMillis();
+      spoutParallel = (int) stormConf.get(Constants.ARGS_SPOUT_PARALLEL);
+      parallel = (int) stormConf.get(Constants.ARGS_PARALLEL);
+      maxOutstandingTuples = (int) stormConf.get(Constants.ARGS_MAX_PENDING);
+      streamManagers = (int) stormConf.get(Constants.ARGS_SREAM_MGRS);
+      String mode = (String) stormConf.get(Constants.ARGS_MODE);
+      int messagesPerSecond = (int) stormConf.get(Constants.ARGS_RATE);
+      latency = true;
+      if (messagesPerSecond > 0) {
+        sendGap = 1000000000 / messagesPerSecond;
+      }
+      lastSendTime = System.nanoTime();
+      context = topologyContext;
+    } catch (Throwable t) {
+      t.printStackTrace();
     }
-    lastSendTime = System.nanoTime();
-    context = topologyContext;
   }
 
   @Override
