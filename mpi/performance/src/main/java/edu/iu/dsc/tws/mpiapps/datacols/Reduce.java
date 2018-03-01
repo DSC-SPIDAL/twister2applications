@@ -48,7 +48,7 @@ public class Reduce extends Collective {
       sendBuffer.putInt(bytes.length);
       sendBuffer.put(bytes);
       start = System.nanoTime();
-      MPI.COMM_WORLD.reduce(sendBuffer, receiveBuffer, length, stringBytes, reduceOp(), 0);
+      MPI.COMM_WORLD.reduce(sendBuffer, receiveBuffer, 1, stringBytes, reduceOp(), 0);
       allReduceTime += System.nanoTime() - start;
 
       if (rank == 0) {
