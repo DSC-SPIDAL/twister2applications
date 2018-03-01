@@ -61,7 +61,7 @@ public class Worker implements Runnable {
           average += (timesForTarget.get(i) - times.get(i));
           latencies.add(timesForTarget.get(i) - times.get(i));
         }
-        LOG.info(String.format("%d Average: %d", executorId, average / (times.size())));
+        LOG.info(String.format("%d Average: %d %d", executorId, average / (times.size()), timesForTarget.size()));
         LOG.info(String.format("%d Finished %d %d", executorId, target, time));
 
         DataSave.saveList("reduce", latencies);
