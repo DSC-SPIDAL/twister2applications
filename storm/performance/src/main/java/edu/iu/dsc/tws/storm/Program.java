@@ -101,6 +101,7 @@ public class Program {
 
     conf.setMaxSpoutPending(maxPending);
 
+    LOG.info(String.format("Number of instances %d %d", p, spoutParallel));
     if (mode.equals("c")) {
       buildShuffle(builder, p, conf, spoutParallel);
     } else if (mode.equals("r")) {
