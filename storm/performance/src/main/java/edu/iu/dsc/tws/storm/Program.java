@@ -101,6 +101,7 @@ public class Program {
 
     conf.setMaxSpoutPending(maxPending);
 
+    LOG.info(String.format("Number of instances %d %d", p, spoutParallel));
     if (mode.equals("c")) {
       buildShuffle(builder, p, conf, spoutParallel);
     } else if (mode.equals("r")) {
@@ -142,11 +143,12 @@ public class Program {
 
   private static void buildReduceGroup(TopologyBuilder builder, int p, Config conf, int spoutParallel) {
     CollectiveAckSpout spout = new CollectiveAckSpout();
-    SingleDataCollectionBolt lastBolt = new SingleDataCollectionBolt();
+    MultiDataCollectionBolt lastBolt = new MultiDataCollectionBolt();
+    lastBolt.setUpperComponentName(Constants.Topology.SPOUT);
 
     builder.setSpout(Constants.Topology.SPOUT, spout, spoutParallel);
     conf.setComponentRam(Constants.Topology.SPOUT, ByteAmount.fromMegabytes(megabytes));
-    builder.setBolt(Constants.Topology.LAST, lastBolt, p).shuffleGrouping(Constants.Topology.SPOUT, Constants.Fields.CHAIN_STREAM);
+    builder.setBolt(Constants.Topology.LAST, lastBolt, 1).shuffleGrouping(Constants.Topology.SPOUT, Constants.Fields.CHAIN_STREAM);
     conf.setComponentRam(Constants.Topology.LAST, ByteAmount.fromMegabytes(megabytes));
   }
 }
