@@ -115,9 +115,9 @@ public class PartitionSource {
         flag = MessageFlags.FLAGS_LAST;
       }
       lastMessageTime = System.currentTimeMillis();
-      while (!operation.send(task, data, flag, dest)) {
+      if (!operation.send(task, data, flag, dest)) {
         // lets wait a litte and try again
-        operation.progress();
+        return;
       }
 //      LOG.info(String.format("%d task %d sends %d", executorId, task, currentIteration));
       currentIteration++;
