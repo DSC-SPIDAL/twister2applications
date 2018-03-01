@@ -7,6 +7,7 @@ import edu.iu.dsc.tws.apps.batch.AllReduce;
 import edu.iu.dsc.tws.apps.batch.MultiGather;
 import edu.iu.dsc.tws.apps.batch.MultiReduce;
 import edu.iu.dsc.tws.apps.batch.Reduce;
+import edu.iu.dsc.tws.apps.storm.PartitionStream;
 import edu.iu.dsc.tws.apps.stream.*;
 import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.rsched.core.ResourceAllocator;
@@ -117,6 +118,15 @@ public class Program {
         basicJob = BasicJob.newBuilder()
             .setName("all-gather-stream-bench")
             .setContainerClass(AllGatherStream.class.getName())
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
+            .setConfig(jobConfig)
+            .build();
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
+      } else if (col == 5) {
+        basicJob = BasicJob.newBuilder()
+            .setName("partition-stream-bench")
+            .setContainerClass(PartitionStream.class.getName())
             .setRequestResource(new ResourceContainer(2, 1024), containers)
             .setConfig(jobConfig)
             .build();
