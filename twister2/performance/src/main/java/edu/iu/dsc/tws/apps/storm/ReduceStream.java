@@ -2,7 +2,6 @@ package edu.iu.dsc.tws.apps.storm;
 
 import edu.iu.dsc.tws.apps.batch.Source;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
-import edu.iu.dsc.tws.apps.data.DataSave;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
@@ -19,6 +18,7 @@ import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -34,16 +34,14 @@ public class ReduceStream implements IContainer {
 
   private JobParameters jobParameters;
 
-  private long startSendingTime;
-
   private Map<Integer, Source> reduceWorkers = new HashMap<>();
 
-  private List<Integer> tasksOfThisExec;
+  private Map<Integer, Queue<Message>> messageQueue;
 
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
     LOG.log(Level.FINE, "Starting the example with container id: " + plan.getThisId());
-
+    this.messageQueue = new HashMap<>();
     this.jobParameters = JobParameters.build(cfg);
     this.id = containerId;
     DataGenerator dataGenerator = new DataGenerator(jobParameters);
@@ -74,8 +72,7 @@ public class ReduceStream implements IContainer {
           new ReduceStreamingPartialReceiver(dest, new IdentityFunction()));
 
       Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
-      tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
-      Source source = null;
+      Source source;
       for (int i : tasksOfExecutor) {
         source = new Source(i, jobParameters, reduce, dataGenerator);
         reduceWorkers.put(i, source);
@@ -91,10 +88,6 @@ public class ReduceStream implements IContainer {
           channel.progress();
           // we should progress the communication directive
           reduce.progress();
-
-          if (source != null) {
-            startSendingTime = source.getStartSendingTime();
-          }
         } catch (Throwable t) {
           t.printStackTrace();
         }
@@ -112,34 +105,13 @@ public class ReduceStream implements IContainer {
       LOG.log(Level.FINE, String.format("Initialize: %s", expectedIds));
       for (Map.Entry<Integer, List<Integer>> e : expectedIds.entrySet()) {
         times.put(e.getKey(), new ArrayList<>());
+        messageQueue.put(e.getKey(), new ArrayBlockingQueue<>(1024));
       }
     }
 
     @Override
     public boolean receive(int target, Object object) {
-      long time = (System.currentTimeMillis() - startSendingTime);
-      List<Long> timesForTarget = times.get(target);
-      timesForTarget.add(System.currentTimeMillis());
-
-      try {
-        if (timesForTarget.size() >= jobParameters.getIterations()) {
-          List<Long> times = reduceWorkers.get(tasksOfThisExec.get(0)).getStartOfEachMessage();
-          List<Long> latencies = new ArrayList<>();
-          long average = 0;
-          for (int i = 0; i < times.size(); i++) {
-            average += (timesForTarget.get(i) - times.get(i));
-            latencies.add(timesForTarget.get(i) - times.get(i));
-          }
-          LOG.info(String.format("%d Average: %d", id, average / (times.size())));
-          LOG.info(String.format("%d Finished %d %d", id, target, time));
-
-          DataSave.saveList("reduce", latencies);
-        }
-      } catch (Throwable r) {
-        LOG.log(Level.SEVERE, String.format("%d excpetion %s %s", id, tasksOfThisExec, reduceWorkers.keySet()), r);
-      }
-
-      return true;
+      return messageQueue.get(target).offer(new Message(target, 0, object));
     }
   }
 

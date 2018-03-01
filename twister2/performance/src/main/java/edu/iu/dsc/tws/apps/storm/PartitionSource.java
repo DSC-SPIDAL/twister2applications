@@ -31,6 +31,12 @@ public class PartitionSource {
 
   private List<Integer> destinations;
 
+  private long lastMessageTime = 0;
+
+  private int currentIteration = 0;
+
+  private int nextIndex = 0;
+
   public PartitionSource(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator, boolean getString) {
     this.task = task;
     this.jobParameters = jobParameters;
@@ -59,6 +65,26 @@ public class PartitionSource {
     }
   }
 
+  public PartitionSource(int task, JobParameters jobParameters, DataGenerator dataGenerator) {
+    this.task = task;
+    this.jobParameters = jobParameters;
+    this.generator = dataGenerator;
+    this.startOfMessages = new ArrayList<>();
+    this.gap = jobParameters.getGap();
+    this.genString = false;
+    this.destinations = new ArrayList<>();
+
+    int fistStage = jobParameters.getTaskStages().get(0);
+    int secondStage = jobParameters.getTaskStages().get(1);
+    for (int i = 0; i < secondStage; i++) {
+      destinations.add(i + fistStage);
+    }
+  }
+
+  public void setOperation(DataFlowOperation operation) {
+    this.operation = operation;
+  }
+
   public void execute() {
     int noOfDestinations = destinations.size();
     startSendingTime = System.currentTimeMillis();
@@ -69,31 +95,31 @@ public class PartitionSource {
       data = generator.generateData();
     }
     int iterations = jobParameters.getIterations();
-    int nextIndex = 0;
+    operation.progress();
 
-    for (int i = 0; i < iterations; i++) {
+    long currentTime = System.currentTimeMillis();
+    if (gap > (currentTime - lastMessageTime)) {
+      return;
+    }
+
+    if (currentIteration < iterations) {
       startOfMessages.add(System.nanoTime());
       nextIndex = nextIndex % noOfDestinations;
-      if (i >= iterations - destinations.size()) {
-        nextIndex = iterations - i - 1;
+      if (currentIteration >= iterations - destinations.size()) {
+        nextIndex = iterations - currentIteration - 1;
       }
       int dest = destinations.get(nextIndex);
       nextIndex++;
       int flag = 0;
-      if (i >= iterations - destinations.size()) {
+      if (currentIteration >= iterations - destinations.size()) {
         flag = MessageFlags.FLAGS_LAST;
       }
+      lastMessageTime = System.currentTimeMillis();
       while (!operation.send(task, data, flag, dest)) {
         // lets wait a litte and try again
         operation.progress();
       }
-      if (gap > 0) {
-        try {
-          Thread.sleep(1);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-      }
+      currentIteration++;
     }
   }
 

@@ -1,7 +1,6 @@
 package edu.iu.dsc.tws.apps.storm;
 
 import edu.iu.dsc.tws.apps.data.DataGenerator;
-import edu.iu.dsc.tws.apps.data.DataSave;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
@@ -13,6 +12,7 @@ import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,19 +20,16 @@ public class PartitionStream implements IContainer {
   private static final Logger LOG = Logger.getLogger(edu.iu.dsc.tws.apps.stream.ReduceStream.class.getName());
   private DataFlowOperation firstPartition;
 
-  private ResourcePlan resourcePlan;
-
   private int id;
-
-  private Config config;
 
   private JobParameters jobParameters;
 
-  private long startSendingTime;
-
   private Map<Integer, PartitionSource> partitionSources = new HashMap<>();
+  private Map<Integer, Worker> partitionWorkers = new HashMap<>();
 
-  private List<Integer> tasksOfThisExec;
+  private Map<Integer, Queue<Message>> messageQueue = new HashMap<>();
+
+  private Map<Integer, Integer> sourcesToReceiveMapping = new HashMap<>();
 
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
@@ -51,7 +48,6 @@ public class PartitionStream implements IContainer {
     TWSCommunication channel = network.getDataFlowTWSCommunication();
 
     Set<Integer> sources = new HashSet<>();
-    int middle = jobParameters.getTaskStages().get(0) + jobParameters.getTaskStages().get(1);
     Integer noOfSourceTasks = jobParameters.getTaskStages().get(0);
     for (int i = 0; i < noOfSourceTasks; i++) {
       sources.add(i);
@@ -66,21 +62,38 @@ public class PartitionStream implements IContainer {
 
     LOG.log(Level.FINE,"Setting up firstPartition dataflow operation");
     try {
-      // this method calls the init method
-      // I think this is wrong
+
+      List<Integer> sourceTasksOfExecutor = new ArrayList<>(Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0));
+      List<Integer> receiveTasksOfExecutor = new ArrayList<>(Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 1));
+      for (int k = 0; k < sourceTasksOfExecutor.size(); k++) {
+        int i = sourceTasksOfExecutor.get(k);
+        int receiveTask = receiveTasksOfExecutor.get(k);
+
+        sourcesToReceiveMapping.put(i, receiveTask);
+
+        PartitionSource source = new PartitionSource(i, jobParameters, firstPartition, dataGenerator);
+        partitionSources.put(i, source);
+      }
       firstPartition = channel.partition(newCfg, MessageType.OBJECT, 0, sources,
           dests, new FinalReduceReceiver());
 
-      Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
-      tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
-      PartitionSource source = null;
-      for (int i : tasksOfExecutor) {
-        source = new PartitionSource(i, jobParameters, firstPartition, dataGenerator);
-        partitionSources.put(i, source);
+
+      for (int k = 0; k < sourceTasksOfExecutor.size(); k++) {
+        int i = sourceTasksOfExecutor.get(k);
+        PartitionSource source = partitionSources.get(i);
+        source.setOperation(firstPartition);
         // the map thread where datacols is produced
-        Thread mapThread = new Thread(new Worker(source));
+        Worker worker = new Worker(id, source, jobParameters);
+        partitionWorkers.put(i, worker);
+
+        Thread mapThread = new Thread(worker);
         mapThread.start();
+
+        int targetTasks = sourcesToReceiveMapping.get(i);
+        partitionWorkers.get(i).addQueue(targetTasks, messageQueue.get(targetTasks));
       }
+
+      LOG.info(String.format("%d source to receive %s", id, sourcesToReceiveMapping));
 
       // we need to progress the communication
       while (true) {
@@ -89,10 +102,6 @@ public class PartitionStream implements IContainer {
           channel.progress();
           // we should progress the communication directive
           firstPartition.progress();
-
-          if (source != null) {
-            startSendingTime = source.getStartSendingTime();
-          }
         } catch (Throwable t) {
           t.printStackTrace();
         }
@@ -107,37 +116,17 @@ public class PartitionStream implements IContainer {
 
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
-      LOG.log(Level.FINE, String.format("Initialize: %s", expectedIds));
+      LOG.log(Level.INFO, String.format("%d Initialize: %s", id, expectedIds));
       for (Map.Entry<Integer, List<Integer>> e : expectedIds.entrySet()) {
         times.put(e.getKey(), new ArrayList<>());
+        Queue<Message> queue = new ArrayBlockingQueue<>(1024);
+        messageQueue.put(e.getKey(), queue);
       }
     }
 
     @Override
     public boolean onMessage(int source, int path, int target, int flags, Object object) {
-      long time = (System.currentTimeMillis() - startSendingTime);
-      List<Long> timesForTarget = times.get(target);
-      timesForTarget.add(System.nanoTime());
-
-      try {
-        if (timesForTarget.size() >= jobParameters.getIterations()) {
-          List<Long> times = partitionSources.get(tasksOfThisExec.get(0)).getStartOfMessages();
-          List<Long> latencies = new ArrayList<>();
-          long average = 0;
-          for (int i = 0; i < times.size(); i++) {
-            average += (timesForTarget.get(i) - times.get(i));
-            latencies.add(timesForTarget.get(i) - times.get(i));
-          }
-          LOG.info(String.format("%d Average: %d", id, average / (times.size())));
-          LOG.info(String.format("%d Finished %d %d", id, target, time));
-
-          DataSave.saveList("firstPartition", latencies);
-        }
-      } catch (Throwable r) {
-        LOG.log(Level.SEVERE, String.format("%d excpetion %s %s", id, tasksOfThisExec, partitionSources.keySet()), r);
-      }
-
-      return true;
+      return messageQueue.get(target).offer(new Message(target, 0, object));
     }
 
     @Override
