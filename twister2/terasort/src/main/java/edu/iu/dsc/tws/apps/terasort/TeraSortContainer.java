@@ -28,10 +28,12 @@ import edu.iu.dsc.tws.data.memory.OperationMemoryManager;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 
+import org.apache.commons.configuration.SystemConfiguration;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.hadoop.io.ObjectWritable;
 import org.apache.hadoop.io.Text;
 
+import javax.xml.crypto.Data;
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -56,15 +58,17 @@ public class TeraSortContainer implements IContainer {
     private List<Integer> sampleNodes;
 
     private int id;
+    private int NumNodes;
 
     private Config config;
     private ResourcePlan resourcePlan;
     private static final int NO_OF_TASKS = 8;
 
-    private int noOfTasksPerExecutor = 2                                                                                                                                                                                                                                                                                                                                    ;
+    private int noOfTasksPerExecutor = 2;
     private long startTime = 0;
     private long startTimePartition = 0;
     private long endTimePartition = 0;
+    private long completedTasks = 0;
 
     //Operations
     private DataFlowOperation samplesGather;
@@ -81,8 +85,10 @@ public class TeraSortContainer implements IContainer {
 
     @Override
     public void init(Config cfg, int containerId, ResourcePlan plan) {
+        long startTimeTotal = System.currentTimeMillis();
         this.config = cfg;
         this.id = containerId;
+        NumNodes = 6;
         this.resourcePlan = plan;
         sampleNodes = new ArrayList<>();
         this.noOfTasksPerExecutor = NO_OF_TASKS / plan.noOfContainers();
@@ -150,6 +156,7 @@ public class TeraSortContainer implements IContainer {
         while (!broadcastDone) {
             Thread.yield();
         }
+        LOG.info(String.format("%d Completed Boardcast thread", id));
         //Completed broadbast
         edgeCount++;
         Map<Integer, List<Integer>> expectedIds = new HashMap<>();
@@ -167,7 +174,10 @@ public class TeraSortContainer implements IContainer {
         partitionOp = channel.partition(newCfg, MessageType.BYTE, MessageType.BYTE, edgeCount,
                 sources, dests, finalPartitionRec);
         finalPartitionRec.setMap(expectedIds);
+        LOG.info(String.format("%d Before partitionOp thread memory Map", id));
+
         partitionOp.setMemoryMapped(true);
+
         // now lets read all the data and distribute them to the correct tasks
         for (int i = 0; i < noOfTasksPerExecutor; i++) {
             int taskId = i;
@@ -184,7 +194,9 @@ public class TeraSortContainer implements IContainer {
             Thread.yield();
         }
         endTimePartition = System.currentTimeMillis();
+        long endTimeTotal = System.currentTimeMillis();
         System.out.println("Time taken for partition Operation : " + (endTimePartition - startTimePartition));
+        System.out.println("====================== Total Time taken : " + (endTimeTotal - startTimeTotal));
         while (true) {
             //Waiting to make sure this thread does not die
             Thread.yield();
@@ -366,7 +378,7 @@ public class TeraSortContainer implements IContainer {
             //sort the local records
             //Collections.sort(records);
             KeyedContent keyedContent = null;
-            for (int i = 0; i < 200; i++) {
+            for (int i = 0; i < records.size(); i++) {
                 Record text = records.get(i);
                 int partition = tree.getPartition(text.getKey());
                 keyedContent = new KeyedContent(text.getKey().getBytes(), text.getText().getBytes(),
@@ -515,32 +527,35 @@ public class TeraSortContainer implements IContainer {
 
             if (((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) && isAllFinished(target)) {
                 System.out.printf("Total Number of records for Task %d is : %d \n", target, count);
-                if (object instanceof OperationMemoryManager) {
-                    OperationMemoryManager opmm = (OperationMemoryManager) object;
-//                    System.out.println("Operation ID" + opmm.getOperationID());
-                    String taskout = outputFile + "_" + target;
-                    Iterator<Object> data = opmm.iterator();
-                    Object temp;
-                    List<Record> recordList = new ArrayList<Record>();
-                    Record[] recordsArray;
-                    Record tempRecord;
-                    while (data.hasNext()) {
-                        temp = data.next();
-                        if (temp instanceof ImmutablePair) {
-                            ImmutablePair<Object, Object> dataPair = (ImmutablePair<Object, Object>) temp;
-                            if (dataPair.getValue() instanceof List) {
-                                for (Object databytes : (List) dataPair.getValue()) {
-                                    tempRecord = new Record(new Text((byte[]) dataPair.getKey()),
-                                            new Text(((byte[]) databytes)));
-                                    recordList.add(tempRecord);
+                completedTasks++;
+                if (completedTasks == noOfTasksPerExecutor) {
+                    if (object instanceof OperationMemoryManager) {
+                        OperationMemoryManager opmm = (OperationMemoryManager) object;
+                        System.out.println("Operation ID" + opmm.getOperationID());
+                        String taskout = outputFile + "_" + target;
+                        Iterator<Object> data = opmm.iterator();
+                        Object temp;
+                        List<Record> recordList = new ArrayList<Record>();
+                        Record[] recordsArray;
+                        Record tempRecord;
+                        while (data.hasNext()) {
+                            temp = data.next();
+                            if (temp instanceof ImmutablePair) {
+                                ImmutablePair<Object, Object> dataPair = (ImmutablePair<Object, Object>) temp;
+                                if (dataPair.getValue() instanceof List) {
+                                    for (Object databytes : (List) dataPair.getValue()) {
+                                        tempRecord = new Record(new Text((byte[]) dataPair.getKey()),
+                                                new Text(((byte[]) databytes)));
+                                        recordList.add(tempRecord);
+                                    }
+
+
                                 }
-
-
                             }
                         }
+                        DataLoader.saveFast(recordList.toArray(new Record[0]), taskout);
+                        System.out.println("DataList Legth : " + recordList.size());
                     }
-                    save(recordList.toArray(new Record[0]), taskout);
-                    System.out.println("DataList Legth : " + recordList.size());
                 }
                 reduceDone = true;
             }
