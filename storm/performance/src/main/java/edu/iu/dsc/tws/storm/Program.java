@@ -3,6 +3,7 @@ package edu.iu.dsc.tws.storm;
 import com.twitter.heron.api.Config;
 import com.twitter.heron.api.HeronSubmitter;
 import com.twitter.heron.api.topology.TopologyBuilder;
+import com.twitter.heron.common.basics.ByteAmount;
 import com.twitter.heron.simulator.Simulator;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
@@ -17,6 +18,7 @@ import java.util.Properties;
 
 public class Program {
   private static Logger LOG = LoggerFactory.getLogger(Program.class);
+  static int megabytes = 256;
   public static void main(String[] args) throws Exception {
     TopologyBuilder builder = new TopologyBuilder();
 
@@ -36,6 +38,7 @@ public class Program {
     options.addOption(Utils.createOption(Constants.ARGS_PRINT_INTERVAL, true, "Print debug messages", false));
     options.addOption(Utils.createOption(Constants.ARGS_MAX_PENDING, true, "Max pending", false));
     options.addOption(Utils.createOption(Constants.ARGS_RATE, true, "Max pending", false));
+    options.addOption(Utils.createOption(Constants.ARGS_MEM, true, "Mem", false));
 
     CommandLineParser commandLineParser = new BasicParser();
     CommandLine cmd = commandLineParser.parse(options, args);
@@ -65,6 +68,10 @@ public class Program {
     int rate = 0;
     if (cmd.hasOption(Constants.ARGS_RATE)) {
       rate = Integer.parseInt(cmd.getOptionValue(Constants.ARGS_RATE));
+    }
+
+    if (cmd.hasOption(Constants.ARGS_MEM)) {
+      megabytes = Integer.parseInt(cmd.getOptionValue(Constants.ARGS_MEM));
     }
 
     Config conf = new Config();
@@ -128,7 +135,9 @@ public class Program {
     SingleDataCollectionBolt lastBolt = new SingleDataCollectionBolt();
 
     builder.setSpout(Constants.Topology.SPOUT, spout, spoutParallel);
+    conf.setComponentRam(Constants.Topology.SPOUT, ByteAmount.fromMegabytes(megabytes));
     builder.setBolt(Constants.Topology.LAST, lastBolt, p).shuffleGrouping(Constants.Topology.SPOUT, Constants.Fields.CHAIN_STREAM);
+    conf.setComponentRam(Constants.Topology.LAST, ByteAmount.fromMegabytes(megabytes));
   }
 
   private static void buildReduceGroup(TopologyBuilder builder, int p, Config conf, int spoutParallel) {
@@ -136,6 +145,8 @@ public class Program {
     SingleDataCollectionBolt lastBolt = new SingleDataCollectionBolt();
 
     builder.setSpout(Constants.Topology.SPOUT, spout, spoutParallel);
+    conf.setComponentRam(Constants.Topology.SPOUT, ByteAmount.fromMegabytes(megabytes));
     builder.setBolt(Constants.Topology.LAST, lastBolt, p).shuffleGrouping(Constants.Topology.SPOUT, Constants.Fields.CHAIN_STREAM);
+    conf.setComponentRam(Constants.Topology.LAST, ByteAmount.fromMegabytes(megabytes));
   }
 }

@@ -17,7 +17,7 @@ public class Constants {
   public static final String ARGS_URL = "url";
   public static final String ARGS_THRPUT_FILENAME = "thrF";
   public static final String ARGS_SEND_INTERVAL = "int";
-
+  public static final String ARGS_MEM = "mem";
   // configurations
   public static final String ARGS_SPOUT_PARALLEL = "sp";
   public static final String ARGS_MAX_PENDING = "mp";
