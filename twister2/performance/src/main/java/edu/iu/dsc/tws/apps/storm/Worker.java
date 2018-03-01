@@ -53,18 +53,20 @@ public class Worker implements Runnable {
     timesForTarget.add(System.nanoTime());
     int target = message.getTarget();
     try {
-      if (timesForTarget.size() >= jobParameters.getIterations()) {
-        List<Long> times = source.getStartOfMessages();
-        List<Long> latencies = new ArrayList<>();
-        long average = 0;
-        for (int i = 0; i < times.size(); i++) {
-          average += (timesForTarget.get(i) - times.get(i));
-          latencies.add(timesForTarget.get(i) - times.get(i));
-        }
-        LOG.info(String.format("%d Average: %d", executorId, average / (times.size())));
-        LOG.info(String.format("%d Finished %d %d %d", executorId, target, time, timesForTarget.size()));
+      if (executorId == 0) {
+        if (timesForTarget.size() >= jobParameters.getIterations()) {
+          List<Long> times = source.getStartOfMessages();
+          List<Long> latencies = new ArrayList<>();
+          long average = 0;
+          for (int i = 0; i < times.size(); i++) {
+            average += (timesForTarget.get(i) - times.get(i));
+            latencies.add(timesForTarget.get(i) - times.get(i));
+          }
+          LOG.info(String.format("%d Average: %d", executorId, average / (times.size())));
+          LOG.info(String.format("%d Finished %d %d %d", executorId, target, time, timesForTarget.size()));
 
-        DataSave.saveList("reduce", latencies);
+          DataSave.saveList("reduce", latencies);
+        }
       }
     } catch (Throwable r) {
       LOG.log(Level.SEVERE, String.format("%d excpetion", executorId), r);
