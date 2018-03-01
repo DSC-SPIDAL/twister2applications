@@ -122,7 +122,7 @@ public class PartitionSource {
         // lets wait a litte and try again
         operation.progress();
       }
-      LOG.info(String.format("%d number of sends %d", executorId, currentIteration));
+      LOG.info(String.format("%d task %d sends %d", executorId, task, currentIteration));
       currentIteration++;
     }
   }
