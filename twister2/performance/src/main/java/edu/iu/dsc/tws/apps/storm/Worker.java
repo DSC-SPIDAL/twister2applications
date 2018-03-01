@@ -35,16 +35,20 @@ public class Worker implements Runnable {
 
   @Override
   public void run() {
-    while (true) {
-      source.execute();
-      startSendingTime = source.getStartSendingTime();
-      for (Map.Entry<Integer, Queue<Message>> e : messages.entrySet()) {
-        Queue<Message> messageQueue = e.getValue();
-        Message message = messageQueue.poll();
-        if (message != null) {
-          handleMessage(message);
+    try {
+      while (true) {
+        source.execute();
+        startSendingTime = source.getStartSendingTime();
+        for (Map.Entry<Integer, Queue<Message>> e : messages.entrySet()) {
+          Queue<Message> messageQueue = e.getValue();
+          Message message = messageQueue.poll();
+          if (message != null) {
+            handleMessage(message);
+          }
         }
       }
+    } catch (Throwable t) {
+      LOG.log(Level.SEVERE, "Error occured", t);
     }
   }
 
