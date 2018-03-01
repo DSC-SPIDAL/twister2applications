@@ -54,6 +54,10 @@ public class Worker implements Runnable {
     int target = message.getTarget();
     try {
       if (executorId == 0) {
+        if (timesForTarget.size() % 100 == 0) {
+          LOG.info(String.format("%d Finished %d %d %d", executorId, target, time, timesForTarget.size()));
+        }
+
         if (timesForTarget.size() >= jobParameters.getIterations() - jobParameters.getTaskStages().get(0)) {
           List<Long> times = source.getStartOfMessages();
           List<Long> latencies = new ArrayList<>();
