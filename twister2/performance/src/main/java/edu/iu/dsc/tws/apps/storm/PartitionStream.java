@@ -17,7 +17,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class PartitionStream implements IContainer {
-  private static final Logger LOG = Logger.getLogger(edu.iu.dsc.tws.apps.stream.ReduceStream.class.getName());
+  private static final Logger LOG = Logger.getLogger(PartitionStream.class.getName());
   private DataFlowOperation firstPartition;
 
   private int id;
@@ -93,7 +93,7 @@ public class PartitionStream implements IContainer {
         partitionWorkers.get(i).addQueue(targetTasks, messageQueue.get(targetTasks));
       }
 
-      LOG.info(String.format("%d source to receive %s", id, sourcesToReceiveMapping));
+      LOG.fine(String.format("%d source to receive %s", id, sourcesToReceiveMapping));
 
       // we need to progress the communication
       while (true) {
@@ -116,7 +116,7 @@ public class PartitionStream implements IContainer {
 
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
-      LOG.log(Level.INFO, String.format("%d Initialize: %s", id, expectedIds));
+      LOG.log(Level.FINE, String.format("%d Initialize: %s", id, expectedIds));
       for (Map.Entry<Integer, List<Integer>> e : expectedIds.entrySet()) {
         times.put(e.getKey(), new ArrayList<>());
         Queue<Message> queue = new ArrayBlockingQueue<>(1024);
