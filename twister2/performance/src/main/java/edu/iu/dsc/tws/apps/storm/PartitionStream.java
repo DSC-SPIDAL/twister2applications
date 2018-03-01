@@ -126,7 +126,7 @@ public class PartitionStream implements IContainer {
 
     @Override
     public boolean onMessage(int source, int path, int target, int flags, Object object) {
-      return messageQueue.get(target).offer(new Message(target, 0, object));
+      return messageQueue.get(target).offer(new Message(target, source, object));
     }
 
     @Override

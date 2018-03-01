@@ -54,7 +54,7 @@ public class Worker implements Runnable {
     int target = message.getTarget();
     try {
       if (executorId == 0) {
-        if (timesForTarget.size() >= jobParameters.getIterations()) {
+        if (timesForTarget.size() >= jobParameters.getIterations() - jobParameters.getTaskStages().get(0)) {
           List<Long> times = source.getStartOfMessages();
           List<Long> latencies = new ArrayList<>();
           long average = 0;
@@ -71,5 +71,9 @@ public class Worker implements Runnable {
     } catch (Throwable r) {
       LOG.log(Level.SEVERE, String.format("%d excpetion", executorId), r);
     }
+  }
+
+  private void sendMessageBack() {
+
   }
 }
