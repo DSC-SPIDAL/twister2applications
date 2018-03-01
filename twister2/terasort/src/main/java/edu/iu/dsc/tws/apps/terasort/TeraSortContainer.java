@@ -28,12 +28,9 @@ import edu.iu.dsc.tws.data.memory.OperationMemoryManager;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 
-import org.apache.commons.configuration.SystemConfiguration;
 import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.hadoop.io.ObjectWritable;
 import org.apache.hadoop.io.Text;
 
-import javax.xml.crypto.Data;
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -58,13 +55,14 @@ public class TeraSortContainer implements IContainer {
     private List<Integer> sampleNodes;
 
     private int id;
-    private int NumNodes;
+    private int workersPerNode;
+    private int workerLocalID;
 
     private Config config;
     private ResourcePlan resourcePlan;
-    private static final int NO_OF_TASKS = 8;
+    private static final int NO_OF_TASKS = 384;
 
-    private int noOfTasksPerExecutor = 2;
+    private int noOfTasksPerExecutor = 4;
     private long startTime = 0;
     private long startTimePartition = 0;
     private long endTimePartition = 0;
@@ -88,7 +86,8 @@ public class TeraSortContainer implements IContainer {
         long startTimeTotal = System.currentTimeMillis();
         this.config = cfg;
         this.id = containerId;
-        NumNodes = 6;
+        workersPerNode = 6;
+        workerLocalID = containerId%workersPerNode;
         this.resourcePlan = plan;
         sampleNodes = new ArrayList<>();
         this.noOfTasksPerExecutor = NO_OF_TASKS / plan.noOfContainers();
@@ -96,7 +95,7 @@ public class TeraSortContainer implements IContainer {
         inputFolder = cfg.getStringValue("input");
         outputFolder = cfg.getStringValue("output");
         partitionSampleNodes = cfg.getIntegerValue("partitionSampleNodes", 1);
-        partitionSamplesPerNode = cfg.getIntegerValue("partitionSamplesPerNode", 10000);
+        partitionSamplesPerNode = cfg.getIntegerValue("partitionSamplesPerNode", 1000);
         filePrefix = cfg.getStringValue("filePrefix");
         System.out.println(inputFolder + " : " + partitionSampleNodes);
         // lets create the task plan
@@ -311,7 +310,7 @@ public class TeraSortContainer implements IContainer {
 //      MPIBuffer datacols = new MPIBuffer(1024);
                 startTime = System.nanoTime();
                 String inputFile = Paths.get(inputFolder, filePrefix
-                        + id + "_" + Integer.toString(localId)).toString();
+                        + workerLocalID + "_" + Integer.toString(localId)).toString();
                 List<Record> records = DataLoader.load(id, inputFile, partitionSamplesPerNode);
                 Record[] partitionRecords = new Record[partitionSamplesPerNode];
                 for (int i = 0; i < partitionSamplesPerNode; i++) {
@@ -372,7 +371,7 @@ public class TeraSortContainer implements IContainer {
         @Override
         public void run() {
             String inputFile = Paths.get(inputFolder, filePrefix
-                    + id + "_" + Integer.toString(localId)).toString();
+                    + workerLocalID + "_" + Integer.toString(localId)).toString();
 
             List<Record> records = DataLoader.load(id, inputFile);
             //sort the local records
