@@ -108,9 +108,6 @@ public class PartitionSource {
     if (currentIteration < iterations) {
       startOfMessages.add(System.nanoTime());
       nextIndex = nextIndex % noOfDestinations;
-      if (currentIteration >= iterations - destinations.size()) {
-        nextIndex = iterations - currentIteration - 1;
-      }
       int dest = destinations.get(nextIndex);
       nextIndex++;
       int flag = 0;
@@ -122,7 +119,7 @@ public class PartitionSource {
         // lets wait a litte and try again
         operation.progress();
       }
-      LOG.info(String.format("%d task %d sends %d", executorId, task, currentIteration));
+//      LOG.info(String.format("%d task %d sends %d", executorId, task, currentIteration));
       currentIteration++;
     }
   }
