@@ -67,10 +67,10 @@ public class MultiReduce implements IContainer {
         new ReduceMultiBatchFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()));
 
     Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
-    MultiReduceWorker reduceWorker = null;
+    MultiSource reduceWorker = null;
     for (int i : tasksOfExecutor) {
-      reduceWorker = new MultiReduceWorker(i, jobParameters, reduce, dataGenerator);
-      // the map thread where data is produced
+      reduceWorker = new MultiSource(i, jobParameters, reduce, dataGenerator);
+      // the map thread where datacols is produced
       Thread mapThread = new Thread(reduceWorker);
       mapThread.start();
     }

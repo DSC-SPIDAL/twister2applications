@@ -47,7 +47,7 @@ public class StreamingReduce {
       @Override
       public void run(SourceContext<CollectiveData> sourceContext) throws Exception {
         while (count < iterations) {
-          CollectiveData i = new CollectiveData(size, 1);
+          CollectiveData i = new CollectiveData(size);
           sourceContext.collect(i);
           count++;
         }
@@ -67,13 +67,12 @@ public class StreamingReduce {
       @Override
       public Tuple2<Integer, CollectiveData> reduce(Tuple2<Integer, CollectiveData> c1,
                                                     Tuple2<Integer, CollectiveData> c2) throws Exception {
-//        System.out.println(String.format("%s - %s", c2.f1, c1.f1));
         return new Tuple2<Integer, CollectiveData>(0, add(c1.f1, c2.f1));
       }
     }).addSink(new RichSinkFunction<Tuple2<Integer,CollectiveData>>() {
       long start;
       int count = 0;
-      int iterations = 10000;
+      int iterations;
 
       @Override
       public void open(Configuration parameters) throws Exception {

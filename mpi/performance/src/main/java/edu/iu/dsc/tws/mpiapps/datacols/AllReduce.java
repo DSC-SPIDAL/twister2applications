@@ -1,23 +1,24 @@
-package edu.iu.dsc.tws.mpiapps;
+package edu.iu.dsc.tws.mpiapps.datacols;
 
+import edu.iu.dsc.tws.mpiapps.Collective;
+import edu.iu.dsc.tws.mpiapps.DataGenUtils;
+import edu.iu.dsc.tws.mpiapps.KryoSerializer;
+import edu.iu.dsc.tws.mpiapps.data.IntData;
 import mpi.*;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.HashMap;
 
-public class Reduce extends Collective {
-  private RandomString randomString;
-
+public class AllReduce extends Collective {
   private KryoSerializer kryoSerializer;
 
   private long allReduceTime = 0;
 
   private long reduceTime = 0;
 
-  public Reduce(int size, int iterations) {
+  public AllReduce(int size, int iterations) {
     super(size, iterations);
-    this.randomString = new RandomString(size);
     this.kryoSerializer = new KryoSerializer();
     this.kryoSerializer.init(new HashMap());
   }
@@ -27,11 +28,11 @@ public class Reduce extends Collective {
     IntBuffer maxSend = MPI.newIntBuffer(1);
     IntBuffer maxRecv = MPI.newIntBuffer(1);
     int rank = MPI.COMM_WORLD.getRank();
-    ByteBuffer sendBuffer = MPI.newByteBuffer(size * 2);
-    ByteBuffer receiveBuffer = MPI.newByteBuffer(size * 2);
+    ByteBuffer sendBuffer = MPI.newByteBuffer(size * 5);
+    ByteBuffer receiveBuffer = MPI.newByteBuffer(size * 5);
+    Object next = DataGenUtils.generateData(size);
 
     for (int i = 0; i < iterations; i++) {
-      String next = randomString.nextString();
       byte[] bytes = kryoSerializer.serialize(next);
       long start = 0;
       maxSend.put(0, bytes.length);
@@ -47,7 +48,7 @@ public class Reduce extends Collective {
       sendBuffer.putInt(bytes.length);
       sendBuffer.put(bytes);
       start = System.nanoTime();
-      MPI.COMM_WORLD.reduce(sendBuffer, receiveBuffer, 1, stringBytes, reduceOp(), 0);
+      MPI.COMM_WORLD.allReduce(sendBuffer, receiveBuffer, 1, stringBytes, reduceOp());
       allReduceTime += System.nanoTime() - start;
 
       if (rank == 0) {
@@ -57,7 +58,7 @@ public class Reduce extends Collective {
         receiveBuffer.flip();
         receiveBuffer.getInt();
         receiveBuffer.get(receiveBytes);
-        String rcv = (String) kryoSerializer.deserialize(receiveBytes);
+        IntData rcv = (IntData) kryoSerializer.deserialize(receiveBytes);
       }
       receiveBuffer.clear();
       sendBuffer.clear();
@@ -86,8 +87,8 @@ public class Reduce extends Collective {
         in.get(firstBytes);
         inOut.get(secondBytes);
 
-        String firstString = (String) kryoSerializer.deserialize(firstBytes);
-        String secondString = (String) kryoSerializer.deserialize(secondBytes);
+        IntData firstString = (IntData) kryoSerializer.deserialize(firstBytes);
+        IntData secondString = (IntData) kryoSerializer.deserialize(secondBytes);
         secondBytes = kryoSerializer.serialize(secondString);
 
         inOut.clear();

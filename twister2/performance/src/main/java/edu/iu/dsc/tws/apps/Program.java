@@ -4,10 +4,11 @@ import edu.iu.dsc.tws.api.JobConfig;
 import edu.iu.dsc.tws.api.Twister2Submitter;
 import edu.iu.dsc.tws.api.basic.job.BasicJob;
 import edu.iu.dsc.tws.apps.batch.AllReduce;
+import edu.iu.dsc.tws.apps.batch.MultiGather;
 import edu.iu.dsc.tws.apps.batch.MultiReduce;
 import edu.iu.dsc.tws.apps.batch.Reduce;
-import edu.iu.dsc.tws.apps.stream.AllReduceStream;
-import edu.iu.dsc.tws.apps.stream.IntAllReduceStream;
+import edu.iu.dsc.tws.apps.storm.PartitionStream;
+import edu.iu.dsc.tws.apps.stream.*;
 import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.rsched.core.ResourceAllocator;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourceContainer;
@@ -25,6 +26,7 @@ public class Program {
     int col = Integer.parseInt(args[3]);
     boolean stream = Boolean.parseBoolean(args[4]);
     String taskStages = args[5];
+    String gap = args[6];
 
     // build JobConfig
     JobConfig jobConfig = new JobConfig();
@@ -33,6 +35,7 @@ public class Program {
     jobConfig.put(Constants.ARGS_SIZE, Integer.toString(size));
     jobConfig.put(Constants.ARGS_CONTAINERS, Integer.toString(containers));
     jobConfig.put(Constants.ARGS_TASK_STAGES, taskStages);
+    jobConfig.put(Constants.ARGS_GAP, gap);
 
     // build the job
     BasicJob basicJob = null;
@@ -64,9 +67,27 @@ public class Program {
             .build();
         // now submit the job
         Twister2Submitter.submitContainerJob(basicJob, config);
+      }  else if (col == 4) {
+        basicJob = BasicJob.newBuilder()
+            .setName("multi-gather-bench")
+            .setContainerClass(MultiGather.class.getName())
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
+            .setConfig(jobConfig)
+            .build();
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
       }
     } else {
-      if (col == 1) {
+      if (col == 0) {
+        basicJob = BasicJob.newBuilder()
+            .setName("reduce-stream-bench")
+            .setContainerClass(ReduceStream.class.getName())
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
+            .setConfig(jobConfig)
+            .build();
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
+      } else if (col == 1) {
         basicJob = BasicJob.newBuilder()
             .setName("all-reduce-stream-bench")
             .setContainerClass(AllReduceStream.class.getName())
@@ -79,6 +100,33 @@ public class Program {
         basicJob = BasicJob.newBuilder()
             .setName("all-reduce-stream-bench")
             .setContainerClass(IntAllReduceStream.class.getName())
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
+            .setConfig(jobConfig)
+            .build();
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
+      } else if (col == 3) {
+        basicJob = BasicJob.newBuilder()
+            .setName("gather-stream-bench")
+            .setContainerClass(GatherStream.class.getName())
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
+            .setConfig(jobConfig)
+            .build();
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
+      }  else if (col == 4) {
+        basicJob = BasicJob.newBuilder()
+            .setName("all-gather-stream-bench")
+            .setContainerClass(AllGatherStream.class.getName())
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
+            .setConfig(jobConfig)
+            .build();
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
+      } else if (col == 5) {
+        basicJob = BasicJob.newBuilder()
+            .setName("partition-stream-bench")
+            .setContainerClass(PartitionStream.class.getName())
             .setRequestResource(new ResourceContainer(2, 1024), containers)
             .setConfig(jobConfig)
             .build();

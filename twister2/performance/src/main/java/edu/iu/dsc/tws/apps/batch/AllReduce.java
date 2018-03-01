@@ -64,11 +64,11 @@ public class AllReduce implements IContainer {
         dests, middle, new IdentityFunction(), reduceReceiver, false);
 
     Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
-    ReduceWorker reduceWorker = null;
+    Source source = null;
     for (int i : tasksOfExecutor) {
-      reduceWorker = new ReduceWorker(i, jobParameters, reduce, dataGenerator);
-      // the map thread where data is produced
-      Thread mapThread = new Thread(reduceWorker);
+      source = new Source(i, jobParameters, reduce, dataGenerator);
+      // the map thread where datacols is produced
+      Thread mapThread = new Thread(source);
       mapThread.start();
     }
 
@@ -78,8 +78,8 @@ public class AllReduce implements IContainer {
       channel.progress();
       // we should progress the communication directive
       reduce.progress();
-      if (reduceWorker != null) {
-        startSendingTime = reduceWorker.getStartSendingTime();
+      if (source != null) {
+        startSendingTime = source.getStartSendingTime();
       }
     }
   }

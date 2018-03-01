@@ -10,7 +10,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Data partitioner reads data from x number of nodes each with y number of records.
+ * Data partitioner reads datacols from x number of nodes each with y number of records.
  * These records are sorted and we pick n number of partition keys from this final sorted array
  */
 public class DataPartitioner {

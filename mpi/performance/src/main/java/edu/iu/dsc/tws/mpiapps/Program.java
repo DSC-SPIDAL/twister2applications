@@ -1,5 +1,7 @@
 package edu.iu.dsc.tws.mpiapps;
 
+import edu.iu.dsc.tws.mpiapps.datacols.*;
+import edu.iu.dsc.tws.mpiapps.nonblocking.NBReduce;
 import mpi.MPI;
 import mpi.MPIException;
 import org.apache.commons.cli.*;
@@ -12,7 +14,7 @@ public class Program {
   // the collective to test
   int collective;
 
-  // size of the data to test
+  // size of the datacols to test
   int dataSize;
 
   // number of iterations to use
@@ -21,7 +23,7 @@ public class Program {
   private void readProgramArgs(String []args) {
     Options options = new Options();
     options.addOption("collective", true, "Type of collective, 0 Reduce, 1 All Reduce, 2 Broad cast");
-    options.addOption("size", true, "Size of data to use");
+    options.addOption("size", true, "Size of datacols to use");
     options.addOption("itr", true, "Number of iterations");
 
     CommandLineParser commandLineParser = new GnuParser();
@@ -41,7 +43,10 @@ public class Program {
 
   public void execute(String []args) throws MPIException {
     readProgramArgs(args);
-    System.out.println(String.format("Collective %d with size %d and iteration %d", collective, dataSize, iterations));
+    int rank = MPI.COMM_WORLD.getRank();
+    if (rank == 0) {
+      System.out.println(String.format("Collective %d with size %d and iteration %d", collective, dataSize, iterations));
+    }
     long startTime = System.currentTimeMillis();
     if (collective == 0) {
       Reduce r = new Reduce(dataSize, iterations);
@@ -58,11 +63,25 @@ public class Program {
     } else if (collective == 4) {
       AllReduce allReduce = new AllReduce(dataSize, iterations);
       allReduce.execute();
+    }  else if (collective == 5) {
+      AllGather allReduce = new AllGather(dataSize, iterations);
+      allReduce.execute();
+    } else if (collective == 6) {
+      edu.iu.dsc.tws.mpiapps.cols.Reduce allReduce = new edu.iu.dsc.tws.mpiapps.cols.Reduce(dataSize, iterations);
+      allReduce.execute();
+    } else if (collective == 7) {
+      edu.iu.dsc.tws.mpiapps.cols.AllReduce allReduce = new edu.iu.dsc.tws.mpiapps.cols.AllReduce(dataSize, iterations);
+      allReduce.execute();
+    } else if (collective == 8) {
+      AllGather allGather = new AllGather(dataSize, iterations);
+      allGather.execute();
+    } else if (collective == 9) {
+      NBReduce allGather = new NBReduce(dataSize, iterations);
+      allGather.execute();
     }
 
     long endTime = System.currentTimeMillis();
     long time = endTime - startTime;
-    int rank = MPI.COMM_WORLD.getRank();
     if (rank == 0) {
       System.out.println(String.format("Collective %d with size %d and iteration %d took %d", collective, dataSize, iterations, time));
     }

@@ -2,7 +2,6 @@ package edu.iu.dsc.tws.apps.stream;
 
 import edu.iu.dsc.tws.apps.batch.IdentityFunction;
 import edu.iu.dsc.tws.apps.batch.IntReduceWorker;
-import edu.iu.dsc.tws.apps.batch.ReduceWorker;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
@@ -76,7 +75,7 @@ public class IntAllReduceStream implements IContainer {
     for (int i : tasksOfExecutor) {
       reduceWorker = new IntReduceWorker(i, jobParameters, reduce, dataGenerator);
       reduceWorkers.put(i, reduceWorker);
-      // the map thread where data is produced
+      // the map thread where datacols is produced
       Thread mapThread = new Thread(reduceWorker);
       mapThread.start();
     }
@@ -120,6 +119,7 @@ public class IntAllReduceStream implements IContainer {
           for (int i = 0; i < times.size(); i++) {
             average += (timesForTarget.get(i) - times.get(i));
           }
+          LOG.info(String.format("%d Finished %d %d", id, target, time));
           LOG.info(String.format("%d Average: %d", id, average / (times.size())));
           done = true;
         }

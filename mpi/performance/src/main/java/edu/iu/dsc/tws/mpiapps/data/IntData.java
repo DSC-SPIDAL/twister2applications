@@ -1,4 +1,4 @@
-package edu.iu.dsc.tws.mpiapps;
+package edu.iu.dsc.tws.mpiapps.data;
 
 public class IntData {
   private int[] data;
@@ -17,7 +17,4 @@ public class IntData {
   public void setData(int[] data) {
     this.data = data;
   }
-
-
 }
-

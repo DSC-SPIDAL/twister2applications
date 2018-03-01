@@ -22,7 +22,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Assume data is partitioned into file
+ * Assume datacols is partitioned into file
  */
 public final class DataLoader {
     private static final Logger LOG = Logger.getLogger(DataLoader.class.getName());

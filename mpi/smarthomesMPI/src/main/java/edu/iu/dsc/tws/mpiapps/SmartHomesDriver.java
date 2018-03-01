@@ -83,8 +83,8 @@ public class SmartHomesDriver {
         }
 
         readConfiguration(cmd);
-        //Initial data read to setup parallism
-        // read data using twsiter2 data api
+        //Initial datacols read to setup parallism
+        // read datacols using twsiter2 datacols api
         try {
             ParallelOps.setupParallelism(args);
 
@@ -212,7 +212,7 @@ public class SmartHomesDriver {
 
 
 
-                //Atcuall processing of each plug data and summarizing
+                //Atcuall processing of each plug datacols and summarizing
                 // ONly hanldes plugs that are assined to it and if property is work no need to process for now
 
                 if((timeStamp - houseTime) == basicSlice){
@@ -225,7 +225,7 @@ public class SmartHomesDriver {
                         // if rank is 0 write out the stream to the file.
                         calculateAndWriteHousePred(out, houseTime, houseSliceCount, houseSumsReducedCurrSlice,houseMedians);
                     }
-                    houseSliceCount = (houseSliceCount + 1) % basicSliceCount; //need to be sure that seconds are not missing in the data
+                    houseSliceCount = (houseSliceCount + 1) % basicSliceCount; //need to be sure that seconds are not missing in the datacols
                     houseTime += basicSlice;
                     houseSumsCount += 1;
                 }
@@ -236,7 +236,7 @@ public class SmartHomesDriver {
 
 
 
-                    if(timeStamp - countertemp[1] >= basicSlice){ // TODO: check if this handles missing data
+                    if(timeStamp - countertemp[1] >= basicSlice){ // TODO: check if this handles missing datacols
                         tempMedian.get(config.slices[0]).get((int)countertemp[2]).insertElement(countertemp[0]);
                         countertemp[0] = load;
                         houseSumsbySlice[houseSliceCount][houseKeyInt] = load;
@@ -272,7 +272,7 @@ public class SmartHomesDriver {
         double tempmeadin = 0.0;
         for (int i = 0; i < config.numHouses; i++) {
             tempmeadin = houseMedians.get(i).get(config.slices[0]).get(predSlice).getMedian();
-            pred = curLoad[i] + tempmeadin; //If we do not have any historical data do we just use the current load?
+            pred = curLoad[i] + tempmeadin; //If we do not have any historical datacols do we just use the current load?
             pred /= 2;
             out.write(predTimeStamp + "," + i + "," + String.format("%.3f", pred) + "\n");
         }

@@ -1,6 +1,5 @@
 package edu.iu.dsc.tws.apps.stream;
 
-import edu.iu.dsc.tws.apps.batch.IdentityFunction;
 import edu.iu.dsc.tws.apps.batch.Source;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.data.DataSave;
@@ -8,8 +7,8 @@ import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.comms.api.DataFlowOperation;
+import edu.iu.dsc.tws.comms.api.MessageReceiver;
 import edu.iu.dsc.tws.comms.api.MessageType;
-import edu.iu.dsc.tws.comms.api.ReduceReceiver;
 import edu.iu.dsc.tws.comms.core.TWSCommunication;
 import edu.iu.dsc.tws.comms.core.TWSNetwork;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
@@ -20,12 +19,16 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class AllReduceStream implements IContainer {
-  private static final Logger LOG = Logger.getLogger(AllReduceStream.class.getName());
+public class AllGatherStream implements IContainer {
+  private static final Logger LOG = Logger.getLogger(AllGatherStream.class.getName());
 
   private DataFlowOperation reduce;
 
+  private ResourcePlan resourcePlan;
+
   private int id;
+
+  private Config config;
 
   private JobParameters jobParameters;
 
@@ -37,7 +40,8 @@ public class AllReduceStream implements IContainer {
 
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
-    LOG.log(Level.INFO, "Starting AllReduceStreaming Example");
+    LOG.log(Level.INFO, "Starting the example with container id: " + plan.getThisId());
+
     this.jobParameters = JobParameters.build(cfg);
     this.id = containerId;
     DataGenerator dataGenerator = new DataGenerator(jobParameters);
@@ -45,13 +49,12 @@ public class AllReduceStream implements IContainer {
     // lets create the task plan
     TaskPlan taskPlan = Utils.createReduceTaskPlan(cfg, plan, jobParameters.getTaskStages());
     LOG.info("Task plan: " + taskPlan);
-
     //first get the communication config file
     TWSNetwork network = new TWSNetwork(cfg, taskPlan);
+
     TWSCommunication channel = network.getDataFlowTWSCommunication();
 
     Set<Integer> sources = new HashSet<>();
-    int middle = jobParameters.getTaskStages().get(0) + jobParameters.getTaskStages().get(1);
     Integer noOfSourceTasks = jobParameters.getTaskStages().get(0);
     for (int i = 0; i < noOfSourceTasks; i++) {
       sources.add(i);
@@ -61,41 +64,49 @@ public class AllReduceStream implements IContainer {
     for (int i = 0; i < noOfDestTasks; i++) {
       dests.add(i + sources.size());
     }
+    int middle = jobParameters.getTaskStages().get(0) + jobParameters.getTaskStages().get(1);
 
     Map<String, Object> newCfg = new HashMap<>();
 
-    LOG.info(String.format("Setting up reduce dataflow operation %s %s", sources, dests));
-    // this method calls the init method
-    FinalReduceReceiver reduceReceiver = new FinalReduceReceiver();
-    reduce = channel.allReduce(newCfg, MessageType.OBJECT, 0, 1, sources,
-        dests, middle, new IdentityFunction(), reduceReceiver, true);
+    LOG.info("Setting up reduce dataflow operation");
+    try {
+      // this method calls the init method
+      // I think this is wrong
+      reduce = channel.allGather(newCfg, MessageType.OBJECT, 0, 1, sources,
+          dests, middle, new FinalReduceReceiver());
 
-    Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
-    tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
-    Source source = null;
-    for (int i : tasksOfExecutor) {
-      source = new Source(i, jobParameters, reduce, dataGenerator);
-      reduceWorkers.put(i, source);
-      // the map thread where datacols is produced
-      Thread mapThread = new Thread(source);
-      mapThread.start();
-    }
-
-    // we need to progress the communication
-    while (true) {
-      // progress the channel
-      channel.progress();
-      // we should progress the communication directive
-      reduce.progress();
-      if (source != null) {
-        startSendingTime = source.getStartSendingTime();
+      Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
+      tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
+      Source source = null;
+      for (int i : tasksOfExecutor) {
+        source = new Source(i, jobParameters, reduce, dataGenerator, true);
+        reduceWorkers.put(i, source);
+        // the map thread where datacols is produced
+        Thread mapThread = new Thread(source);
+        mapThread.start();
       }
+
+      // we need to progress the communication
+      while (true) {
+        try {
+          // progress the channel
+          channel.progress();
+          // we should progress the communication directive
+          reduce.progress();
+
+          if (source != null) {
+            startSendingTime = source.getStartSendingTime();
+          }
+        } catch (Throwable t) {
+          t.printStackTrace();
+        }
+      }
+    } catch (Throwable t) {
+      t.printStackTrace();
     }
   }
 
-  public class FinalReduceReceiver implements ReduceReceiver {
-    boolean done = false;
-
+  public class FinalReduceReceiver implements MessageReceiver {
     Map<Integer, List<Long>> times = new HashMap<>();
 
     @Override
@@ -107,9 +118,8 @@ public class AllReduceStream implements IContainer {
     }
 
     @Override
-    public boolean receive(int target, Object object) {
+    public boolean onMessage(int source, int path, int target, int flags, Object object) {
       long time = (System.currentTimeMillis() - startSendingTime);
-//      LOG.info(String.format("%d times %s", id, times));
       List<Long> timesForTarget = times.get(target);
       timesForTarget.add(System.currentTimeMillis());
 
@@ -119,14 +129,13 @@ public class AllReduceStream implements IContainer {
           List<Long> latencies = new ArrayList<>();
           long average = 0;
           for (int i = 0; i < times.size(); i++) {
-            long l = timesForTarget.get(i) - times.get(i);
-            average += l;
-            latencies.add(l);
+            average += (timesForTarget.get(i) - times.get(i));
+            latencies.add(timesForTarget.get(i) - times.get(i));
           }
-          DataSave.saveList("allreaduce-stream.txt", latencies);
           LOG.info(String.format("%d Average: %d", id, average / (times.size())));
-          done = true;
           LOG.info(String.format("%d Finished %d %d", id, target, time));
+
+          DataSave.saveList("reduce", latencies);
         }
       } catch (Throwable r) {
         LOG.log(Level.SEVERE, String.format("%d excpetion %s %s", id, tasksOfThisExec, reduceWorkers.keySet()), r);
@@ -135,8 +144,9 @@ public class AllReduceStream implements IContainer {
       return true;
     }
 
-    private boolean isDone() {
-      return done;
+    @Override
+    public void progress() {
+
     }
   }
 }
