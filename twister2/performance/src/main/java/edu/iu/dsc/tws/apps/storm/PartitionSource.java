@@ -28,8 +28,6 @@ public class PartitionSource {
 
   private JobParameters jobParameters;
 
-  private List<Long> startOfMessages;
-
   private int gap;
 
   private boolean genString;
@@ -58,7 +56,6 @@ public class PartitionSource {
     this.task = task;
     this.jobParameters = jobParameters;
     this.generator = dataGenerator;
-    this.startOfMessages = new ArrayList<>();
     this.gap = jobParameters.getGap();
     this.genString = false;
     this.destinations = new ArrayList<>();
@@ -97,7 +94,6 @@ public class PartitionSource {
         // lets wait a litte and try again
         return;
       }
-      startOfMessages.add(System.nanoTime());
       nextIndex++;
       emitTimes.put(currentIteration, time);
 //      LOG.fine(String.format("%d task %d sends %d", executorId, task, currentIteration));
@@ -106,7 +102,7 @@ public class PartitionSource {
   }
 
   public void ack(long id) {
-    long time = emitTimes.get(id);
+    long time = emitTimes.remove(id);
     ackCount++;
     finalTimes.add(System.nanoTime() - time);
     long totalTime = System.currentTimeMillis() - startSendingTime;
