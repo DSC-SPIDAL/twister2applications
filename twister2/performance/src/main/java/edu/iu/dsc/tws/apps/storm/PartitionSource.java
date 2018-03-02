@@ -78,7 +78,7 @@ public class PartitionSource {
 
   public void execute() {
     int noOfDestinations = destinations.size();
-//    operation.progress();
+    operation.progress();
 
     if (outstanding >= 16) {
       return;
