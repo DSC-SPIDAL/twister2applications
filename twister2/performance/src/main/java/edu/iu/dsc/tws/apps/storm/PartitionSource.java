@@ -6,7 +6,6 @@ import edu.iu.dsc.tws.apps.data.DataSave;
 import edu.iu.dsc.tws.apps.data.PartitionData;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.comms.api.DataFlowOperation;
-import edu.iu.dsc.tws.comms.api.MessageFlags;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
