@@ -1,5 +1,6 @@
 package edu.iu.dsc.tws.apps.storm;
 
+import edu.iu.dsc.tws.apps.data.AckData;
 import edu.iu.dsc.tws.apps.data.DataSave;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 
@@ -7,12 +8,15 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class Worker implements Runnable {
-  private static final Logger LOG = Logger.getLogger(Worker.class.getName());
+public class Executor implements Runnable {
+  private static final Logger LOG = Logger.getLogger(Executor.class.getName());
 
   private PartitionSource source;
 
-  private Map<Integer, Queue<Message>> messages;
+  private SecondBolt secondBolt;
+
+  private Queue<Message> workerQueue;
+  private Queue<Message> ackMessages;
 
   private long startSendingTime;
 
@@ -22,15 +26,19 @@ public class Worker implements Runnable {
 
   private int executorId;
 
-  public Worker(int executorId, PartitionSource source, JobParameters jobParameters) {
+  public Executor(int executorId, PartitionSource source, SecondBolt secondBolt, JobParameters jobParameters) {
     this.source = source;
-    this.messages = new HashMap<>();
     this.executorId = executorId;
     this.jobParameters = jobParameters;
+    this.secondBolt = secondBolt;
   }
 
-  public void addQueue(int target, Queue<Message> msgQueue) {
-    messages.put(target, msgQueue);
+  public void addWorkerQueue(Queue<Message> msgQueue) {
+    workerQueue = msgQueue;
+  }
+
+  public void setAckMessages(Queue<Message> ackMessages) {
+    this.ackMessages = ackMessages;
   }
 
   @Override
@@ -39,17 +47,26 @@ public class Worker implements Runnable {
       while (true) {
         source.execute();
         startSendingTime = source.getStartSendingTime();
-        for (Map.Entry<Integer, Queue<Message>> e : messages.entrySet()) {
-          Queue<Message> messageQueue = e.getValue();
-          Message message = messageQueue.poll();
-          if (message != null) {
-            handleMessage(message);
+        Message message = workerQueue.peek();
+        if (message != null) {
+          if (secondBolt.execute(message)) {
+            workerQueue.poll();
           }
+        }
+
+        Message ackMessage = ackMessages.poll();
+        if (ackMessage != null) {
+          AckData ackData = (AckData) ackMessage.getMessage();
+          source.ack(ackData.getId());
         }
       }
     } catch (Throwable t) {
       LOG.log(Level.SEVERE, "Error occured", t);
     }
+  }
+
+  private void handleDataMessage(Message message) {
+
   }
 
   private void handleMessage(Message message) {
@@ -63,7 +80,7 @@ public class Worker implements Runnable {
         }
 
         if (timesForTarget.size() >= jobParameters.getIterations() - jobParameters.getTaskStages().get(0)) {
-          List<Long> times = source.getStartOfMessages();
+          List<Long> times = source.getFinalMessages();
           List<Long> latencies = new ArrayList<>();
           long average = 0;
           for (int i = 0; i < times.size(); i++) {

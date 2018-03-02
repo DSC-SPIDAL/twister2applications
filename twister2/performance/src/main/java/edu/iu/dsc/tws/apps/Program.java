@@ -27,6 +27,10 @@ public class Program {
     boolean stream = Boolean.parseBoolean(args[4]);
     String taskStages = args[5];
     String gap = args[6];
+    String fName = "";
+    if (args.length > 7) {
+      fName = args[7];
+    }
 
     // build JobConfig
     JobConfig jobConfig = new JobConfig();
@@ -36,6 +40,7 @@ public class Program {
     jobConfig.put(Constants.ARGS_CONTAINERS, Integer.toString(containers));
     jobConfig.put(Constants.ARGS_TASK_STAGES, taskStages);
     jobConfig.put(Constants.ARGS_GAP, gap);
+    jobConfig.put(Constants.ARGS_FNAME, fName);
 
     // build the job
     BasicJob basicJob = null;

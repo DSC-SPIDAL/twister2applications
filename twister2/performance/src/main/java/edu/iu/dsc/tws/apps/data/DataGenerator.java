@@ -38,6 +38,13 @@ public class DataGenerator {
     return d;
   }
 
+  public byte[] generateByteData() {
+    int s = jobParameters.getSize();
+    byte b[] = new byte[s];
+    new Random().nextBytes(b);
+    return b;
+  }
+
   public String generateStringData() {
     return randomString.nextString();
   }
