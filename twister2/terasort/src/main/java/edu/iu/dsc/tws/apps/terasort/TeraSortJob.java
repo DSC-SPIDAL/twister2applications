@@ -75,7 +75,7 @@ public final class TeraSortJob {
         BasicJob.BasicJobBuilder jobBuilder = BasicJob.newBuilder();
         jobBuilder.setName("terasort");
         jobBuilder.setContainerClass(TeraSortContainer.class.getName());
-        jobBuilder.setRequestResource(new ResourceContainer(2, 1024), 4);
+        jobBuilder.setRequestResource(new ResourceContainer(4, 1024), 96);
         jobBuilder.setConfig(jobConfig);
 
         // now submit the job

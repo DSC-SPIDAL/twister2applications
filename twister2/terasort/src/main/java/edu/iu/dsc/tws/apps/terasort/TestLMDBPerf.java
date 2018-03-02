@@ -46,10 +46,10 @@ public class TestLMDBPerf {
         TestLMDBPerf perf = new TestLMDBPerf();
 
 //        perf.testLMDBOpti(dataPath);
-        perf.testLMDBOptiBatched(dataPath);
+//        perf.testLMDBOptiBatched(dataPath);
 //        perf.testLMDBOpti(dataPath);
 //        perf.testLMDBOpti(dataPath);
-//        perf.readTest(dataPath);
+        perf.readTest(dataPath);
     }
 
     private void readTest(Path lmdbDataPath) {
@@ -72,14 +72,16 @@ public class TestLMDBPerf {
                 .setMaxReaders(MAX_READERS)
                 .open(path, envFlags);
 
-        int iterations = 100000;
+        int iterations = 100;
         byte[] data = new byte[20];
         for (int i = 0; i < data.length; i++) {
             data[i] = (byte) i;
         }
 
-        ByteBuffer dataBuffer = ByteBuffer.allocateDirect(20).put(data);
+        ByteBuffer dataBuffer = ByteBuffer.allocateDirect(1024).put(data);
         ByteBuffer[] keys = new ByteBuffer[iterations];
+        dataBuffer.flip();
+        System.out.println("LIMIT" + dataBuffer.limit());
 
         double randomDouble = 0.0;
         for (int i = 0; i < iterations; i++) {
@@ -93,27 +95,36 @@ public class TestLMDBPerf {
         this.db = this.env.openDbi("wqe", MDB_CREATE);
         ;
         int count = 0;
-//        for (int i = 0; i < 1; i++) {
-//            for (ByteBuffer key : keys) {
-//                dataBuffer.rewind();
-//                key.rewind();
-//                db.put(key, dataBuffer);
-//                count++;
-//            }
-//        }
+        for (int i = 0; i < 1; i++) {
+            for (ByteBuffer key : keys) {
+                dataBuffer.rewind();
+                key.rewind();
+                db.put(key, dataBuffer);
+                count++;
+            }
+        }
 
         count = 0;
         long startTime = System.currentTimeMillis();
-        for (int i = 0; i < 500000; i++) {
+        for (int i = 0; i < 10; i++) {
             int id = i % 100000;
             Txn<ByteBuffer> txn = this.env.txnRead();
 //            System.out.println(keys[0].limit() + " : " + keys[0].remaining());
             keys[id].rewind();
             ByteBuffer result = db.get(txn, keys[id]);
+            System.out.println("Got data length " + result.limit());
+            System.out.println("Got data capacity " + result.capacity());
             txn.close();
             count++;
         }
+        Txn<ByteBuffer> txn = this.env.txnRead();
 
+        ByteBuffer ranKey = ByteBuffer.allocateDirect(8);
+        ranKey.putDouble(Math.random());
+        ranKey.rewind();
+
+        ByteBuffer result = db.get(txn, ranKey);
+        System.out.println(result);
         long endTime = System.currentTimeMillis();
         System.out.printf("Total time taken in Millis : %d , total count : %d \n", (endTime - startTime), count);
     }
