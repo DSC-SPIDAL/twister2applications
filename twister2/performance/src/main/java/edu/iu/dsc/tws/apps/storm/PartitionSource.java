@@ -51,6 +51,8 @@ public class PartitionSource {
 
   private int noOfIterations;
 
+  private int outstanding;
+
   public PartitionSource(int task, JobParameters jobParameters, DataGenerator dataGenerator, int executorId) {
     this.task = task;
     this.jobParameters = jobParameters;
@@ -67,6 +69,7 @@ public class PartitionSource {
     }
     startSendingTime = System.currentTimeMillis();
     data = dataGenerator.generateByteData();
+    this.outstanding = 0;
   }
 
   public void setOperation(DataFlowOperation operation) {
@@ -76,6 +79,10 @@ public class PartitionSource {
   public void execute() {
     int noOfDestinations = destinations.size();
 //    operation.progress();
+
+    if (outstanding >= 16) {
+      return;
+    }
 
     long currentTime = System.currentTimeMillis();
     if (gap > (currentTime - lastMessageTime)) {
@@ -97,12 +104,14 @@ public class PartitionSource {
       emitTimes.put(currentIteration, time);
 //      LOG.fine(String.format("%d task %d sends %d", executorId, task, currentIteration));
       currentIteration++;
+      outstanding++;
     }
   }
 
   public void ack(long id) {
     long time = emitTimes.remove(id);
     ackCount++;
+    outstanding--;
     finalTimes.add(System.nanoTime() - time);
     long totalTime = System.currentTimeMillis() - startSendingTime;
     if (ackCount >= noOfIterations - 1) {
