@@ -89,7 +89,7 @@ public class PartitionSource {
       return;
     }
 
-    if (currentIteration < noOfIterations) {
+    while (currentIteration < noOfIterations) {
       startOfMessages.add(System.nanoTime());
       nextIndex = nextIndex % noOfDestinations;
       int dest = destinations.get(nextIndex);
@@ -103,11 +103,6 @@ public class PartitionSource {
       PartitionData partitionData = new PartitionData(data, time, currentIteration);
       if (!operation.send(task, partitionData, flag, dest)) {
         // lets wait a litte and try again
-        try {
-          Thread.sleep(1);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
         return;
       }
       emitTimes.put(currentIteration, time);
