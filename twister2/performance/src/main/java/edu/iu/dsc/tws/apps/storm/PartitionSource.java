@@ -82,7 +82,7 @@ public class PartitionSource {
     int noOfDestinations = destinations.size();
     startSendingTime = System.currentTimeMillis();
 
-    operation.progress();
+//    operation.progress();
 
     long currentTime = System.currentTimeMillis();
     if (gap > (currentTime - lastMessageTime)) {
@@ -103,6 +103,11 @@ public class PartitionSource {
       PartitionData partitionData = new PartitionData(data, time, currentIteration);
       if (!operation.send(task, partitionData, flag, dest)) {
         // lets wait a litte and try again
+        try {
+          Thread.sleep(1);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
         return;
       }
       emitTimes.put(currentIteration, time);
