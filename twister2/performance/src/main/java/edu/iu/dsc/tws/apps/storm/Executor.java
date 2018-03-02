@@ -18,10 +18,6 @@ public class Executor implements Runnable {
   private Queue<Message> workerQueue;
   private Queue<Message> ackMessages;
 
-  private long startSendingTime;
-
-  List<Long> timesForTarget = new ArrayList<>();
-
   private JobParameters jobParameters;
 
   private int executorId;
@@ -46,11 +42,16 @@ public class Executor implements Runnable {
     try {
       while (true) {
         source.execute();
-        startSendingTime = source.getStartSendingTime();
-        Message message = workerQueue.peek();
-        if (message != null) {
-          if (secondBolt.execute(message)) {
-            workerQueue.poll();
+        while (true) {
+          Message message = workerQueue.peek();
+          if (message != null) {
+            if (secondBolt.execute(message)) {
+              workerQueue.poll();
+            } else {
+              break;
+            }
+          } else {
+            break;
           }
         }
 
@@ -63,42 +64,5 @@ public class Executor implements Runnable {
     } catch (Throwable t) {
       LOG.log(Level.SEVERE, "Error occured", t);
     }
-  }
-
-  private void handleDataMessage(Message message) {
-
-  }
-
-  private void handleMessage(Message message) {
-    long time = (System.currentTimeMillis() - startSendingTime);
-    timesForTarget.add(System.nanoTime());
-    int target = message.getTarget();
-    try {
-      if (executorId == 0) {
-        if (timesForTarget.size() % 100 == 0) {
-          LOG.info(String.format("%d Finished %d %d %d", executorId, target, time, timesForTarget.size()));
-        }
-
-        if (timesForTarget.size() >= jobParameters.getIterations() - jobParameters.getTaskStages().get(0)) {
-          List<Long> times = source.getFinalMessages();
-          List<Long> latencies = new ArrayList<>();
-          long average = 0;
-          for (int i = 0; i < times.size(); i++) {
-            average += (timesForTarget.get(i) - times.get(i));
-            latencies.add(timesForTarget.get(i) - times.get(i));
-          }
-          LOG.info(String.format("%d Average: %d", executorId, average / (times.size())));
-          LOG.info(String.format("%d Finished %d %d %d", executorId, target, time, timesForTarget.size()));
-
-          DataSave.saveList("reduce", latencies);
-        }
-      }
-    } catch (Throwable r) {
-      LOG.log(Level.SEVERE, String.format("%d excpetion", executorId), r);
-    }
-  }
-
-  private void sendMessageBack() {
-
   }
 }

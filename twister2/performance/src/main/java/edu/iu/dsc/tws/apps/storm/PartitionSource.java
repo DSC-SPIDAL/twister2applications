@@ -54,7 +54,6 @@ public class PartitionSource {
 
   private int noOfIterations;
 
-
   public PartitionSource(int task, JobParameters jobParameters, DataGenerator dataGenerator, int executorId) {
     this.task = task;
     this.jobParameters = jobParameters;
@@ -70,7 +69,7 @@ public class PartitionSource {
     for (int i = 0; i < secondStage; i++) {
       destinations.add(i + fistStage);
     }
-
+    startSendingTime = System.currentTimeMillis();
     data = dataGenerator.generateByteData();
   }
 
@@ -80,8 +79,6 @@ public class PartitionSource {
 
   public void execute() {
     int noOfDestinations = destinations.size();
-    startSendingTime = System.currentTimeMillis();
-
 //    operation.progress();
 
     long currentTime = System.currentTimeMillis();
@@ -115,8 +112,9 @@ public class PartitionSource {
     long time = emitTimes.get(id);
     ackCount++;
     finalTimes.add(System.nanoTime() - time);
+    long totalTime = System.currentTimeMillis() - startSendingTime;
     if (ackCount >= noOfIterations - 1) {
-      LOG.info(String.format("Finished %d", ackCount));
+      LOG.info(String.format("Finished %d %d", ackCount, totalTime));
       try {
         DataSave.saveList(jobParameters.getFileName() + "" + task + "partition_" + jobParameters.getSize() + "x" + noOfIterations, finalTimes);
       } catch (FileNotFoundException e) {
