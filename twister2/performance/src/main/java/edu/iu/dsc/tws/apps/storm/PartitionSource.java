@@ -90,11 +90,7 @@ public class PartitionSource {
       startOfMessages.add(System.nanoTime());
       nextIndex = nextIndex % noOfDestinations;
       int dest = destinations.get(nextIndex);
-      nextIndex++;
       int flag = 0;
-      if (currentIteration >= noOfIterations - destinations.size()) {
-        flag = MessageFlags.FLAGS_LAST;
-      }
       lastMessageTime = System.currentTimeMillis();
       long time = System.nanoTime();
       PartitionData partitionData = new PartitionData(data, time, currentIteration);
@@ -102,6 +98,7 @@ public class PartitionSource {
         // lets wait a litte and try again
         return;
       }
+      nextIndex++;
       emitTimes.put(currentIteration, time);
 //      LOG.fine(String.format("%d task %d sends %d", executorId, task, currentIteration));
       currentIteration++;
