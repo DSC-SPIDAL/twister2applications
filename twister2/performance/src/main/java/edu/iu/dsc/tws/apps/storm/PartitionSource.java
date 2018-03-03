@@ -125,7 +125,12 @@ public class PartitionSource {
     finalTimes.add(Utils.getTime() - time);
     long totalTime = System.currentTimeMillis() - startSendingTime;
     if (ackCount >= noOfIterations - 1) {
-      LOG.info(String.format("Finished %d %d", ackCount, totalTime));
+      long average = 0;
+      for (long i : finalTimes) {
+        average += i;
+      }
+      average = average / finalTimes.size();
+      LOG.info(String.format("Finished %d total: %d average: %d", ackCount, totalTime, average));
       try {
         DataSave.saveList(jobParameters.getFileName() + "" + task + "partition_" + jobParameters.getSize() + "x" + noOfIterations, finalTimes);
       } catch (FileNotFoundException e) {
