@@ -132,14 +132,14 @@ public class PartitionStream implements IContainer {
         Executor executor = new Executor(id, source, secondBolt, jobParameters);
         partitionWorkers.put(sourceTask, executor);
 
-        Thread mapThread = new Thread(executor);
-        mapThread.start();
-
         int targetTasks = sourcesToReceiveMapping.get(sourceTask);
         int acTask = sourceToAckMapping.get(sourceTask);
 
         partitionWorkers.get(sourceTask).addWorkerQueue(workerMessageQueue.get(targetTasks));
         partitionWorkers.get(sourceTask).setAckMessages(ackMessageQueue.get(acTask));
+
+        Thread mapThread = new Thread(executor);
+        mapThread.start();
       }
 
       LOG.fine(String.format("%d source to receive %s", id, sourcesToReceiveMapping));
@@ -170,7 +170,7 @@ public class PartitionStream implements IContainer {
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
       LOG.log(Level.FINE, String.format("%d Initialize worker: %s", id, expectedIds));
       for (Map.Entry<Integer, List<Integer>> e : expectedIds.entrySet()) {
-        Queue<Message> queue = new ArrayBlockingQueue<>(1024);
+        Queue<Message> queue = new ArrayBlockingQueue<>(4);
         workerMessageQueue.put(e.getKey(), queue);
       }
     }
@@ -192,7 +192,7 @@ public class PartitionStream implements IContainer {
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
       LOG.log(Level.FINE, String.format("%d Initialize ack: %s", id, expectedIds));
       for (Map.Entry<Integer, List<Integer>> e : expectedIds.entrySet()) {
-        Queue<Message> queue = new ArrayBlockingQueue<>(1024);
+        Queue<Message> queue = new ArrayBlockingQueue<>(4);
         ackMessageQueue.put(e.getKey(), queue);
       }
     }

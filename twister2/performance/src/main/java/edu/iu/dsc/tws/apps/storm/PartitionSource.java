@@ -5,6 +5,7 @@ import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.data.DataSave;
 import edu.iu.dsc.tws.apps.data.PartitionData;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
+import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.comms.api.DataFlowOperation;
 
 import java.io.FileNotFoundException;
@@ -99,25 +100,28 @@ public class PartitionSource {
     nextIndex = nextIndex % noOfDestinations;
     int dest = destinations.get(nextIndex);
     int flag = 0;
-    long time = System.nanoTime();
+    long time = Utils.getTime();
     PartitionData partitionData = new PartitionData(data, time, currentIteration);
     if (!operation.send(task, partitionData, flag, dest)) {
-      // lets wait a litte and try again
       return;
     }
     lastMessageTime = System.currentTimeMillis();
     nextIndex++;
     emitTimes.put(currentIteration, time);
-//      LOG.fine(String.format("%d task %d sends %d", executorId, task, currentIteration));
     currentIteration++;
     outstanding++;
+//    try {
+//      Thread.sleep(1);
+//    } catch (InterruptedException e) {
+//      e.printStackTrace();
+//    }
   }
 
   public void ack(long id) {
     long time = emitTimes.remove(id);
     ackCount++;
     outstanding--;
-    finalTimes.add(System.nanoTime() - time);
+    finalTimes.add(Utils.getTime() - time);
     long totalTime = System.currentTimeMillis() - startSendingTime;
     if (ackCount >= noOfIterations - 1) {
       LOG.info(String.format("Finished %d %d", ackCount, totalTime));
