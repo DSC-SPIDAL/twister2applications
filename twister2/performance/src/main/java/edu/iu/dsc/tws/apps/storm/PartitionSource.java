@@ -53,6 +53,8 @@ public class PartitionSource {
 
   private int outstanding;
 
+  private boolean stop = false;
+
   public PartitionSource(int task, JobParameters jobParameters, DataGenerator dataGenerator, int executorId) {
     this.task = task;
     this.jobParameters = jobParameters;
@@ -78,7 +80,7 @@ public class PartitionSource {
 
   public void execute() {
     int noOfDestinations = destinations.size();
-    operation.progress();
+//    operation.progress();
 
     if (outstanding >= 16) {
       return;
@@ -89,23 +91,26 @@ public class PartitionSource {
       return;
     }
 
-    while (currentIteration < noOfIterations) {
-      nextIndex = nextIndex % noOfDestinations;
-      int dest = destinations.get(nextIndex);
-      int flag = 0;
-      lastMessageTime = System.currentTimeMillis();
-      long time = System.nanoTime();
-      PartitionData partitionData = new PartitionData(data, time, currentIteration);
-      if (!operation.send(task, partitionData, flag, dest)) {
-        // lets wait a litte and try again
-        return;
-      }
-      nextIndex++;
-      emitTimes.put(currentIteration, time);
-//      LOG.fine(String.format("%d task %d sends %d", executorId, task, currentIteration));
-      currentIteration++;
-      outstanding++;
+    if (currentIteration >= noOfIterations - 1) {
+      stop = true;
+      return;
     }
+
+    nextIndex = nextIndex % noOfDestinations;
+    int dest = destinations.get(nextIndex);
+    int flag = 0;
+    long time = System.nanoTime();
+    PartitionData partitionData = new PartitionData(data, time, currentIteration);
+    if (!operation.send(task, partitionData, flag, dest)) {
+      // lets wait a litte and try again
+      return;
+    }
+    lastMessageTime = System.currentTimeMillis();
+    nextIndex++;
+    emitTimes.put(currentIteration, time);
+//      LOG.fine(String.format("%d task %d sends %d", executorId, task, currentIteration));
+    currentIteration++;
+    outstanding++;
   }
 
   public void ack(long id) {
@@ -133,5 +138,9 @@ public class PartitionSource {
 
   public List<Long> getFinalMessages() {
     return finalTimes;
+  }
+
+  public boolean isStop() {
+    return stop;
   }
 }

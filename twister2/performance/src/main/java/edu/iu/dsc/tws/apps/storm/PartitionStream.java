@@ -148,12 +148,14 @@ public class PartitionStream implements IContainer {
       while (true) {
         try {
           // progress the channel
-          channel.progress();
-          for (int i = 0; i < 1; i++) {
+//          for (int i = 0; i < 10; i++) {
+            channel.progress();
+//          }
+//          for (int i = 0; i < 1; i++) {
             // we should progress the communication directive
             firstPartition.progress();
             secondPartition.progress();
-          }
+//          }
         } catch (Throwable t) {
           t.printStackTrace();
         }

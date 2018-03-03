@@ -41,20 +41,15 @@ public class Executor implements Runnable {
   public void run() {
     try {
       while (true) {
-        source.execute();
-        while (true) {
-          Message message = workerQueue.peek();
-          if (message != null) {
-            if (secondBolt.execute(message)) {
-              workerQueue.poll();
-            } else {
-              break;
-            }
-          } else {
-            break;
+        if (!source.isStop()) {
+          source.execute();
+        }
+        Message message = workerQueue.peek();
+        if (message != null) {
+          if (secondBolt.execute(message)) {
+            workerQueue.poll();
           }
         }
-
         Message ackMessage = ackMessages.poll();
         if (ackMessage != null) {
           AckData ackData = (AckData) ackMessage.getMessage();

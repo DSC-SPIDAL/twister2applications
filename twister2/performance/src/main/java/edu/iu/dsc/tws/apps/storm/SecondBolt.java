@@ -36,9 +36,12 @@ public class SecondBolt {
   public boolean execute(Message message) {
     PartitionData data = (PartitionData) message.getMessage();
     AckData ackData = new AckData(data.getTime(), data.getId());
-    operation.progress();
+//    operation.progress();
     try {
-      return this.operation.send(task, ackData, 0, sourceToAck.get(message.getSource()));
+      boolean send = this.operation.send(task, ackData, 0, sourceToAck.get(message.getSource()));
+//      Thread.sleep(1);
+      return send;
+
     } catch (NullPointerException e) {
       LOG.log(Level.INFO, String.format("%d ****** Received Message for acking: source %d target %d %s", executorId, message.getSource(), message.getTarget(), sourceToAck));
     }
