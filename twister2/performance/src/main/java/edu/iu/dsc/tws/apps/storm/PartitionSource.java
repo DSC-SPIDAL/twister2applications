@@ -79,22 +79,22 @@ public class PartitionSource {
     this.operation = operation;
   }
 
-  public void execute() {
+  public boolean execute() {
     int noOfDestinations = destinations.size();
-//    operation.progress();
+    operation.progress();
 
     if (outstanding >= 16) {
-      return;
+      return false;
     }
 
     long currentTime = System.currentTimeMillis();
     if (gap > (currentTime - lastMessageTime)) {
-      return;
+      return false;
     }
 
     if (currentIteration >= noOfIterations - 1) {
       stop = true;
-      return;
+      return false;
     }
 
     nextIndex = nextIndex % noOfDestinations;
@@ -103,7 +103,7 @@ public class PartitionSource {
     long time = Utils.getTime();
     PartitionData partitionData = new PartitionData(data, time, currentIteration);
     if (!operation.send(task, partitionData, flag, dest)) {
-      return;
+      return false;
     }
     lastMessageTime = System.currentTimeMillis();
     nextIndex++;
@@ -115,6 +115,7 @@ public class PartitionSource {
 //    } catch (InterruptedException e) {
 //      e.printStackTrace();
 //    }
+    return true;
   }
 
   public void ack(long id) {

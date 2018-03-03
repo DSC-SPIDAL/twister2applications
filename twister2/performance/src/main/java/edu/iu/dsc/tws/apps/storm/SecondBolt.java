@@ -36,7 +36,7 @@ public class SecondBolt {
   public boolean execute(Message message) {
     PartitionData data = (PartitionData) message.getMessage();
     AckData ackData = new AckData(data.getTime(), data.getId());
-//    operation.progress();
+    operation.progress();
     try {
       long time = System.currentTimeMillis() - data.getTime();
 //      LOG.log(Level.INFO, String.format("%d ****** Received Message for acking: source %d target %d %s %d", executorId, message.getSource(), message.getTarget(), sourceToAck, time));
