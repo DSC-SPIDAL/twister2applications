@@ -81,7 +81,6 @@ public class PartitionSource {
 
   public boolean execute() {
     int noOfDestinations = destinations.size();
-    operation.progress();
 
     if (outstanding >= 16) {
       return false;
@@ -105,6 +104,7 @@ public class PartitionSource {
     if (!operation.send(task, partitionData, flag, dest)) {
       return false;
     }
+    operation.progress();
     lastMessageTime = System.currentTimeMillis();
     nextIndex++;
     emitTimes.put(currentIteration, time);
@@ -124,12 +124,15 @@ public class PartitionSource {
     outstanding--;
     finalTimes.add(Utils.getTime() - time);
     long totalTime = System.currentTimeMillis() - startSendingTime;
-    if (ackCount >= noOfIterations - 1) {
+        if (ackCount >= noOfIterations - 1) {
       long average = 0;
-      for (long i : finalTimes) {
-        average += i;
+      int half = finalTimes.size() / 2;
+      int count = 0;
+      for (int i = half; i < finalTimes.size() - half / 4; i++) {
+        average += finalTimes.get(i);
+        count++;
       }
-      average = average / finalTimes.size();
+      average = average / count;
       LOG.info(String.format("Finished %d total: %d average: %d", ackCount, totalTime, average));
       try {
         DataSave.saveList(jobParameters.getFileName() + "" + task + "partition_" + jobParameters.getSize() + "x" + noOfIterations, finalTimes);

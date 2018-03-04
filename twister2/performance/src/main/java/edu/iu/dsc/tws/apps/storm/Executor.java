@@ -36,8 +36,7 @@ public class Executor implements Runnable {
     this.ackMessages = ackMessages;
   }
 
-  @Override
-  public void run() {
+  public void run2() {
     try {
       while (true) {
         if (!source.isStop()) {
@@ -65,6 +64,31 @@ public class Executor implements Runnable {
           } else {
             break;
           }
+        }
+      }
+    } catch (Throwable t) {
+      LOG.log(Level.SEVERE, "Error occured", t);
+    }
+  }
+
+  public void run() {
+    try {
+      while (true) {
+        if (!source.isStop()) {
+          source.execute();
+        }
+
+        Message message = workerQueue.peek();
+        if (message != null) {
+          if (secondBolt.execute(message)) {
+            workerQueue.poll();
+          }
+        }
+
+        Message ackMessage = ackMessages.poll();
+        if (ackMessage != null) {
+          AckData ackData = (AckData) ackMessage.getMessage();
+          source.ack(ackData.getId());
         }
       }
     } catch (Throwable t) {
