@@ -19,6 +19,8 @@ public class JobParameters {
 
   private int gap;
 
+  private String fileName;
+
   public JobParameters(int size, int iterations, int col,
                        int containers, List<Integer> taskStages, int gap) {
     this.size = size;
@@ -53,6 +55,14 @@ public class JobParameters {
     return gap;
   }
 
+  public void setFileName(String fileName) {
+    this.fileName = fileName;
+  }
+
+  public String getFileName() {
+    return fileName;
+  }
+
   public static JobParameters build(Config cfg) {
     int iterations = Integer.parseInt(cfg.getStringValue(Constants.ARGS_ITR));
     int size = Integer.parseInt(cfg.getStringValue(Constants.ARGS_SIZE));
@@ -60,6 +70,7 @@ public class JobParameters {
     int containers = Integer.parseInt(cfg.getStringValue(Constants.ARGS_CONTAINERS));
     String taskStages = cfg.getStringValue(Constants.ARGS_TASK_STAGES);
     int gap = Integer.parseInt(cfg.getStringValue(Constants.ARGS_GAP));
+    String fName = cfg.getStringValue(Constants.ARGS_FNAME);
 
     String[] stages = taskStages.split(",");
     List<Integer> taskList = new ArrayList<>();
@@ -67,7 +78,9 @@ public class JobParameters {
       taskList.add(Integer.valueOf(s));
     }
 
-    return new JobParameters(size, iterations, col, containers, taskList, gap);
+    JobParameters jobParameters = new JobParameters(size, iterations, col, containers, taskList, gap);
+    jobParameters.fileName = fName;
+    return jobParameters;
   }
 
   @Override
