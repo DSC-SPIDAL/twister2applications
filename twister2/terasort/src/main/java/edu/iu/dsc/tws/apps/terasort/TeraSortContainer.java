@@ -60,9 +60,9 @@ public class TeraSortContainer implements IContainer {
 
     private Config config;
     private ResourcePlan resourcePlan;
-    private static final int NO_OF_TASKS = 384;
+    private static final int NO_OF_TASKS = 8;
 
-    private int noOfTasksPerExecutor = 4;
+    private int noOfTasksPerExecutor = 2;
     private long startTime = 0;
     private long startTimePartition = 0;
     private long endTimePartition = 0;
@@ -86,8 +86,8 @@ public class TeraSortContainer implements IContainer {
         long startTimeTotal = System.currentTimeMillis();
         this.config = cfg;
         this.id = containerId;
-        workersPerNode = 6;
-        workerLocalID = containerId%workersPerNode;
+        workersPerNode = 2;
+        workerLocalID = containerId % workersPerNode;
         this.resourcePlan = plan;
         sampleNodes = new ArrayList<>();
         this.noOfTasksPerExecutor = NO_OF_TASKS / plan.noOfContainers();
@@ -125,12 +125,19 @@ public class TeraSortContainer implements IContainer {
             mapThread.start();
         }
 
-        Thread progressSample = new Thread(new ProgressThread(channel, samplesGather));
+        Thread progressChannel = new Thread(new ProgressThreadC(channel));
+        Thread progressSample = new Thread(new ProgressThreadSG(samplesGather));
         progressSample.start();
+        progressChannel.start();
+
         Text[] selected = new Text[0];
         if (id == 0) {
             while (!samplingDone) {
-                Thread.yield();
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
 //            System.out.println("Got to results at : " + id );
 //            LOG.info("Gather results (only the first int of each array)"
@@ -148,12 +155,16 @@ public class TeraSortContainer implements IContainer {
             Thread mapThread = new Thread(new BoardCastKeys(NO_OF_TASKS, selected));
             mapThread.start();
         }
-
-        Thread progressBroadcast = new Thread(new ProgressThread(null, keyBroadCast));
+        samplingDone = true;
+        Thread progressBroadcast = new Thread(new ProgressThreadB(keyBroadCast));
         progressBroadcast.start();
 
         while (!broadcastDone) {
-            Thread.yield();
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
         LOG.info(String.format("%d Completed Boardcast thread", id));
         //Completed broadbast
@@ -175,7 +186,7 @@ public class TeraSortContainer implements IContainer {
         finalPartitionRec.setMap(expectedIds);
         LOG.info(String.format("%d Before partitionOp thread memory Map", id));
 
-        partitionOp.setMemoryMapped(true);
+         partitionOp.setMemoryMapped(true);
         // now lets read all the datacols and distribute them to the correct tasks
 
         for (int i = 0; i < noOfTasksPerExecutor; i++) {
@@ -186,11 +197,15 @@ public class TeraSortContainer implements IContainer {
         }
 
 
-        Thread progressPartition = new Thread(new ProgressThread(null, partitionOp));
+        Thread progressPartition = new Thread(new ProgressThreadP(partitionOp));
         progressPartition.start();
 
         while (!reduceDone) {
-            Thread.yield();
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
         endTimePartition = System.currentTimeMillis();
         long endTimeTotal = System.currentTimeMillis();
@@ -202,13 +217,38 @@ public class TeraSortContainer implements IContainer {
         }
     }
 
-    private class ProgressThread implements Runnable {
-        private TWSCommunication channel;
+    private class ProgressThreadSG implements Runnable {
         private DataFlowOperation operation;
 
-        public ProgressThread(TWSCommunication channel, DataFlowOperation operation) {
-            this.channel = channel;
+        public ProgressThreadSG(DataFlowOperation operation) {
             this.operation = operation;
+        }
+
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    // we should progress the communication directive
+                    if (!samplingDone) {
+                        this.operation.progress();
+                        Thread.yield();
+                    } else {
+                        this.operation.progress();
+                        Thread.sleep(1);
+                    }
+
+                } catch (Throwable t) {
+                    LOG.log(Level.SEVERE, "Something bad happened", t);
+                }
+            }
+        }
+    }
+
+    private class ProgressThreadC implements Runnable {
+        private TWSCommunication channel;
+
+        public ProgressThreadC(TWSCommunication channel) {
+            this.channel = channel;
         }
 
         @Override
@@ -219,9 +259,58 @@ public class TeraSortContainer implements IContainer {
                     if (channel != null) {
                         this.channel.progress();
                     }
-                    // we should progress the communication directive
-                    this.operation.progress();
                     Thread.yield();
+                } catch (Throwable t) {
+                    LOG.log(Level.SEVERE, "Something bad happened", t);
+                }
+            }
+        }
+    }
+
+    private class ProgressThreadB implements Runnable {
+        private DataFlowOperation operation;
+
+        public ProgressThreadB(DataFlowOperation operation) {
+            this.operation = operation;
+        }
+
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    if (!broadcastDone) {
+                        this.operation.progress();
+                        Thread.yield();
+                    } else {
+                        this.operation.progress();
+                        Thread.sleep(1);
+                    }
+                } catch (Throwable t) {
+                    LOG.log(Level.SEVERE, "Something bad happened", t);
+                }
+            }
+        }
+    }
+
+    private class ProgressThreadP implements Runnable {
+        private DataFlowOperation operation;
+
+        public ProgressThreadP(DataFlowOperation operation) {
+            this.operation = operation;
+        }
+
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    if (!reduceDone) {
+                        this.operation.progress();
+                        Thread.yield();
+                    } else {
+                        this.operation.progress();
+                        Thread.yield();
+//                        Thread.sleep(1);
+                    }
                 } catch (Throwable t) {
                     LOG.log(Level.SEVERE, "Something bad happened", t);
                 }
