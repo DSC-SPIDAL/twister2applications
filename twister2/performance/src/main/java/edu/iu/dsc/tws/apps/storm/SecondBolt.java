@@ -34,6 +34,7 @@ public class SecondBolt {
   }
 
   public boolean execute(Message message) {
+    operation.progress();
     PartitionData data = (PartitionData) message.getMessage();
     AckData ackData = new AckData(data.getTime(), data.getId());
     try {

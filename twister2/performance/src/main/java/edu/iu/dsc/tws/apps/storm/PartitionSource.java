@@ -9,10 +9,7 @@ import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.comms.api.DataFlowOperation;
 
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class PartitionSource {
@@ -56,6 +53,8 @@ public class PartitionSource {
 
   private boolean stop = false;
 
+  private Random random;
+
   public PartitionSource(int task, JobParameters jobParameters, DataGenerator dataGenerator, int executorId) {
     this.task = task;
     this.jobParameters = jobParameters;
@@ -73,6 +72,7 @@ public class PartitionSource {
     startSendingTime = System.currentTimeMillis();
     data = dataGenerator.generateByteData();
     this.outstanding = 0;
+    this.random = new Random(System.nanoTime());
   }
 
   public void setOperation(DataFlowOperation operation) {
@@ -81,6 +81,8 @@ public class PartitionSource {
 
   public boolean execute() {
     int noOfDestinations = destinations.size();
+
+    operation.progress();
 
     long currentTime = System.currentTimeMillis();
     if (gap > (currentTime - lastMessageTime)) {
@@ -92,7 +94,7 @@ public class PartitionSource {
       return false;
     }
 
-    nextIndex = nextIndex % noOfDestinations;
+    nextIndex = random.nextInt(destinations.size());
     int dest = destinations.get(nextIndex);
     int flag = 0;
     long time = Utils.getTime();
@@ -120,7 +122,7 @@ public class PartitionSource {
     outstanding--;
     finalTimes.add(Utils.getTime() - time);
     long totalTime = System.currentTimeMillis() - startSendingTime;
-        if (ackCount >= noOfIterations - 1) {
+    if (ackCount >= noOfIterations - 1) {
       long average = 0;
       int half = finalTimes.size() / 2;
       int count = 0;
@@ -136,9 +138,9 @@ public class PartitionSource {
         e.printStackTrace();
       }
     }
-//    if (ackCount % 100 == 0 && executorId == 0) {
-//      LOG.info(String.format("%d received task %d ack %d %d %d", executorId, task, id, ackCount, noOfIterations));
-//    }
+    if (ackCount % 100 == 0 && executorId == 0) {
+      LOG.info(String.format("%d received task %d ack %d %d %d", executorId, task, id, ackCount, noOfIterations));
+    }
   }
 
   public long getStartSendingTime() {
