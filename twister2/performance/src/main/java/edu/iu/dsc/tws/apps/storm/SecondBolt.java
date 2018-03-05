@@ -33,7 +33,7 @@ public class SecondBolt {
     this.operation = operation;
   }
 
-  public synchronized boolean execute(Message message) {
+  public boolean execute(Message message) {
     operation.progress();
     PartitionData data = (PartitionData) message.getMessage();
     AckData ackData = new AckData(data.getTime(), data.getId());

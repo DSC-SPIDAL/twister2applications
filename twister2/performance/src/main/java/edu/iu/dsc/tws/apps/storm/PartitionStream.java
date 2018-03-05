@@ -117,9 +117,9 @@ public class PartitionStream implements IContainer {
       }
 
       firstPartition = (MPIDataFlowPartition) channel.partition(newCfg, MessageType.OBJECT,
-          0, sources, dests, new FinalReduceReceiver(), new SourceCompletion(new ArrayList<>(partitionSources.values())));
+          0, sources, dests, new FinalReduceReceiver());
       secondPartition = (MPIDataFlowPartition) channel.partition(newCfg, MessageType.OBJECT,
-          1, dests, secondDests, new AckReduceReceiver(), new SecondBoltCompletion());
+          1, dests, secondDests, new AckReduceReceiver());
 
       for (int k = 0; k < sourceTasksOfExecutor.size(); k++) {
         int sourceTask = sourceTasksOfExecutor.get(k);

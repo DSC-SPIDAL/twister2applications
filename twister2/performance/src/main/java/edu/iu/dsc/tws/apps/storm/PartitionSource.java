@@ -130,9 +130,9 @@ public class PartitionSource {
         e.printStackTrace();
       }
     }
-//    if (ackCount % 500 == 0 && executorId == 0) {
-//      LOG.info(String.format("%d received task %d ack %d %d %d", executorId, task, id, ackCount, noOfIterations));
-//    }
+    if (ackCount % 10 == 0 && executorId == 0) {
+      LOG.info(String.format("%d received task %d ack %d %d %d", executorId, task, id, ackCount, noOfIterations));
+    }
   }
 
   public void progress() {
