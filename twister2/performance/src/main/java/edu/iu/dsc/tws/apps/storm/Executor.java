@@ -42,6 +42,7 @@ public class Executor implements Runnable {
         if (!source.isStop()) {
           while (source.execute());
         }
+        source.progress();
 
         while (true) {
           Message message = workerQueue.peek();
@@ -55,6 +56,7 @@ public class Executor implements Runnable {
             break;
           }
         }
+        secondBolt.progress();
 
         while (true) {
           Message ackMessage = ackMessages.poll();
