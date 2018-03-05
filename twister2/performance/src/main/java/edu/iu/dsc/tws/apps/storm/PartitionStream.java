@@ -173,7 +173,7 @@ public class PartitionStream implements IContainer {
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
       LOG.log(Level.FINE, String.format("%d Initialize worker: %s", id, expectedIds));
       for (Map.Entry<Integer, List<Integer>> e : expectedIds.entrySet()) {
-        Queue<Message> queue = new ArrayBlockingQueue<>(2);
+        Queue<Message> queue = new ArrayBlockingQueue<>(1);
         workerMessageQueue.put(e.getKey(), queue);
       }
     }
@@ -195,7 +195,7 @@ public class PartitionStream implements IContainer {
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
       LOG.log(Level.FINE, String.format("%d Initialize ack: %s", id, expectedIds));
       for (Map.Entry<Integer, List<Integer>> e : expectedIds.entrySet()) {
-        Queue<Message> queue = new ArrayBlockingQueue<>(2);
+        Queue<Message> queue = new ArrayBlockingQueue<>(1);
         ackMessageQueue.put(e.getKey(), queue);
       }
     }
