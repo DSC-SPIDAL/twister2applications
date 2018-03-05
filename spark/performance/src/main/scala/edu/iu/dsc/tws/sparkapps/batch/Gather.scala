@@ -6,11 +6,8 @@ import org.apache.spark.{SparkConf, SparkContext}
 /**
   * Created by pulasthi on 2/15/18.
   */
-class  Gather(paralelizm: Int, size: Int,iterations: Int, outFile: String) {
-
-
-  def main(args: Array[String]): Unit = {
-
+class Gather(paralelizm: Int, size: Int, iterations: Int) {
+  def execute(): Unit = {
     val conf = new SparkConf().setAppName("spark_performance_gather")
     val sc = new SparkContext(conf)
     val gen = new Generator();
@@ -18,10 +15,16 @@ class  Gather(paralelizm: Int, size: Int,iterations: Int, outFile: String) {
     print("Length of data : " + data.length)
 
     val tempArray = 0 to (iterations) toArray;
-    val parallelRDD = sc.parallelize(data,paralelizm);
+    var startTime = System.currentTimeMillis();
+    val parallelRDD = sc.parallelize(data, paralelizm);
     val results = parallelRDD.map(s => s).collect();
+    var endTime = System.currentTimeMillis();
+
     print("The number of strings in results is : " + results.length)
-
+    print("Total time for Gather"
+      + " size : " + size
+      + " iterations : " + iterations
+      + " para : " + paralelizm
+      + " Time : " + (endTime - startTime));
   }
-
 }
