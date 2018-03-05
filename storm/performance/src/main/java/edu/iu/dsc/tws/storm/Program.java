@@ -100,7 +100,7 @@ public class Program {
     conf.put(Constants.ARGS_THRPUT_SIZES, msgSizes);
 
     conf.setMaxSpoutPending(maxPending);
-
+    conf.setTopologyReliabilityMode(Config.TopologyReliabilityMode.ATLEAST_ONCE);
     LOG.info(String.format("Number of instances %d %d", p, spoutParallel));
     if (mode.equals("c")) {
       buildShuffle(builder, p, conf, spoutParallel);
