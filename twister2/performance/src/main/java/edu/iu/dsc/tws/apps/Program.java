@@ -31,6 +31,10 @@ public class Program {
     if (args.length > 7) {
       fName = args[7];
     }
+    String outstanding = "0";
+    if (args.length > 8) {
+      outstanding = args[8];
+    }
 
     // build JobConfig
     JobConfig jobConfig = new JobConfig();
@@ -41,6 +45,7 @@ public class Program {
     jobConfig.put(Constants.ARGS_TASK_STAGES, taskStages);
     jobConfig.put(Constants.ARGS_GAP, gap);
     jobConfig.put(Constants.ARGS_FNAME, fName);
+    jobConfig.put(Constants.ARGS_OUTSTANDING, outstanding);
 
     // build the job
     BasicJob basicJob = null;

@@ -83,7 +83,7 @@ public class PartitionSource {
     int noOfDestinations = destinations.size();
     long currentTime = System.currentTimeMillis();
 
-    if (outstanding > 10) {
+    if (outstanding > jobParameters.getOutstanding()) {
       return false;
     }
 

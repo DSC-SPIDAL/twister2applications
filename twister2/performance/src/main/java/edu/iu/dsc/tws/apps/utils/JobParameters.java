@@ -21,6 +21,8 @@ public class JobParameters {
 
   private String fileName;
 
+  private int outstanding = 0;
+
   public JobParameters(int size, int iterations, int col,
                        int containers, List<Integer> taskStages, int gap) {
     this.size = size;
@@ -63,6 +65,14 @@ public class JobParameters {
     return fileName;
   }
 
+  public int getOutstanding() {
+    return outstanding;
+  }
+
+  public void setOutstanding(int outstanding) {
+    this.outstanding = outstanding;
+  }
+
   public static JobParameters build(Config cfg) {
     int iterations = Integer.parseInt(cfg.getStringValue(Constants.ARGS_ITR));
     int size = Integer.parseInt(cfg.getStringValue(Constants.ARGS_SIZE));
@@ -71,6 +81,7 @@ public class JobParameters {
     String taskStages = cfg.getStringValue(Constants.ARGS_TASK_STAGES);
     int gap = Integer.parseInt(cfg.getStringValue(Constants.ARGS_GAP));
     String fName = cfg.getStringValue(Constants.ARGS_FNAME);
+    int outstanding = Integer.parseInt(cfg.getStringValue(Constants.ARGS_OUTSTANDING));
 
     String[] stages = taskStages.split(",");
     List<Integer> taskList = new ArrayList<>();
@@ -80,6 +91,7 @@ public class JobParameters {
 
     JobParameters jobParameters = new JobParameters(size, iterations, col, containers, taskList, gap);
     jobParameters.fileName = fName;
+    jobParameters.outstanding = outstanding;
     return jobParameters;
   }
 
