@@ -123,7 +123,7 @@ public class PartitionSource {
         count++;
       }
       average = average / count;
-      LOG.info(String.format("%d %d Finished %d total: %d average: %d", executorId, task, ackCount, totalTime, average));
+      LOG.info(String.format("%d %d Finished %d total: %d average: %f", executorId, task, ackCount, totalTime, average / 1000000.0));
       try {
         DataSave.saveList(jobParameters.getFileName() + "" + task + "partition_" + jobParameters.getSize() + "x" + noOfIterations, finalTimes);
       } catch (FileNotFoundException e) {
