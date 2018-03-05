@@ -13,7 +13,7 @@ import java.util.*;
 import java.util.logging.Logger;
 
 public class PartitionSource {
-  private static final Logger LOG = Logger.getLogger(Source.class.getName());
+  private static final Logger LOG = Logger.getLogger(PartitionSource.class.getName());
 
   private long startSendingTime;
 
@@ -130,9 +130,9 @@ public class PartitionSource {
         e.printStackTrace();
       }
     }
-    if (ackCount % 10 == 0 && executorId == 0) {
-      LOG.info(String.format("%d received task %d ack %d %d %d", executorId, task, id, ackCount, noOfIterations));
-    }
+//    if (ackCount % 10 == 0 && executorId == 0) {
+//      LOG.info(String.format("%d received task %d ack %d %d %d", executorId, task, id, ackCount, noOfIterations));
+//    }
   }
 
   public void progress() {
