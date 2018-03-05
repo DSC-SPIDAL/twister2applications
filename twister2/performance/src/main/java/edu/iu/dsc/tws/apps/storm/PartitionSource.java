@@ -94,7 +94,7 @@ public class PartitionSource {
       return false;
     }
 
-    nextIndex = random.nextInt(destinations.size());
+    nextIndex = nextIndex % noOfDestinations;
     int dest = destinations.get(nextIndex);
     int flag = 0;
     long time = Utils.getTime();

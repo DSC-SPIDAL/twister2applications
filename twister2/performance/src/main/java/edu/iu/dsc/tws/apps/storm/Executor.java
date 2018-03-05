@@ -36,7 +36,7 @@ public class Executor implements Runnable {
     this.ackMessages = ackMessages;
   }
 
-  public void run2() {
+  public void run() {
     try {
       while (true) {
         if (!source.isStop()) {
@@ -71,7 +71,7 @@ public class Executor implements Runnable {
     }
   }
 
-  public void run() {
+  public void run2() {
     try {
       while (true) {
         if (!source.isStop()) {

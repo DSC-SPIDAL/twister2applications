@@ -39,7 +39,7 @@ public class SingleDataCollectionBolt extends BaseRichBolt {
       }
 
       Object body = tuple.getValueByField(Constants.Fields.BODY);
-      if (debug && count / printInveral == 0) {
+      if (debug && count % printInveral == 0) {
         LOG.info("Size of the message: " + ((byte [])body).length);
       }
 
