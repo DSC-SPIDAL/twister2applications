@@ -27,7 +27,7 @@ object Driver {
     val size: Int = cmd.getOptionValue("size").toInt
     val iter: Int = cmd.getOptionValue("iter").toInt
     val col: Int = cmd.getOptionValue("col").toInt
-    val para: Int = cmd.getOptionValue("pada").toInt
+    val para: Int = cmd.getOptionValue("para").toInt
     if (col == 0) {
       var reduce = new Reduce(para, size, iter)
       reduce.execute();
