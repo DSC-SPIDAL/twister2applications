@@ -15,11 +15,11 @@ public class SourceCompletion implements CompletionListener {
 
   @Override
   public void writeReady(int i, int i1) {
-    PartitionSource s = source.get(currentIndex);
-    if (s.execute()) {
-      currentIndex++;
-      currentIndex = currentIndex % source.size();
-    }
+//    PartitionSource s = source.get(currentIndex);
+//    if (s.execute()) {
+//      currentIndex++;
+//      currentIndex = currentIndex % source.size();
+//    }
   }
 
   @Override
