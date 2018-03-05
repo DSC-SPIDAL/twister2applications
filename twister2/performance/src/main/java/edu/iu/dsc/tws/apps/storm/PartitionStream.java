@@ -8,6 +8,7 @@ import edu.iu.dsc.tws.comms.api.*;
 import edu.iu.dsc.tws.comms.core.TWSCommunication;
 import edu.iu.dsc.tws.comms.core.TWSNetwork;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
+import edu.iu.dsc.tws.comms.mpi.MPIDataFlowPartition;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourceContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
@@ -19,9 +20,9 @@ import java.util.logging.Logger;
 
 public class PartitionStream implements IContainer {
   private static final Logger LOG = Logger.getLogger(PartitionStream.class.getName());
-  private DataFlowOperation firstPartition;
+  private MPIDataFlowPartition firstPartition;
 
-  private DataFlowOperation secondPartition;
+  private MPIDataFlowPartition secondPartition;
 
   private int id;
 
@@ -115,8 +116,10 @@ public class PartitionStream implements IContainer {
         workerTasks.put(workerTask, secondBolt);
       }
 
-      firstPartition = channel.partition(newCfg, MessageType.OBJECT, 0, sources, dests, new FinalReduceReceiver());
-      secondPartition = channel.partition(newCfg, MessageType.OBJECT, 1, dests, secondDests, new AckReduceReceiver());
+      firstPartition = (MPIDataFlowPartition) channel.partition(newCfg, MessageType.OBJECT,
+          0, sources, dests, new FinalReduceReceiver(), new SourceCompletion(new ArrayList<>(partitionSources.values())));
+      secondPartition = (MPIDataFlowPartition) channel.partition(newCfg, MessageType.OBJECT,
+          1, dests, secondDests, new AckReduceReceiver(), new SecondBoltCompletion());
 
       for (int k = 0; k < sourceTasksOfExecutor.size(); k++) {
         int sourceTask = sourceTasksOfExecutor.get(k);

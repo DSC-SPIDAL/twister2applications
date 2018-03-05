@@ -33,7 +33,7 @@ public class SecondBolt {
     this.operation = operation;
   }
 
-  public boolean execute(Message message) {
+  public synchronized boolean execute(Message message) {
     operation.progress();
     PartitionData data = (PartitionData) message.getMessage();
     AckData ackData = new AckData(data.getTime(), data.getId());
@@ -50,5 +50,9 @@ public class SecondBolt {
       LOG.log(Level.INFO, String.format("%d ****** Received Message for acking: source %d target %d %s", executorId, message.getSource(), message.getTarget(), sourceToAck));
     }
     return false;
+  }
+
+  public void progress() {
+    operation.progress();
   }
 }

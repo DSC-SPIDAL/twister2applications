@@ -79,11 +79,8 @@ public class PartitionSource {
     this.operation = operation;
   }
 
-  public boolean execute() {
+  public synchronized boolean execute() {
     int noOfDestinations = destinations.size();
-
-    operation.progress();
-
     long currentTime = System.currentTimeMillis();
     if (gap > (currentTime - lastMessageTime)) {
       return false;
@@ -94,7 +91,7 @@ public class PartitionSource {
       return false;
     }
 
-    nextIndex = random.nextInt(destinations.size());
+    nextIndex = nextIndex % noOfDestinations;
     int dest = destinations.get(nextIndex);
     int flag = 0;
     long time = Utils.getTime();
@@ -102,21 +99,16 @@ public class PartitionSource {
     if (!operation.send(task, partitionData, flag, dest)) {
       return false;
     }
-    operation.progress();
-    lastMessageTime = System.currentTimeMillis();
-    nextIndex++;
     emitTimes.put(currentIteration, time);
+    nextIndex++;
     currentIteration++;
     outstanding++;
-//    try {
-//      Thread.sleep(1);
-//    } catch (InterruptedException e) {
-//      e.printStackTrace();
-//    }
+    lastMessageTime = System.currentTimeMillis();
     return true;
   }
 
-  public void ack(long id) {
+  public synchronized void ack(long id) {
+//    LOG.info(String.format("Ack received %d %s", id, emitTimes));
     long time = emitTimes.remove(id);
     ackCount++;
     outstanding--;
@@ -138,9 +130,13 @@ public class PartitionSource {
         e.printStackTrace();
       }
     }
-//    if (ackCount % 100 == 0 && executorId == 0) {
+//    if (ackCount % 500 == 0 && executorId == 0) {
 //      LOG.info(String.format("%d received task %d ack %d %d %d", executorId, task, id, ackCount, noOfIterations));
 //    }
+  }
+
+  public void progress() {
+    operation.progress();
   }
 
   public long getStartSendingTime() {
