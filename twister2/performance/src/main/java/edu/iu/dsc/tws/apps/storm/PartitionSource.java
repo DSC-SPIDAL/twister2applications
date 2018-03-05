@@ -82,6 +82,11 @@ public class PartitionSource {
   public synchronized boolean execute() {
     int noOfDestinations = destinations.size();
     long currentTime = System.currentTimeMillis();
+
+    if (outstanding > 10) {
+      return false;
+    }
+
     if (gap > (currentTime - lastMessageTime)) {
       return false;
     }
