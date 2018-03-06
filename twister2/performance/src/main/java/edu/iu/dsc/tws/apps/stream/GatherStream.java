@@ -72,7 +72,7 @@ public class GatherStream implements IContainer {
       tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
       Source source = null;
       for (int i : tasksOfExecutor) {
-        source = new Source(i, jobParameters, reduce, dataGenerator, true);
+        source = new Source(i, jobParameters, reduce, dataGenerator, true, false);
         reduceWorkers.put(i, source);
         // the map thread where datacols is produced
         Thread mapThread = new Thread(source);

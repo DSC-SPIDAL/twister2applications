@@ -68,7 +68,7 @@ public class ReduceStream implements IContainer {
       // I think this is wrong
       reduce = channel.reduce(newCfg, MessageType.OBJECT, 0, sources,
           dest, new ReduceStreamingFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()),
-          new ReduceStreamingPartialReceiver(dest, new IdentityFunction()));
+          new ReduceStreamingPartialReceiver(dest, new IdentityFunction()), new SendCompletion());
 
       Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
       tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
@@ -149,6 +149,13 @@ public class ReduceStream implements IContainer {
     @Override
     public Object reduce(Object t1, Object t2) {
       return t1;
+    }
+  }
+
+  public class SendCompletion implements CompletionListener {
+    @Override
+    public void completed(int i) {
+      reduceWorkers.get(i).ack(i);
     }
   }
 }

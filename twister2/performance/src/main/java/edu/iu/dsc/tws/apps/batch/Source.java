@@ -29,9 +29,11 @@ public class Source implements Runnable {
 
   private boolean genString;
 
-  private int inFlightMessages = 0;
+  private volatile int inFlightMessages = 0;
 
-  public Source(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator, boolean getString) {
+  private boolean acked = false;
+
+  public Source(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator, boolean getString, boolean acked) {
     this.task = task;
     this.jobParameters = jobParameters;
     this.operation = op;
@@ -39,6 +41,7 @@ public class Source implements Runnable {
     this.startOfMessages = new ArrayList<>();
     this.gap = jobParameters.getGap();
     this.genString = getString;
+    this.acked = acked;
   }
 
   public Source(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator) {
@@ -49,6 +52,7 @@ public class Source implements Runnable {
     this.startOfMessages = new ArrayList<>();
     this.gap = jobParameters.getGap();
     this.genString = false;
+    this.acked = false;
   }
 
   @Override
@@ -66,10 +70,14 @@ public class Source implements Runnable {
       if (i == iterations - 1) {
         flag = MessageFlags.FLAGS_LAST;
       }
+
+      while (acked && inFlightMessages > 10);
+
       while (!operation.send(task, data, flag)) {
         // lets wait a litte and try again
         operation.progress();
       }
+      inFlightMessages++;
       startOfMessages.add(System.nanoTime());
       if (gap > 0) {
         try {
