@@ -50,8 +50,8 @@ public class NBReduce extends Collective {
     Queue<RequestInfo> receiveRequestQueue = new ArrayBlockingQueue<>(maxPending);
 
     for (int i = 0; i < maxPending; i++) {
-      sendBuffers.add(MPI.newByteBuffer(size * 5));
-      recvBuffers.add(MPI.newByteBuffer(size * 5));
+      sendBuffers.add(MPI.newByteBuffer(size));
+      recvBuffers.add(MPI.newByteBuffer(size));
     }
 
     int completed = 0;
@@ -74,39 +74,37 @@ public class NBReduce extends Collective {
         stringBytes.commit();
 
         System.out.println("send: " + bytes.length);
-        Request dataR = MPI.COMM_WORLD.iReduce(sendBuffer, receiveBuffer, sendBuffer.position(), MPI.BYTE, reduceOp(), 0);
+        Request dataR = MPI.COMM_WORLD.iReduce(sendBuffer, receiveBuffer, sendBuffer.position(), MPI.BYTE, MPI.SUM, 0);
         receiveRequestQueue.add(new RequestInfo(sendBuffer, receiveBuffer, bytes, dataR));
-        dataR.waitFor();
       }
 
-//      while (receiveRequestQueue.size() >= maxPending) {
-//        RequestInfo receiveRequest = receiveRequestQueue.peek();
-//        receiveRequest.request.waitFor();
-//        if (receiveRequest != null && receiveRequest.request != null && receiveRequest.request.testStatus() != null) {
-//          RequestInfo info = receiveRequestQueue.poll();
-//
-//          ByteBuffer sendBuffer = info.sendBuffer;
-//          ByteBuffer receiveBuffer = info.recvBuffer;
-//
-//          sendBuffer.clear();
-//          if (rank == 0) {
-//            int receiveLength = receiveBuffer.getInt(0);
-//            System.out.println("Receve: " + receiveLength);
-//            byte[] receiveBytes = new byte[receiveLength];
-//            receiveBuffer.position(receiveLength + 4);
-//            receiveBuffer.flip();
-//            receiveBuffer.getInt();
-//            receiveBuffer.get(receiveBytes);
-//            IntData rcv = (IntData) kryoSerializer.deserialize(receiveBytes);
-//          }
-//          receiveBuffer.clear();
-//          sendBuffer.clear();
-//          sendBuffers.add(sendBuffer);
-//          recvBuffers.add(receiveBuffer);
-//
-//          completed++;
-//        }
-//      }
+      while (receiveRequestQueue.size() >= maxPending) {
+        RequestInfo receiveRequest = receiveRequestQueue.peek();
+        if (receiveRequest != null && receiveRequest.request != null && receiveRequest.request.testStatus() != null) {
+          RequestInfo info = receiveRequestQueue.poll();
+
+          ByteBuffer sendBuffer = info.sendBuffer;
+          ByteBuffer receiveBuffer = info.recvBuffer;
+
+          sendBuffer.clear();
+          if (rank == 0) {
+            int receiveLength = receiveBuffer.getInt(0);
+            System.out.println("Receve: " + receiveLength);
+            byte[] receiveBytes = new byte[receiveLength];
+            receiveBuffer.position(receiveLength + 4);
+            receiveBuffer.flip();
+            receiveBuffer.getInt();
+            receiveBuffer.get(receiveBytes);
+            IntData rcv = (IntData) kryoSerializer.deserialize(receiveBytes);
+          }
+          receiveBuffer.clear();
+          sendBuffer.clear();
+          sendBuffers.add(sendBuffer);
+          recvBuffers.add(receiveBuffer);
+
+          completed++;
+        }
+      }
     }
 
     if (rank == 0) {

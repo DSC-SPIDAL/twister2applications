@@ -66,7 +66,7 @@ public class ReduceStream implements IContainer {
     try {
       // this method calls the init method
       // I think this is wrong
-      reduce = channel.reduce(newCfg, MessageType.OBJECT, 0, sources,
+      reduce = channel.reduce(newCfg, MessageType.BYTE, 0, sources,
           dest, new ReduceStreamingFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()),
           new ReduceStreamingPartialReceiver(dest, new IdentityFunction()), new SendCompletion());
 
