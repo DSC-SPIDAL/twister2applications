@@ -1,7 +1,6 @@
 package edu.iu.dsc.tws.mpiapps.nonblocking;
 
 import edu.iu.dsc.tws.mpiapps.Collective;
-import edu.iu.dsc.tws.mpiapps.DataGenUtils;
 import edu.iu.dsc.tws.mpiapps.KryoSerializer;
 import edu.iu.dsc.tws.mpiapps.data.IntData;
 import mpi.*;
@@ -41,8 +40,7 @@ public class NBReduce extends Collective {
   @Override
   public void execute() throws MPIException {
     int rank = MPI.COMM_WORLD.getRank();
-    Object next = DataGenUtils.generateData(size);
-
+    byte[] bytes = new byte[size];
     int maxPending = 1;
     Queue<ByteBuffer> sendBuffers = new ArrayBlockingQueue<>(maxPending);
     Queue<ByteBuffer> recvBuffers = new ArrayBlockingQueue<>(maxPending);
@@ -57,8 +55,6 @@ public class NBReduce extends Collective {
     int completed = 0;
     while (completed < iterations) {
       if (receiveRequestQueue.size() < maxPending) {
-        byte[] bytes = kryoSerializer.serialize(next);
-
         ByteBuffer sendBuffer = sendBuffers.poll();
         ByteBuffer receiveBuffer = recvBuffers.poll();
 
@@ -68,13 +64,7 @@ public class NBReduce extends Collective {
         sendBuffer.clear();
         receiveBuffer.clear();
 
-        sendBuffer.putInt(bytes.length);
-        sendBuffer.put(bytes);
-        Datatype stringBytes = Datatype.createContiguous(bytes.length + 4, MPI.BYTE);
-        stringBytes.commit();
-
-        System.out.println("send: " + bytes.length);
-        Request dataR = MPI.COMM_WORLD.iReduce(sendBuffer, receiveBuffer, sendBuffer.position(), MPI.BYTE, MPI.SUM, 0);
+        Request dataR = MPI.COMM_WORLD.iReduce(sendBuffer, receiveBuffer, size, MPI.BYTE, MPI.SUM, 0);
         receiveRequestQueue.add(new RequestInfo(sendBuffer, receiveBuffer, bytes, dataR));
       }
 
@@ -89,13 +79,10 @@ public class NBReduce extends Collective {
           sendBuffer.clear();
           if (rank == 0) {
             int receiveLength = receiveBuffer.getInt(0);
-            System.out.println("Receve: " + receiveLength);
             byte[] receiveBytes = new byte[receiveLength];
             receiveBuffer.position(receiveLength + 4);
             receiveBuffer.flip();
-            receiveBuffer.getInt();
             receiveBuffer.get(receiveBytes);
-            IntData rcv = (IntData) kryoSerializer.deserialize(receiveBytes);
           }
           receiveBuffer.clear();
           sendBuffer.clear();
@@ -110,34 +97,5 @@ public class NBReduce extends Collective {
     if (rank == 0) {
       System.out.println("Final time: " + allReduceTime / 1000000 + " ," + reduceTime / 1000000);
     }
-  }
-
-  private Op reduceOp() {
-    return new Op(new UserFunction() {
-      @Override
-      public void call(Object o, Object o1, int i, Datatype datatype) throws MPIException {
-        super.call(o, o1, i, datatype);
-      }
-
-      @Override
-      public void call(ByteBuffer in, ByteBuffer inOut, int i, Datatype datatype) throws MPIException {
-        int length1 = in.getInt();
-        int length2 = inOut.getInt();
-        byte[] firstBytes = new byte[length1];
-        byte[] secondBytes = new byte[length2];
-        System.out.println(String.format("bytes  %d %d", length1, length2));
-
-        in.get(firstBytes);
-        inOut.get(secondBytes);
-
-        IntData firstString = (IntData) kryoSerializer.deserialize(firstBytes);
-        IntData secondString = (IntData) kryoSerializer.deserialize(secondBytes);
-        secondBytes = kryoSerializer.serialize(secondString);
-
-        inOut.clear();
-        inOut.putInt(secondBytes.length);
-        inOut.put(secondBytes);
-      }
-    }, true);
   }
 }
