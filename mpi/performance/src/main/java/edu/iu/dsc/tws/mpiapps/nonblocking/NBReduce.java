@@ -90,6 +90,8 @@ public class NBReduce extends Collective {
           recvBuffers.add(receiveBuffer);
 
           completed++;
+        } else{
+          break;
         }
       }
     }
