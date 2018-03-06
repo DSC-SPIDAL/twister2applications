@@ -24,7 +24,6 @@ public class Reduce extends Collective {
 
   @Override
   public void execute() throws MPIException {
-    int rank = MPI.COMM_WORLD.getRank();
     ByteBuffer sendBuffer = MPI.newByteBuffer(size);
     ByteBuffer receiveBuffer = MPI.newByteBuffer(size);
     for (int i = 0; i < iterations; i++) {
