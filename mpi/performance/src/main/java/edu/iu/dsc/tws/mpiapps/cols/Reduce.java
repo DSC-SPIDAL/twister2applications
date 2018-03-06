@@ -35,7 +35,6 @@ public class Reduce extends Collective {
         byte[] receiveBytes = new byte[size];
         receiveBuffer.position(size);
         receiveBuffer.flip();
-        receiveBuffer.get();
         receiveBuffer.get(receiveBytes);
       }
       receiveBuffer.clear();
