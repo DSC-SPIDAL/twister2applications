@@ -9,31 +9,49 @@ import edu.iu.dsc.tws.apps.batch.MultiReduce;
 import edu.iu.dsc.tws.apps.batch.Reduce;
 import edu.iu.dsc.tws.apps.storm.PartitionStream;
 import edu.iu.dsc.tws.apps.stream.*;
+import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.rsched.core.ResourceAllocator;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourceContainer;
+import org.apache.commons.cli.*;
 
 import java.util.HashMap;
 
 public class Program {
-  public static void main(String[] args) {
+  public static void main(String[] args) throws ParseException {
     // first load the configurations from command line and config files
     Config config = ResourceAllocator.loadConfig(new HashMap<>());
 
-    int containers = Integer.parseInt(args[0]);
-    int size = Integer.parseInt(args[1]);
-    int itr = Integer.parseInt(args[2]);
-    int col = Integer.parseInt(args[3]);
-    boolean stream = Boolean.parseBoolean(args[4]);
-    String taskStages = args[5];
-    String gap = args[6];
+    Options options = new Options();
+    options.addOption(Constants.ARGS_CONTAINERS, true, "Containers");
+    options.addOption(Constants.ARGS_SIZE, true, "Size");
+    options.addOption(Constants.ARGS_ITR, true, "Iteration");
+    options.addOption(Utils.createOption(Constants.ARGS_COL, true, "Cols", true));
+    options.addOption(Constants.ARGS_STREAM, false, "Stream");
+    options.addOption(Utils.createOption(Constants.ARGS_TASK_STAGES, true, "Throughput mode", true));
+    options.addOption(Utils.createOption(Constants.ARGS_GAP, true, "Gap", false));
+    options.addOption(Utils.createOption(Constants.ARGS_FNAME, true, "File name", true));
+    options.addOption(Utils.createOption(Constants.ARGS_OUTSTANDING, true, "Throughput no of messages", false));
+
+    CommandLineParser commandLineParser = new BasicParser();
+    CommandLine cmd = commandLineParser.parse(options, args);
+    int containers = Integer.parseInt(cmd.getOptionValue(Constants.ARGS_CONTAINERS));
+    int size = Integer.parseInt(cmd.getOptionValue(Constants.ARGS_SIZE));
+    int itr = Integer.parseInt(cmd.getOptionValue(Constants.ARGS_ITR));
+    int col = Integer.parseInt(cmd.getOptionValue(Constants.ARGS_COL));
+    boolean stream = cmd.hasOption(Constants.ARGS_STREAM);
+    String taskStages = cmd.getOptionValue(Constants.ARGS_TASK_STAGES);
+    String gap = "0";
+    if (cmd.hasOption(Constants.ARGS_GAP)) {
+      gap = cmd.getOptionValue(Constants.ARGS_GAP);
+    }
     String fName = "";
-    if (args.length > 7) {
-      fName = args[7];
+    if (cmd.hasOption(Constants.ARGS_FNAME)) {
+      fName = cmd.getOptionValue(Constants.ARGS_FNAME);
     }
     String outstanding = "0";
-    if (args.length > 8) {
-      outstanding = args[8];
+    if (cmd.hasOption(Constants.ARGS_OUTSTANDING)) {
+      outstanding = cmd.getOptionValue(Constants.ARGS_OUTSTANDING);
     }
 
     // build JobConfig
