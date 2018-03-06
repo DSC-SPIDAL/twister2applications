@@ -32,6 +32,7 @@ public class Program {
     options.addOption(Utils.createOption(Constants.ARGS_GAP, true, "Gap", false));
     options.addOption(Utils.createOption(Constants.ARGS_FNAME, true, "File name", true));
     options.addOption(Utils.createOption(Constants.ARGS_OUTSTANDING, true, "Throughput no of messages", false));
+    options.addOption(Utils.createOption(Constants.ARGS_THREADS, false, "Threads", false));
 
     CommandLineParser commandLineParser = new BasicParser();
     CommandLine cmd = commandLineParser.parse(options, args);
@@ -40,6 +41,7 @@ public class Program {
     int itr = Integer.parseInt(cmd.getOptionValue(Constants.ARGS_ITR));
     int col = Integer.parseInt(cmd.getOptionValue(Constants.ARGS_COL));
     boolean stream = cmd.hasOption(Constants.ARGS_STREAM);
+    boolean threads = cmd.hasOption(Constants.ARGS_THREADS);
     String taskStages = cmd.getOptionValue(Constants.ARGS_TASK_STAGES);
     String gap = "0";
     if (cmd.hasOption(Constants.ARGS_GAP)) {
@@ -64,6 +66,7 @@ public class Program {
     jobConfig.put(Constants.ARGS_GAP, gap);
     jobConfig.put(Constants.ARGS_FNAME, fName);
     jobConfig.put(Constants.ARGS_OUTSTANDING, outstanding);
+    jobConfig.put(Constants.ARGS_THREADS, Boolean.toString(threads));
 
     // build the job
     BasicJob basicJob = null;

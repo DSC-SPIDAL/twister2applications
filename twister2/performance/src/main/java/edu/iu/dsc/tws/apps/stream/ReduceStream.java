@@ -38,6 +38,8 @@ public class ReduceStream implements IContainer {
 
   private List<Integer> tasksOfThisExec;
 
+  private boolean executorWithDest = false;
+
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
     LOG.log(Level.FINE, "Starting the example with container id: " + plan.getThisId());
@@ -61,6 +63,10 @@ public class ReduceStream implements IContainer {
     }
     int dest = jobParameters.getTaskStages().get(0);
 
+    int destExecutor = taskPlan.getExecutorForChannel(dest);
+    if (destExecutor == id) {
+      executorWithDest = true;
+    }
     Map<String, Object> newCfg = new HashMap<>();
 
     LOG.log(Level.FINE,"Setting up reduce dataflow operation");
@@ -75,7 +81,7 @@ public class ReduceStream implements IContainer {
       tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
       Source source = null;
       for (int i : tasksOfExecutor) {
-        source = new Source(i, jobParameters, reduce, dataGenerator, DataType.INT_ARRAY, false);
+        source = new Source(i, jobParameters, reduce, dataGenerator, DataType.INT_ARRAY, executorWithDest);
         reduceWorkers.put(i, source);
         // the map thread where datacols is produced
         Thread mapThread = new Thread(source);
@@ -115,6 +121,12 @@ public class ReduceStream implements IContainer {
 
     @Override
     public boolean receive(int target, Object object) {
+      if (executorWithDest) {
+        for (Source s : reduceWorkers.values()) {
+          s.ack(0);
+        }
+      }
+
       long time = (System.currentTimeMillis() - startSendingTime);
 //      LOG.info(String.format("%d times %s", id, times));
       List<Long> timesForTarget = times.get(target);
@@ -156,7 +168,7 @@ public class ReduceStream implements IContainer {
   public class SendCompletion implements CompletionListener {
     @Override
     public void completed(int i) {
-      reduceWorkers.get(i).ack(i);
+//      reduceWorkers.get(i).ack(i);
     }
   }
 }

@@ -23,6 +23,8 @@ public class JobParameters {
 
   private int outstanding = 0;
 
+  private boolean threads = false;
+
   public JobParameters(int size, int iterations, int col,
                        int containers, List<Integer> taskStages, int gap) {
     this.size = size;
@@ -73,6 +75,14 @@ public class JobParameters {
     this.outstanding = outstanding;
   }
 
+  public void setThreads(boolean threads) {
+    this.threads = threads;
+  }
+
+  public boolean isThreads() {
+    return threads;
+  }
+
   public static JobParameters build(Config cfg) {
     int iterations = Integer.parseInt(cfg.getStringValue(Constants.ARGS_ITR));
     int size = Integer.parseInt(cfg.getStringValue(Constants.ARGS_SIZE));
@@ -82,6 +92,7 @@ public class JobParameters {
     int gap = Integer.parseInt(cfg.getStringValue(Constants.ARGS_GAP));
     String fName = cfg.getStringValue(Constants.ARGS_FNAME);
     int outstanding = Integer.parseInt(cfg.getStringValue(Constants.ARGS_OUTSTANDING));
+    Boolean threads = Boolean.parseBoolean(cfg.getStringValue(Constants.ARGS_THREADS));
 
     String[] stages = taskStages.split(",");
     List<Integer> taskList = new ArrayList<>();
@@ -92,6 +103,7 @@ public class JobParameters {
     JobParameters jobParameters = new JobParameters(size, iterations, col, containers, taskList, gap);
     jobParameters.fileName = fName;
     jobParameters.outstanding = outstanding;
+    jobParameters.threads = threads;
     return jobParameters;
   }
 
