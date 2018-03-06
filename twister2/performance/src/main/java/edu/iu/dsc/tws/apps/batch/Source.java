@@ -71,7 +71,7 @@ public class Source implements Runnable {
         flag = MessageFlags.FLAGS_LAST;
       }
 
-      while (acked && inFlightMessages > 10);
+      while (acked && inFlightMessages > jobParameters.getOutstanding());
 
       while (!operation.send(task, data, flag)) {
         // lets wait a litte and try again
