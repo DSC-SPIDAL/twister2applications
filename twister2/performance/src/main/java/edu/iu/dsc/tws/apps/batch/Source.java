@@ -4,6 +4,7 @@ import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.comms.api.DataFlowOperation;
 import edu.iu.dsc.tws.comms.api.MessageFlags;
+import org.omg.CORBA.PUBLIC_MEMBER;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +28,8 @@ public class Source implements Runnable {
   private int gap;
 
   private boolean genString;
+
+  private int inFlightMessages = 0;
 
   public Source(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator, boolean getString) {
     this.task = task;
@@ -59,7 +62,6 @@ public class Source implements Runnable {
     }
     int iterations = jobParameters.getIterations();
     for (int i = 0; i < iterations; i++) {
-      startOfMessages.add(System.nanoTime());
       int flag = 0;
       if (i == iterations - 1) {
         flag = MessageFlags.FLAGS_LAST;
@@ -68,14 +70,19 @@ public class Source implements Runnable {
         // lets wait a litte and try again
         operation.progress();
       }
+      startOfMessages.add(System.nanoTime());
       if (gap > 0) {
         try {
-          Thread.sleep(2);
+          Thread.sleep(gap);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
       }
     }
+  }
+
+  public void ack(int source) {
+    inFlightMessages--;
   }
 
   public long getStartSendingTime() {
