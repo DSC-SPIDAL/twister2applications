@@ -114,7 +114,12 @@ public class PartitionSource {
 
   public synchronized void ack(long id) {
     LOG.info(String.format("%d %d Ack received %d", executorId, task, id));
-    long time = emitTimes.remove(id);
+    long time = 0;
+    try {
+      time = emitTimes.remove(id);
+    } catch (NullPointerException e) {
+      LOG.info(String.format("%d %d ******* Ack received %d", executorId, task, id));
+    }
     ackCount++;
     outstanding--;
     finalTimes.add(Utils.getTime() - time);
