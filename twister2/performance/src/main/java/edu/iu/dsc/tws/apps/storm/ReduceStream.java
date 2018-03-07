@@ -1,6 +1,7 @@
 package edu.iu.dsc.tws.apps.storm;
 
 import edu.iu.dsc.tws.apps.data.DataGenerator;
+import edu.iu.dsc.tws.apps.data.PartitionData;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
@@ -220,6 +221,12 @@ public class ReduceStream implements IContainer {
 
     @Override
     public Object reduce(Object t1, Object t2) {
+      PartitionData data1 = (PartitionData) t1;
+      PartitionData data2 = (PartitionData) t2;
+
+      if (data1.getId() != data2.getId()) {
+        throw new RuntimeException("Data 1 and data2 not equal" + data1.getId() + " " + data2.getId());
+      }
       return t1;
     }
   }
