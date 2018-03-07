@@ -5,8 +5,11 @@ import edu.iu.dsc.tws.common.config.Config;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class JobParameters {
+  private static final Logger LOG = Logger.getLogger(JobParameters.class.getName());
+
   private int size;
 
   private int iterations;
@@ -99,6 +102,9 @@ public class JobParameters {
     for (String s : stages) {
       taskList.add(Integer.valueOf(s));
     }
+
+    LOG.info(String.format("Starting with arguments: iter %d size %d col %d containers %d taskStages %s gap %d file %s outstanding %d threads %b",
+        iterations, size, col, containers, taskList, gap, fName, outstanding, threads));
 
     JobParameters jobParameters = new JobParameters(size, iterations, col, containers, taskList, gap);
     jobParameters.fileName = fName;

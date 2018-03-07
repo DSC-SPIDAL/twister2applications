@@ -16,8 +16,10 @@ import edu.iu.dsc.tws.rsched.spi.resource.ResourceContainer;
 import org.apache.commons.cli.*;
 
 import java.util.HashMap;
+import java.util.logging.Logger;
 
 public class Program {
+  private static final Logger LOG = Logger.getLogger(Program.class.getName());
   public static void main(String[] args) throws ParseException {
     // first load the configurations from command line and config files
     Config config = ResourceAllocator.loadConfig(new HashMap<>());

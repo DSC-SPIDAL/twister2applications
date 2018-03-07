@@ -8,6 +8,7 @@ import edu.iu.dsc.tws.comms.api.*;
 import edu.iu.dsc.tws.comms.core.TWSCommunication;
 import edu.iu.dsc.tws.comms.core.TWSNetwork;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
+import edu.iu.dsc.tws.comms.mpi.MPIDataFlowBroadcast;
 import edu.iu.dsc.tws.comms.mpi.MPIDataFlowPartition;
 import edu.iu.dsc.tws.comms.mpi.MPIDataFlowReduce;
 import edu.iu.dsc.tws.comms.mpi.io.reduce.ReduceStreamingFinalReceiver;
@@ -25,7 +26,7 @@ public class ReduceStream implements IContainer {
   private static final Logger LOG = Logger.getLogger(edu.iu.dsc.tws.apps.stream.ReduceStream.class.getName());
   private MPIDataFlowReduce reduceOperation;
 
-  private MPIDataFlowPartition secondPartition;
+  private MPIDataFlowBroadcast broadcast;
   private int id;
   private JobParameters jobParameters;
 
@@ -63,13 +64,19 @@ public class ReduceStream implements IContainer {
       sources.add(i);
     }
     int dest1 = sources.size();
-    int dest2 = sources.size() + 1;
-    Set<Integer> firsDestinations = new HashSet<>();
-    firsDestinations.add(dest1);
 
-    Set<Integer> secondDestinations = new HashSet<>();
-    secondDestinations.add(dest2);
+    Set<Integer> dests = new HashSet<>();
+    int noOfDestTasks = jobParameters.getTaskStages().get(1);
+    for (int i = 0; i < noOfDestTasks; i++) {
+      dests.add(i + sources.size());
+    }
 
+    Set<Integer> secondDests = new HashSet<>();
+    int start = sources.size() + dests.size();
+    int secondDestsTasks = jobParameters.getTaskStages().get(2);
+    for (int i = 0; i < secondDestsTasks; i++) {
+      secondDests.add(i + start);
+    }
     Map<String, Object> newCfg = new HashMap<>();
 
     LOG.log(Level.FINE,"Setting up firstPartition dataflow operation");
@@ -115,8 +122,8 @@ public class ReduceStream implements IContainer {
       reduceOperation = (MPIDataFlowReduce) channel.reduce(newCfg, MessageType.OBJECT, 0, sources,
           dest1, new ReduceStreamingFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()),
           new ReduceStreamingPartialReceiver(dest1, new edu.iu.dsc.tws.apps.stream.ReduceStream.IdentityFunction()));
-      secondPartition = (MPIDataFlowPartition) channel.partition(newCfg, MessageType.OBJECT,
-          1, firsDestinations, secondDestinations, new AckReduceReceiver());
+      broadcast = (MPIDataFlowBroadcast) channel.broadCast(newCfg, MessageType.OBJECT,
+          1, dest1, secondDests, new AckReduceReceiver());
 
       for (int k = 0; k < sourceTasksOfExecutor.size(); k++) {
         int sourceTask = sourceTasksOfExecutor.get(k);
@@ -127,13 +134,16 @@ public class ReduceStream implements IContainer {
         source.setOperation(reduceOperation);
 
         SecondBolt secondBolt = workerTasks.get(workerTask);
-        secondBolt.setOperation(secondPartition);
+        secondBolt.setOperation(broadcast);
 
-        boolean work = (sourceTask == workerTask);
-        boolean ack = (sourceTask == workerTask);
+        int reduceReceiveExecutor = taskPlan.getExecutorForChannel(dest1);
+        boolean work = false;
+        if (reduceReceiveExecutor == id && workerTask == dest1) {
+          work = true;
+        }
 
         // the map thread where datacols is produced
-        ReduceExecutor executor = new ReduceExecutor(id, work, ack, source, secondBolt, jobParameters);
+        ReduceExecutor executor = new ReduceExecutor(id, work, true, source, secondBolt, jobParameters);
         executors.put(sourceTask, executor);
 
         int targetTasks = sourcesToReceiveMapping.get(sourceTask);
@@ -154,7 +164,7 @@ public class ReduceStream implements IContainer {
           // progress the channel
           channel.progress();
           reduceOperation.progress();
-          secondPartition.progress();
+          broadcast.progress();
         } catch (Throwable t) {
           t.printStackTrace();
         }
@@ -176,6 +186,7 @@ public class ReduceStream implements IContainer {
 
     @Override
     public boolean receive(int i, Object o) {
+//      LOG.log(Level.INFO, String.format("%d Received msg: target %d", id, i));
       Queue<Message> messageQueue = workerMessageQueue.get(i);
       return messageQueue.offer(new Message(i, 0, o));
     }

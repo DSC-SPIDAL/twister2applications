@@ -108,6 +108,7 @@ public class PartitionSource {
     currentIteration++;
     outstanding++;
     lastMessageTime = System.currentTimeMillis();
+//    LOG.info(String.format("%d source sending message from %d to %d", executorId,  task, dest));
     return true;
   }
 
