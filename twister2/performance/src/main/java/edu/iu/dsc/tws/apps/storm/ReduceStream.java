@@ -121,7 +121,7 @@ public class ReduceStream implements IContainer {
 
       reduceOperation = (MPIDataFlowReduce) channel.reduce(newCfg, MessageType.OBJECT, 0, sources,
           dest1, new ReduceStreamingFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()),
-          new ReduceStreamingPartialReceiver(dest1, new edu.iu.dsc.tws.apps.stream.ReduceStream.IdentityFunction()));
+          new ReduceStreamingPartialReceiver(dest1, new IdentityFunction()));
       broadcast = (MPIDataFlowBroadcast) channel.broadCast(newCfg, MessageType.OBJECT,
           1, dest1, secondDests, new AckReduceReceiver());
 
