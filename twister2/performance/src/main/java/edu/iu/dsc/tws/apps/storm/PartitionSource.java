@@ -113,7 +113,7 @@ public class PartitionSource {
   }
 
   public synchronized void ack(long id) {
-    LOG.info(String.format("%d Ack received %d", executorId, id));
+    LOG.info(String.format("%d %d Ack received %d", executorId, task, id));
     long time = emitTimes.remove(id);
     ackCount++;
     outstanding--;
