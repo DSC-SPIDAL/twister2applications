@@ -82,6 +82,7 @@ public class Source implements Runnable {
         // lets wait a litte and try again
         operation.progress();
       }
+      operation.progress();
       inFlightMessages++;
       startOfMessages.add(System.nanoTime());
       if (gap > 0) {
