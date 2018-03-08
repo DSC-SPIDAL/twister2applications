@@ -3,6 +3,7 @@ package edu.iu.dsc.tws.apps.stream;
 import edu.iu.dsc.tws.apps.batch.Source;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.data.DataSave;
+import edu.iu.dsc.tws.apps.data.DataType;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
@@ -37,6 +38,8 @@ public class ReduceStream implements IContainer {
 
   private List<Integer> tasksOfThisExec;
 
+  private boolean executorWithDest = false;
+
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
     LOG.log(Level.FINE, "Starting the example with container id: " + plan.getThisId());
@@ -60,21 +63,25 @@ public class ReduceStream implements IContainer {
     }
     int dest = jobParameters.getTaskStages().get(0);
 
+    int destExecutor = taskPlan.getExecutorForChannel(dest);
+    if (destExecutor == id) {
+      executorWithDest = true;
+    }
     Map<String, Object> newCfg = new HashMap<>();
 
     LOG.log(Level.FINE,"Setting up reduce dataflow operation");
     try {
       // this method calls the init method
       // I think this is wrong
-      reduce = channel.reduce(newCfg, MessageType.OBJECT, 0, sources,
+      reduce = channel.reduce(newCfg, MessageType.BYTE, 0, sources,
           dest, new ReduceStreamingFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()),
-          new ReduceStreamingPartialReceiver(dest, new IdentityFunction()));
+          new ReduceStreamingPartialReceiver(dest, new IdentityFunction()), new SendCompletion());
 
       Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
       tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
       Source source = null;
       for (int i : tasksOfExecutor) {
-        source = new Source(i, jobParameters, reduce, dataGenerator);
+        source = new Source(i, jobParameters, reduce, dataGenerator, DataType.INT_ARRAY, executorWithDest);
         reduceWorkers.put(i, source);
         // the map thread where datacols is produced
         Thread mapThread = new Thread(source);
@@ -114,6 +121,12 @@ public class ReduceStream implements IContainer {
 
     @Override
     public boolean receive(int target, Object object) {
+      if (executorWithDest) {
+        for (Source s : reduceWorkers.values()) {
+          s.ack(0);
+        }
+      }
+
       long time = (System.currentTimeMillis() - startSendingTime);
 //      LOG.info(String.format("%d times %s", id, times));
       List<Long> timesForTarget = times.get(target);
@@ -149,6 +162,13 @@ public class ReduceStream implements IContainer {
     @Override
     public Object reduce(Object t1, Object t2) {
       return t1;
+    }
+  }
+
+  public class SendCompletion implements CompletionListener {
+    @Override
+    public void completed(int i) {
+//      reduceWorkers.get(i).ack(i);
     }
   }
 }

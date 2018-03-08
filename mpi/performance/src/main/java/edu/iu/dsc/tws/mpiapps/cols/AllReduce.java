@@ -3,44 +3,39 @@ package edu.iu.dsc.tws.mpiapps.cols;
 import edu.iu.dsc.tws.mpiapps.Collective;
 import mpi.*;
 
+import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
 public class AllReduce extends Collective {
 
   private long reduceTime = 0;
 
-  private int[] values;
+  private byte[] values;
+
   public AllReduce(int size, int iterations) {
     super(size, iterations);
-    values = new int[size];
+    values = new byte[size];
   }
 
   @Override
   public void execute() throws MPIException {
-    IntBuffer maxSend = MPI.newIntBuffer(1);
-    IntBuffer maxRecv = MPI.newIntBuffer(1);
     int rank = MPI.COMM_WORLD.getRank();
-
+    ByteBuffer sendBuffer = MPI.newByteBuffer(size);
+    ByteBuffer receiveBuffer = MPI.newByteBuffer(size);
     for (int i = 0; i < iterations; i++) {
-      IntBuffer sendBuffer = MPI.newIntBuffer(size);
-      IntBuffer receiveBuffer = MPI.newIntBuffer(size);
-
       sendBuffer.clear();
       sendBuffer.put(values);
-      MPI.COMM_WORLD.allReduce(sendBuffer, receiveBuffer, size, MPI.INT, MPI.SUM);
+      MPI.COMM_WORLD.allReduce(sendBuffer, receiveBuffer, size, MPI.BYTE, MPI.SUM);
 
       if (rank == 0) {
-        int receiveLength = receiveBuffer.get(0);
-        int[] receiveBytes = new int[receiveLength];
-        receiveBuffer.position(receiveLength + 4);
+        byte[] receiveBytes = new byte[size];
+        receiveBuffer.position(size);
         receiveBuffer.flip();
         receiveBuffer.get();
         receiveBuffer.get(receiveBytes);
       }
       receiveBuffer.clear();
       sendBuffer.clear();
-      maxRecv.clear();
-      maxSend.clear();
     }
   }
 }

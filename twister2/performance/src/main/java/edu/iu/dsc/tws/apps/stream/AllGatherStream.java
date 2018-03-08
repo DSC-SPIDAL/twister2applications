@@ -3,6 +3,7 @@ package edu.iu.dsc.tws.apps.stream;
 import edu.iu.dsc.tws.apps.batch.Source;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.data.DataSave;
+import edu.iu.dsc.tws.apps.data.DataType;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
@@ -79,7 +80,7 @@ public class AllGatherStream implements IContainer {
       tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
       Source source = null;
       for (int i : tasksOfExecutor) {
-        source = new Source(i, jobParameters, reduce, dataGenerator, true);
+        source = new Source(i, jobParameters, reduce, dataGenerator, DataType.STRING, false);
         reduceWorkers.put(i, source);
         // the map thread where datacols is produced
         Thread mapThread = new Thread(source);

@@ -1,6 +1,5 @@
 package edu.iu.dsc.tws.apps.storm;
 
-import edu.iu.dsc.tws.apps.batch.Source;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.data.DataSave;
 import edu.iu.dsc.tws.apps.data.PartitionData;
@@ -13,7 +12,7 @@ import java.util.*;
 import java.util.logging.Logger;
 
 public class PartitionSource {
-  private static final Logger LOG = Logger.getLogger(Source.class.getName());
+  private static final Logger LOG = Logger.getLogger(PartitionSource.class.getName());
 
   private long startSendingTime;
 
@@ -82,6 +81,11 @@ public class PartitionSource {
   public synchronized boolean execute() {
     int noOfDestinations = destinations.size();
     long currentTime = System.currentTimeMillis();
+
+    if (outstanding > jobParameters.getOutstanding()) {
+      return false;
+    }
+
     if (gap > (currentTime - lastMessageTime)) {
       return false;
     }
@@ -104,12 +108,18 @@ public class PartitionSource {
     currentIteration++;
     outstanding++;
     lastMessageTime = System.currentTimeMillis();
+//    LOG.info(String.format("%d source sending message from %d to %d", executorId,  task, dest));
     return true;
   }
 
   public synchronized void ack(long id) {
-//    LOG.info(String.format("Ack received %d %s", id, emitTimes));
-    long time = emitTimes.remove(id);
+    LOG.info(String.format("%d %d Ack received %d", executorId, task, id));
+    long time = 0;
+    try {
+      time = emitTimes.remove(id);
+    } catch (NullPointerException e) {
+      LOG.info(String.format("%d %d ******* Ack received %d", executorId, task, id));
+    }
     ackCount++;
     outstanding--;
     finalTimes.add(Utils.getTime() - time);
@@ -123,14 +133,14 @@ public class PartitionSource {
         count++;
       }
       average = average / count;
-      LOG.info(String.format("%d %d Finished %d total: %d average: %d", executorId, task, ackCount, totalTime, average));
+      LOG.info(String.format("%d %d Finished %d total: %d average: %f", executorId, task, ackCount, totalTime, average / 1000000.0));
       try {
         DataSave.saveList(jobParameters.getFileName() + "" + task + "partition_" + jobParameters.getSize() + "x" + noOfIterations, finalTimes);
       } catch (FileNotFoundException e) {
         e.printStackTrace();
       }
     }
-//    if (ackCount % 500 == 0 && executorId == 0) {
+//    if (ackCount % 10 == 0 && executorId == 0) {
 //      LOG.info(String.format("%d received task %d ack %d %d %d", executorId, task, id, ackCount, noOfIterations));
 //    }
   }

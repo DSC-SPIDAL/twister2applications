@@ -1,6 +1,7 @@
 package edu.iu.dsc.tws.apps.batch;
 
 import edu.iu.dsc.tws.apps.data.DataGenerator;
+import edu.iu.dsc.tws.apps.data.DataType;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.comms.api.DataFlowOperation;
 import edu.iu.dsc.tws.comms.api.MessageFlags;
@@ -26,9 +27,13 @@ public class Source implements Runnable {
 
   private int gap;
 
-  private boolean genString;
+  private DataType genString;
 
-  public Source(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator, boolean getString) {
+  private volatile int inFlightMessages = 0;
+
+  private boolean acked = false;
+
+  public Source(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator, DataType getString, boolean acked) {
     this.task = task;
     this.jobParameters = jobParameters;
     this.operation = op;
@@ -36,6 +41,7 @@ public class Source implements Runnable {
     this.startOfMessages = new ArrayList<>();
     this.gap = jobParameters.getGap();
     this.genString = getString;
+    this.acked = acked;
   }
 
   public Source(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator) {
@@ -45,37 +51,52 @@ public class Source implements Runnable {
     this.generator = dataGenerator;
     this.startOfMessages = new ArrayList<>();
     this.gap = jobParameters.getGap();
-    this.genString = false;
+    this.genString = DataType.INT_OBJECT;
+    this.acked = false;
   }
 
   @Override
   public void run() {
     startSendingTime = System.currentTimeMillis();
     Object data;
-    if (genString) {
+    if (genString == DataType.STRING) {
       data = generator.generateStringData();
-    } else {
+    } else if (genString == DataType.INT_OBJECT) {
       data = generator.generateData();
+    } else if (genString == DataType.INT_ARRAY) {
+      data = generator.generateByteData();
+    } else {
+      throw new RuntimeException("Un-expected data type");
     }
+
     int iterations = jobParameters.getIterations();
     for (int i = 0; i < iterations; i++) {
-      startOfMessages.add(System.nanoTime());
       int flag = 0;
       if (i == iterations - 1) {
         flag = MessageFlags.FLAGS_LAST;
       }
+
+      while (acked && inFlightMessages > jobParameters.getOutstanding());
+
       while (!operation.send(task, data, flag)) {
         // lets wait a litte and try again
         operation.progress();
       }
+      operation.progress();
+      inFlightMessages++;
+      startOfMessages.add(System.nanoTime());
       if (gap > 0) {
         try {
-          Thread.sleep(2);
+          Thread.sleep(gap);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
       }
     }
+  }
+
+  public void ack(int source) {
+    inFlightMessages--;
   }
 
   public long getStartSendingTime() {

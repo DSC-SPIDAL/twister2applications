@@ -5,6 +5,7 @@ import edu.iu.dsc.tws.comms.core.TaskPlan;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourceContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlanUtils;
+import org.apache.commons.cli.Option;
 
 import java.util.*;
 import java.util.logging.Logger;
@@ -78,6 +79,12 @@ public final class Utils {
       }
     }
     return out;
+  }
+
+  public static Option createOption(String opt, boolean hasArg, String description, boolean required) {
+    Option symbolListOption = new Option(opt, hasArg, description);
+    symbolListOption.setRequired(required);
+    return symbolListOption;
   }
 
   public synchronized static long getTime() {
