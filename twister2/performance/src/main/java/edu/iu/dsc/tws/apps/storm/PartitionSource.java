@@ -90,7 +90,7 @@ public class PartitionSource {
       return false;
     }
 
-    if (currentIteration >= noOfIterations - 1) {
+    if (currentIteration >= noOfIterations) {
       stop = true;
       return false;
     }
