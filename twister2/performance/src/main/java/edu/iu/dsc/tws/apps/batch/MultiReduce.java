@@ -54,7 +54,7 @@ public class MultiReduce implements IContainer {
     Set<Integer> dests = new HashSet<>();
     int noOfDestTasks = jobParameters.getTaskStages().get(1);
     for (int i = 0; i < noOfDestTasks; i++) {
-      dests.add(i);
+      dests.add(i + sources.size());
     }
 
     Map<String, Object> newCfg = new HashMap<>();
