@@ -1,5 +1,6 @@
 package edu.iu.dsc.tws.apps.storm;
 
+import edu.iu.dsc.tws.apps.data.AckData;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.data.PartitionData;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
@@ -193,12 +194,14 @@ public class ReduceStream implements IContainer {
   }
 
   public class AckReduceReceiver implements MessageReceiver {
+    private Map<Integer, List<Long>> receiveIds = new HashMap<>();
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
       LOG.log(Level.FINE, String.format("%d Initialize ack: %s", id, expectedIds));
       for (Map.Entry<Integer, List<Integer>> e : expectedIds.entrySet()) {
         Queue<Message> queue = new ArrayBlockingQueue<>(1);
         ackMessageQueue.put(e.getKey(), queue);
+        receiveIds.put(e.getKey(), new ArrayList<>());
       }
     }
 
@@ -206,7 +209,23 @@ public class ReduceStream implements IContainer {
     public boolean onMessage(int source, int path, int target, int flags, Object object) {
 //      LOG.log(Level.INFO, String.format("%d Received ack: source %d target %d", id, source, target));
       Queue<Message> messageQueue = ackMessageQueue.get(target);
-      return messageQueue.offer(new Message(target, source, object));
+      boolean offer = messageQueue.offer(new Message(target, source, object));
+      if (offer) {
+        AckData data = (AckData) object;
+        long sequence = data.getId();
+        List<Long> list = receiveIds.get(target);
+        list.add(sequence);
+
+        Set<Long> r = new HashSet<>(list);
+        if (list.size() != r.size()) {
+          LOG.log(Level.INFO, String.format("%d Duplicates %d", target, sequence), new RuntimeException("Dups"));
+          list.clear();
+          list.addAll(r);
+        } /*else {
+          LOG.log(Level.INFO, String.format("%d No Duplicates %d", target, sequence));
+        }*/
+      }
+      return offer;
     }
 
     @Override
