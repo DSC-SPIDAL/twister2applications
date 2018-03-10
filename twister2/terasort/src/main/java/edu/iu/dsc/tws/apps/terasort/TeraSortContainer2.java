@@ -460,24 +460,39 @@ public class TeraSortContainer2 implements IContainer {
             String inputFile = Paths.get(inputFolder, filePrefix
                     + workerLocalID + "_" + Integer.toString(localId)).toString();
             int block_size = 10;
+            Map<Integer, List<byte[]>> keyMap = new HashMap<>();
+            Map<Integer, List<byte[]>> dataMap = new HashMap<>();
+            Map<Integer, Integer> countsMap = new HashMap<>();
+
+            for (int i = 0; i < NO_OF_TASKS; i++) {
+                keyMap.put(i, new ArrayList<>(block_size));
+                dataMap.put(i, new ArrayList<>(block_size));
+                countsMap.put(i, 0);
+                for (int k = 0; k < block_size; k++) {
+                    keyMap.get(i).add(new byte[1]);
+                    dataMap.get(i).add(new byte[1]);
+                }
+            }
+
             List<byte[]> keyList = new ArrayList<>(block_size);
             List<byte[]> dataList = new ArrayList<>(block_size);
             List<Record> records = DataLoader.load(id, inputFile);
-            for (int i = 0; i < block_size; i++) {
-                keyList.add(new byte[1]);
-                dataList.add(new byte[1]);
-            }
+
             //sort the local records
             //Collections.sort(records);
             KeyedContent keyedContent = null;
+            int partition;
+            int localCount;
             for (int i = 0; i < records.size(); i++) {
                 Record text = records.get(i);
-                int partition = tree.getPartition(text.getKey());
-                keyList.set(i % 10, text.getKey().getBytes());
-                dataList.set(i % 10, text.getText().getBytes());
+                partition = tree.getPartition(text.getKey());
+                localCount = countsMap.get(partition);
+                countsMap.put(partition, (localCount + 1) % 10);
 
-                if ((i > 0 && i % 10 == 9) || i == records.size() - 1) {
-                    keyedContent = new KeyedContent(keyList, dataList,
+                keyMap.get(partition).set(localCount, text.getKey().getBytes());
+                dataMap.get(partition).set(localCount, text.getText().getBytes());
+                if (localCount == 9) {
+                    keyedContent = new KeyedContent(keyMap.get(partition), dataMap.get(partition),
                             MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
                     while (!partitionOp.send(task, keyedContent, 0, partition)) {
                         // lets wait a litte and try again
@@ -485,6 +500,24 @@ public class TeraSortContainer2 implements IContainer {
                             Thread.sleep(1);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
+                        }
+                    }
+                }
+
+                if (i == records.size() - 1) {
+                    for (int j = 0; j < NO_OF_TASKS; j++) {
+                        int tempCount = countsMap.get(j);
+                        if (tempCount > 0) {
+                            keyedContent = new KeyedContent(keyMap.get(j), dataMap.get(j),
+                                    MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
+                            while (!partitionOp.send(task, keyedContent, 0, partition)) {
+                                // lets wait a litte and try again
+                                try {
+                                    Thread.sleep(1);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }
                         }
                     }
                 }
