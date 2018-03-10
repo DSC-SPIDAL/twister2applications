@@ -1,7 +1,7 @@
 package edu.iu.dsc.tws.apps;
 
 import edu.iu.dsc.tws.apps.data.PartitionData;
-import edu.iu.dsc.tws.comms.utils.KryoSerializer;
+import edu.iu.dsc.tws.apps.utils.KryoSerialize;
 
 import java.util.HashMap;
 
@@ -10,12 +10,12 @@ public class SerialTest {
 
   private int size;
 
-  private KryoSerializer serializer;
+  private KryoSerialize serializer;
 
   public SerialTest(int iterations, int size) {
     this.iterations = iterations;
     this.size = size;
-    this.serializer = new KryoSerializer();
+    this.serializer = new KryoSerialize();
     this.serializer.init(new HashMap<>());
   }
 
