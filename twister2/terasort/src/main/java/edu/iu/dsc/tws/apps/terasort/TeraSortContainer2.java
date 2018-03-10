@@ -459,7 +459,7 @@ public class TeraSortContainer2 implements IContainer {
         public void run() {
             String inputFile = Paths.get(inputFolder, filePrefix
                     + workerLocalID + "_" + Integer.toString(localId)).toString();
-            int block_size = 10;
+            int block_size = 5;
             Map<Integer, List<byte[]>> keyMap = new HashMap<>();
             Map<Integer, List<byte[]>> dataMap = new HashMap<>();
             Map<Integer, Integer> countsMap = new HashMap<>();
@@ -487,11 +487,11 @@ public class TeraSortContainer2 implements IContainer {
                 Record text = records.get(i);
                 partition = tree.getPartition(text.getKey());
                 localCount = countsMap.get(partition);
-                countsMap.put(partition, (localCount + 1) % 10);
+                countsMap.put(partition, (localCount + 1) % block_size);
 
                 keyMap.get(partition).set(localCount, text.getKey().getBytes());
                 dataMap.get(partition).set(localCount, text.getText().getBytes());
-                if (localCount == 9) {
+                if (localCount == (block_size - 1)) {
                     keyedContent = new KeyedContent(keyMap.get(partition), dataMap.get(partition),
                             MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
                     while (!partitionOp.send(task, keyedContent, 0, partition)) {
