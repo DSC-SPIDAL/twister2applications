@@ -213,17 +213,17 @@ public class ReduceStream implements IContainer {
       if (offer) {
         AckData data = (AckData) object;
         long sequence = data.getId();
-        List<Long> list = receiveIds.get(target);
-        list.add(sequence);
-
-        Set<Long> r = new HashSet<>(list);
-        if (list.size() != r.size()) {
-          LOG.log(Level.INFO, String.format("%d Duplicates %d", target, sequence), new RuntimeException("Dups"));
-          list.clear();
-          list.addAll(r);
-        } /*else {
-          LOG.log(Level.INFO, String.format("%d No Duplicates %d", target, sequence));
-        }*/
+//        List<Long> list = receiveIds.get(target);
+//        list.add(sequence);
+//
+//        Set<Long> r = new HashSet<>(list);
+//        if (list.size() != r.size()) {
+//          LOG.log(Level.INFO, String.format("%d Duplicates %d", target, sequence), new RuntimeException("Dups"));
+//          list.clear();
+//          list.addAll(r);
+//        } /*else {
+//          LOG.log(Level.INFO, String.format("%d No Duplicates %d", target, sequence));
+//        }*/
       }
       return offer;
     }
