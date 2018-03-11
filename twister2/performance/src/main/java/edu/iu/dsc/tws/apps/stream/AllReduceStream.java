@@ -4,6 +4,7 @@ import edu.iu.dsc.tws.apps.batch.IdentityFunction;
 import edu.iu.dsc.tws.apps.batch.Source;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.data.DataSave;
+import edu.iu.dsc.tws.apps.data.DataType;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
@@ -31,9 +32,11 @@ public class AllReduceStream implements IContainer {
 
   private long startSendingTime;
 
-  private Map<Integer, Source> reduceWorkers = new HashMap<>();
+  private Map<Integer, ExternalSource> reduceWorkers = new HashMap<>();
 
   private List<Integer> tasksOfThisExec;
+
+  private Map<Integer, Integer> reduceToSourceMapping = new HashMap<>();
 
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
@@ -71,13 +74,24 @@ public class AllReduceStream implements IContainer {
         dests, middle, new IdentityFunction(), reduceReceiver, true);
 
     Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
+    Set<Integer> reduceTasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 1);
+    List<Integer> taskOfExecutorList = new ArrayList<>(tasksOfExecutor);
+    List<Integer> reduceTaskOfExecutorList = new ArrayList<>(reduceTasksOfExecutor);
+
     tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
-    Source source = null;
+    ExternalSource source = null;
     for (int i : tasksOfExecutor) {
-      source = new Source(i, jobParameters, reduce, dataGenerator);
+      source = new ExternalSource(i, DataType.INT_ARRAY, jobParameters, dataGenerator, id, true);
       reduceWorkers.put(i, source);
+
+      source.setOperation(reduce);
+
+      StreamExecutor executor = new StreamExecutor(id, source, jobParameters);
+      int sourceIndex = taskOfExecutorList.indexOf(i);
+      reduceToSourceMapping.put(reduceTaskOfExecutorList.get(sourceIndex), i);
+
       // the map thread where datacols is produced
-      Thread mapThread = new Thread(source);
+      Thread mapThread = new Thread(executor);
       mapThread.start();
     }
 
@@ -108,30 +122,7 @@ public class AllReduceStream implements IContainer {
 
     @Override
     public boolean receive(int target, Object object) {
-      long time = (System.currentTimeMillis() - startSendingTime);
-//      LOG.info(String.format("%d times %s", id, times));
-      List<Long> timesForTarget = times.get(target);
-      timesForTarget.add(System.currentTimeMillis());
-
-      try {
-        if (timesForTarget.size() >= jobParameters.getIterations()) {
-          List<Long> times = reduceWorkers.get(tasksOfThisExec.get(0)).getStartOfEachMessage();
-          List<Long> latencies = new ArrayList<>();
-          long average = 0;
-          for (int i = 0; i < times.size(); i++) {
-            long l = timesForTarget.get(i) - times.get(i);
-            average += l;
-            latencies.add(l);
-          }
-          DataSave.saveList("allreaduce-stream.txt", latencies);
-          LOG.info(String.format("%d Average: %d", id, average / (times.size())));
-          done = true;
-          LOG.info(String.format("%d Finished %d %d", id, target, time));
-        }
-      } catch (Throwable r) {
-        LOG.log(Level.SEVERE, String.format("%d excpetion %s %s", id, tasksOfThisExec, reduceWorkers.keySet()), r);
-      }
-
+      reduceWorkers.get(reduceToSourceMapping.get(target)).ack(0);
       return true;
     }
 

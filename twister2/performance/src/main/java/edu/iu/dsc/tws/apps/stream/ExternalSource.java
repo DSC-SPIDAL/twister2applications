@@ -113,7 +113,7 @@ public class ExternalSource {
     int dest = destinations.get(nextIndex);
     int flag = 0;
     long time = Utils.getTime();
-    if (!operation.send(task, data, flag, dest)) {
+    if (!operation.send(task, data, flag)) {
       return false;
     }
     emitTimes.add(time);
