@@ -8,8 +8,11 @@ import edu.iu.dsc.tws.comms.mpi.io.IntData;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class MultiSource implements Runnable {
+  private static final Logger LOG = Logger.getLogger(MultiSource.class.getName());
+
   private long startSendingTime;
 
   private int task;
@@ -58,6 +61,7 @@ public class MultiSource implements Runnable {
         // lets wait a litte and try again
         operation.progress();
       }
+//      LOG.info(String.format("%d Sent message with flag %d %d", task, i, flag));
     }
   }
 
