@@ -60,6 +60,11 @@ public class MultiSource implements Runnable {
       while (!operation.send(task, data, flag, dest)) {
         // lets wait a litte and try again
         operation.progress();
+//        try {
+//          Thread.sleep(1);
+//        } catch (InterruptedException e) {
+//          e.printStackTrace();
+//        }
       }
 //      LOG.info(String.format("%d Sent message with flag %d %d", task, i, flag));
     }
