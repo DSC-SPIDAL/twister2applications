@@ -79,7 +79,7 @@ public class GatherStream implements IContainer {
       int destExector = taskPlan.getExecutorForChannel(dest);
       boolean acked = destExector == id;
       for (int i : tasksOfExecutor) {
-        source = new ExternalSource(i, DataType.INT_ARRAY, jobParameters, dataGenerator, id, acked);
+        source = new ExternalSource(i, DataType.INT_ARRAY, jobParameters, dataGenerator, id, acked, true);
         gatherWorkers.put(i, source);
 
         source.setOperation(reduce);

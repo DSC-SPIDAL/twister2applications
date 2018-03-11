@@ -57,7 +57,9 @@ public class ExternalSource {
 
   private boolean acked;
 
-  public ExternalSource(int task, DataType genString, JobParameters jobParameters, DataGenerator dataGenerator, int executorId, boolean acked) {
+  private boolean destEnabled;
+
+  public ExternalSource(int task, DataType genString, JobParameters jobParameters, DataGenerator dataGenerator, int executorId, boolean acked, boolean destEnabled) {
     this.task = task;
     this.acked = acked;
     this.jobParameters = jobParameters;
@@ -75,6 +77,7 @@ public class ExternalSource {
     startSendingTime = System.currentTimeMillis();
     this.outstanding = 0;
     this.random = new Random(System.nanoTime());
+    this.destEnabled = destEnabled;
 
     startSendingTime = System.currentTimeMillis();
     if (genString == DataType.STRING) {
@@ -113,8 +116,14 @@ public class ExternalSource {
     int dest = destinations.get(nextIndex);
     int flag = 0;
     long time = Utils.getTime();
-    if (!operation.send(task, data, flag)) {
-      return false;
+    if (destEnabled) {
+      if (!operation.send(task, data, flag, dest)) {
+        return false;
+      }
+    } else {
+      if (!operation.send(task, data, flag)) {
+        return false;
+      }
     }
     emitTimes.add(time);
     nextIndex++;

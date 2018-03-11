@@ -81,7 +81,7 @@ public class AllReduceStream implements IContainer {
     tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
     ExternalSource source = null;
     for (int i : tasksOfExecutor) {
-      source = new ExternalSource(i, DataType.INT_ARRAY, jobParameters, dataGenerator, id, true);
+      source = new ExternalSource(i, DataType.INT_ARRAY, jobParameters, dataGenerator, id, true, false);
       reduceWorkers.put(i, source);
 
       source.setOperation(reduce);
@@ -100,7 +100,7 @@ public class AllReduceStream implements IContainer {
       // progress the channel
       channel.progress();
       // we should progress the communication directive
-      reduce.progress();
+//      reduce.progress();
       if (source != null) {
         startSendingTime = source.getStartSendingTime();
       }

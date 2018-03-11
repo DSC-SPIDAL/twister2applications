@@ -83,7 +83,7 @@ public class ReduceStream implements IContainer {
       int destExector = taskPlan.getExecutorForChannel(dest);
       boolean acked = destExector == id;
       for (int i : tasksOfExecutor) {
-        source = new ExternalSource(i, DataType.INT_ARRAY, jobParameters, dataGenerator, id, acked);
+        source = new ExternalSource(i, DataType.INT_ARRAY, jobParameters, dataGenerator, id, acked, true);
         reduceWorkers.put(i, source);
 
         source.setOperation(reduce);
