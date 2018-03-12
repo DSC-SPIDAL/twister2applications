@@ -134,7 +134,7 @@ public class ExternalSource {
     return true;
   }
 
-  public synchronized void ack(long id) {
+  public void ack(long id) {
     long time;
     time = emitTimes.get(ackCount);
 //    LOG.log(Level.INFO, "Ack received index" + ackCount);
