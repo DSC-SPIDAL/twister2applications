@@ -42,6 +42,8 @@ public class InternalMessageWorker implements Runnable {
 
   private int executor;
 
+  private int outstanding = 0;
+
   public InternalMessageWorker(int executor, int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator, DataType genString, Queue<Integer> acks) {
     this.task = task;
     this.jobParameters = jobParameters;
@@ -72,11 +74,17 @@ public class InternalMessageWorker implements Runnable {
       if (i == iterations - 1) {
         flag = MessageFlags.FLAGS_LAST;
       }
+
+      if (outstanding > jobParameters.getOutstanding()) {
+        ack();
+      }
+
 //      LOG.info("Sending message");
       while (!operation.send(task, data, flag)) {
         // lets wait a litte and try again
         if (jobParameters.getGap() > 0) {
           try {
+            ack();
             Thread.sleep(jobParameters.getGap());
           } catch (InterruptedException e) {
             e.printStackTrace();
@@ -104,6 +112,7 @@ public class InternalMessageWorker implements Runnable {
 //    LOG.log(Level.INFO, "Acks size ** " + acks.size());
     Integer ack = acks.poll();
     while (ack != null) {
+      outstanding--;
       time = emitTimes.get(ackCount);
       ackCount++;
 //      LOG.log(Level.INFO, "Ack received index" + ackCount);
