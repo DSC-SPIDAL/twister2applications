@@ -95,7 +95,7 @@ public class ExternalSource {
     this.operation = operation;
   }
 
-  public synchronized boolean execute() {
+  public boolean execute() {
     int noOfDestinations = destinations.size();
     long currentTime = System.currentTimeMillis();
 
