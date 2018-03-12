@@ -38,6 +38,8 @@ public class ReduceStream implements IContainer {
 
   private boolean executorWithDest = false;
 
+  private DataType dataType;
+
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
     LOG.log(Level.FINE, "Starting the example with container id: " + plan.getThisId());
@@ -69,9 +71,10 @@ public class ReduceStream implements IContainer {
 
     LOG.log(Level.FINE,"Setting up reduce dataflow operation");
     try {
+      dataType = Utils.getDataType(jobParameters.getDataType());
       // this method calls the init method
       // I think this is wrong
-      reduce = channel.reduce(newCfg, MessageType.INTEGER, 0, sources,
+      reduce = channel.reduce(newCfg, Utils.getMessageTupe(jobParameters.getDataType()), 0, sources,
           dest, new ReduceStreamingFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()),
           new ReduceStreamingPartialReceiver(dest, new IdentityFunction()), new SendCompletion());
 
@@ -81,7 +84,7 @@ public class ReduceStream implements IContainer {
       int destExector = taskPlan.getExecutorForChannel(dest);
       boolean acked = destExector == id;
       for (int i : tasksOfExecutor) {
-        source = new ExternalSource(i, DataType.INT_ARRAY, jobParameters, dataGenerator, id, acked, true);
+        source = new ExternalSource(i, dataType, jobParameters, dataGenerator, id, acked, true);
         reduceWorkers.put(i, source);
 
         source.setOperation(reduce);
@@ -122,10 +125,12 @@ public class ReduceStream implements IContainer {
 
     @Override
     public boolean receive(int target, Object object) {
-      int[] data = (int[]) object;
-      for (int i = 0; i < data.length; i++) {
-        if (data[i] != jobParameters.getTaskStages().get(0)) {
-          LOG.info("SUM NOT EQUAL" + data[i]);
+      if (dataType == DataType.INT_ARRAY) {
+        int[] data = (int[]) object;
+        for (int i = 0; i < data.length; i++) {
+          if (data[i] != jobParameters.getTaskStages().get(0)) {
+            LOG.info("SUM NOT EQUAL" + data[i]);
+          }
         }
       }
       if (executorWithDest) {
@@ -151,13 +156,17 @@ public class ReduceStream implements IContainer {
           LOG.info(String.format("%d Identity function: %d", id, count));
         }
       }
-      int[] data1 = (int[]) t1;
-      int[] data2 = (int[]) t2;
-      int[] data3 = new int[data1.length];
-      for (int i = 0; i < data1.length; i++) {
-        data3[i] = data1[i] + data2[i];
+      if (dataType == DataType.INT_ARRAY) {
+        int[] data1 = (int[]) t1;
+        int[] data2 = (int[]) t2;
+        int[] data3 = new int[data1.length];
+        for (int i = 0; i < data1.length; i++) {
+          data3[i] = data1[i] + data2[i];
+        }
+        return data3;
+      } else {
+        return t1;
       }
-      return data3;
     }
   }
 

@@ -69,7 +69,7 @@ public class GatherStream implements IContainer {
     try {
       // this method calls the init method
       // I think this is wrong
-      reduce = channel.gather(newCfg, MessageType.INTEGER, 0, sources,
+      reduce = channel.gather(newCfg, Utils.getMessageTupe(jobParameters.getDataType()), 0, sources,
           dest, new StreamingFinalGatherReceiver(new FinalReduceReceiver()));
 
       Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
@@ -78,7 +78,7 @@ public class GatherStream implements IContainer {
       int destExector = taskPlan.getExecutorForChannel(dest);
       boolean acked = destExector == id;
       for (int i : tasksOfExecutor) {
-        source = new ExternalSource(i, DataType.INT_ARRAY, jobParameters, dataGenerator, id, acked, true);
+        source = new ExternalSource(i, Utils.getDataType(jobParameters.getDataType()), jobParameters, dataGenerator, id, acked, true);
         gatherWorkers.put(i, source);
 
         source.setOperation(reduce);

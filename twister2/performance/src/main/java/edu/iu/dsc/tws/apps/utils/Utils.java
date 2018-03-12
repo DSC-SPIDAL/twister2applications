@@ -1,6 +1,8 @@
 package edu.iu.dsc.tws.apps.utils;
 
+import edu.iu.dsc.tws.apps.data.DataType;
 import edu.iu.dsc.tws.common.config.Config;
+import edu.iu.dsc.tws.comms.api.MessageType;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourceContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
@@ -89,5 +91,27 @@ public final class Utils {
 
   public synchronized static long getTime() {
     return System.nanoTime();
+  }
+
+  public static MessageType getMessageTupe(String type) {
+    if (type.equals("int")) {
+      return MessageType.INTEGER;
+    } else if (type.equals("byte")) {
+      return MessageType.BYTE;
+    } else if (type.equals("object")) {
+      return MessageType.OBJECT;
+    }
+    return MessageType.OBJECT;
+  }
+
+  public static DataType getDataType(String type) {
+    if (type.equals("int")) {
+      return DataType.INT_ARRAY;
+    } else if (type.equals("byte")) {
+      return DataType.BYTE_ARRAY;
+    } else if (type.equals("object")) {
+      return DataType.INT_OBJECT;
+    }
+    return DataType.INT_OBJECT;
   }
 }
