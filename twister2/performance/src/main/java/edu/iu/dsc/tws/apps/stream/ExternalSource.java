@@ -95,7 +95,7 @@ public class ExternalSource {
     this.operation = operation;
   }
 
-  public boolean execute() {
+  public synchronized boolean execute() {
     int noOfDestinations = destinations.size();
     long currentTime = System.currentTimeMillis();
 
@@ -134,7 +134,7 @@ public class ExternalSource {
     return true;
   }
 
-  public void ack(long id) {
+  public synchronized void ack(long id) {
     long time;
     time = emitTimes.get(ackCount);
 //    LOG.log(Level.INFO, "Ack received index" + ackCount);
