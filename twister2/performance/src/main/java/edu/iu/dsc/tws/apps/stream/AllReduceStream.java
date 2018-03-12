@@ -110,14 +110,9 @@ public class AllReduceStream implements IContainer {
   public class FinalReduceReceiver implements ReduceReceiver {
     boolean done = false;
 
-    Map<Integer, List<Long>> times = new HashMap<>();
-
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
       LOG.info(String.format("Initialize: " + expectedIds));
-      for (Map.Entry<Integer, List<Integer>> e : expectedIds.entrySet()) {
-        times.put(e.getKey(), new ArrayList<>());
-      }
     }
 
     @Override
