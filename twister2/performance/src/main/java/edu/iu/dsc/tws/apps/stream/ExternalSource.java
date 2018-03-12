@@ -9,7 +9,6 @@ import edu.iu.dsc.tws.comms.api.DataFlowOperation;
 
 import java.io.FileNotFoundException;
 import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ExternalSource {
@@ -84,8 +83,10 @@ public class ExternalSource {
       data = generator.generateStringData();
     } else if (genString == DataType.INT_OBJECT) {
       data = generator.generateData();
-    } else if (genString == DataType.INT_ARRAY) {
+    } else if (genString == DataType.BYTE_ARRAY) {
       data = generator.generateByteData();
+    } else if (genString == DataType.INT_ARRAY) {
+      data = generator.generateIntData(1);
     } else {
       throw new RuntimeException("Un-expected data type");
     }

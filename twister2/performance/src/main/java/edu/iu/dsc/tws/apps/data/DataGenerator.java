@@ -45,6 +45,15 @@ public class DataGenerator {
     return b;
   }
 
+  public int[] generateIntData(int value) {
+    int s = jobParameters.getSize();
+    int b[] = new int[s];
+    for (int i = 0; i < s; i++) {
+      b[i] = value;
+    }
+    return b;
+  }
+
   public String generateStringData() {
     return randomString.nextString();
   }

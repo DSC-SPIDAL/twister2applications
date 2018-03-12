@@ -1,9 +1,7 @@
 package edu.iu.dsc.tws.apps.stream;
 
 import edu.iu.dsc.tws.apps.batch.IdentityFunction;
-import edu.iu.dsc.tws.apps.batch.Source;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
-import edu.iu.dsc.tws.apps.data.DataSave;
 import edu.iu.dsc.tws.apps.data.DataType;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
@@ -81,7 +79,7 @@ public class AllReduceStream implements IContainer {
     tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
     ExternalSource source = null;
     for (int i : tasksOfExecutor) {
-      source = new ExternalSource(i, DataType.INT_ARRAY, jobParameters, dataGenerator, id, true, false);
+      source = new ExternalSource(i, DataType.BYTE_ARRAY, jobParameters, dataGenerator, id, true, false);
       reduceWorkers.put(i, source);
 
       source.setOperation(reduce);

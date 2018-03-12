@@ -1,8 +1,6 @@
 package edu.iu.dsc.tws.apps.stream;
 
-import edu.iu.dsc.tws.apps.batch.Source;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
-import edu.iu.dsc.tws.apps.data.DataSave;
 import edu.iu.dsc.tws.apps.data.DataType;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
@@ -73,7 +71,7 @@ public class ReduceStream implements IContainer {
     try {
       // this method calls the init method
       // I think this is wrong
-      reduce = channel.reduce(newCfg, MessageType.BYTE, 0, sources,
+      reduce = channel.reduce(newCfg, MessageType.INTEGER, 0, sources,
           dest, new ReduceStreamingFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()),
           new ReduceStreamingPartialReceiver(dest, new IdentityFunction()), new SendCompletion());
 
@@ -124,6 +122,12 @@ public class ReduceStream implements IContainer {
 
     @Override
     public boolean receive(int target, Object object) {
+      int[] data = (int[]) object;
+      for (int i = 0; i < data.length; i++) {
+        if (data[i] != jobParameters.getTaskStages().get(0)) {
+          LOG.info("SUM NOT EQUAL" + data[i]);
+        }
+      }
       if (executorWithDest) {
         for (ExternalSource s : reduceWorkers.values()) {
           s.ack(0);
@@ -147,7 +151,13 @@ public class ReduceStream implements IContainer {
           LOG.info(String.format("%d Identity function: %d", id, count));
         }
       }
-      return t1;
+      int[] data1 = (int[]) t1;
+      int[] data2 = (int[]) t2;
+      int[] data3 = new int[data1.length];
+      for (int i = 0; i < data1.length; i++) {
+        data3[i] = data1[i] + data2[i];
+      }
+      return data3;
     }
   }
 

@@ -83,7 +83,7 @@ public class AllGatherStream implements IContainer {
       List<Integer> reduceTaskOfExecutorList = new ArrayList<>(reduceTasksOfExecutor);
 
       for (int i : tasksOfExecutor) {
-        ExternalSource source = new ExternalSource(i, DataType.INT_ARRAY, jobParameters, dataGenerator, id, true, false);
+        ExternalSource source = new ExternalSource(i, DataType.BYTE_ARRAY, jobParameters, dataGenerator, id, true, false);
         gatherWorkers.put(i, source);
 
         source.setOperation(reduce);

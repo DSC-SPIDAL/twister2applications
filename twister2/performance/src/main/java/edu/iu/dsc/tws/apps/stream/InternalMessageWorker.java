@@ -12,7 +12,6 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class InternalMessageWorker implements Runnable {
@@ -57,7 +56,7 @@ public class InternalMessageWorker implements Runnable {
       data = generator.generateStringData();
     } else if (genString == DataType.INT_OBJECT) {
       data = generator.generateData();
-    } else if (genString == DataType.INT_ARRAY) {
+    } else if (genString == DataType.BYTE_ARRAY) {
       data = generator.generateByteData();
     } else {
       throw new RuntimeException("Un-expected data type");

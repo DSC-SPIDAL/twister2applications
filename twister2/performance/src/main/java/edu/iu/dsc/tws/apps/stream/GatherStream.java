@@ -1,7 +1,6 @@
 package edu.iu.dsc.tws.apps.stream;
 
 import edu.iu.dsc.tws.apps.data.DataGenerator;
-import edu.iu.dsc.tws.apps.data.DataSave;
 import edu.iu.dsc.tws.apps.data.DataType;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
@@ -79,7 +78,7 @@ public class GatherStream implements IContainer {
       int destExector = taskPlan.getExecutorForChannel(dest);
       boolean acked = destExector == id;
       for (int i : tasksOfExecutor) {
-        source = new ExternalSource(i, DataType.INT_ARRAY, jobParameters, dataGenerator, id, acked, true);
+        source = new ExternalSource(i, DataType.BYTE_ARRAY, jobParameters, dataGenerator, id, acked, true);
         gatherWorkers.put(i, source);
 
         source.setOperation(reduce);
