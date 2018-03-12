@@ -114,7 +114,7 @@ public class IntAllReduceStream implements IContainer {
     public boolean receive(int target, Object object) {
       long time = (System.currentTimeMillis() - startSendingTime);
       List<Long> timesForTarget = times.get(target);
-      timesForTarget.add(System.currentTimeMillis());
+      timesForTarget.add(Utils.getTime());
 
       try {
         if (timesForTarget.size() >= jobParameters.getIterations()) {
