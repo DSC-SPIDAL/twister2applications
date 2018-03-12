@@ -1,7 +1,6 @@
 package edu.iu.dsc.tws.apps.stream;
 
 import edu.iu.dsc.tws.apps.batch.IdentityFunction;
-import edu.iu.dsc.tws.apps.batch.IntReduceWorker;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.data.DataType;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
@@ -31,7 +30,7 @@ public class IntAllReduceStream implements IContainer {
 
   private long startSendingTime;
 
-  private Map<Integer, IntReduceWorker> reduceWorkers = new HashMap<>();
+  private Map<Integer, InternalMessageWorker> reduceWorkers = new HashMap<>();
 
   private List<Integer> tasksOfThisExec;
 
@@ -72,9 +71,14 @@ public class IntAllReduceStream implements IContainer {
 
     Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
     tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
-    IntReduceWorker reduceWorker = null;
+
+    Set<Integer> reduceTasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 1);
+    List<Integer> taskOfExecutorList = new ArrayList<>(tasksOfExecutor);
+    List<Integer> reduceTaskOfExecutorList = new ArrayList<>(reduceTasksOfExecutor);
+
+    InternalMessageWorker reduceWorker = null;
     for (int i : tasksOfExecutor) {
-      reduceWorker = new IntReduceWorker(i, jobParameters, reduce, dataGenerator, DataType.INT_OBJECT);
+      reduceWorker = new InternalMessageWorker(i, jobParameters, reduce, dataGenerator, DataType.INT_OBJECT);
       reduceWorkers.put(i, reduceWorker);
       // the map thread where datacols is produced
       Thread mapThread = new Thread(reduceWorker);

@@ -100,7 +100,7 @@ public class AllReduceStream implements IContainer {
       // progress the channel
       channel.progress();
       // we should progress the communication directive
-//      reduce.progress();
+      reduce.progress();
       if (source != null) {
         startSendingTime = source.getStartSendingTime();
       }

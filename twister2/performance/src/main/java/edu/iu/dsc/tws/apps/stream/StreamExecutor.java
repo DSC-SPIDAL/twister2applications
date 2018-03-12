@@ -27,7 +27,7 @@ public class StreamExecutor implements Runnable {
         if (!source.isStop()) {
           while (source.execute());
         }
-        source.progress();
+//        source.progress();
       }
     } catch (Throwable t) {
       LOG.log(Level.SEVERE, "Error occured", t);

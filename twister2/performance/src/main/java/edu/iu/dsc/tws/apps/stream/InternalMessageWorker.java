@@ -1,4 +1,4 @@
-package edu.iu.dsc.tws.apps.batch;
+package edu.iu.dsc.tws.apps.stream;
 
 import edu.iu.dsc.tws.apps.data.DataGenerator;
 import edu.iu.dsc.tws.apps.data.DataType;
@@ -11,8 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-public class IntReduceWorker implements Runnable {
-  private static final Logger LOG = Logger.getLogger(IntReduceWorker.class.getName());
+public class InternalMessageWorker implements Runnable {
+  private static final Logger LOG = Logger.getLogger(InternalMessageWorker.class.getName());
 
   private long startSendingTime;
 
@@ -28,7 +28,7 @@ public class IntReduceWorker implements Runnable {
 
   Object data;
 
-  public IntReduceWorker(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator, DataType genString) {
+  public InternalMessageWorker(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator, DataType genString) {
     this.task = task;
     this.jobParameters = jobParameters;
     this.operation = op;
@@ -58,10 +58,12 @@ public class IntReduceWorker implements Runnable {
 //      LOG.info("Sending message");
       while (!operation.send(task, data, flag)) {
         // lets wait a litte and try again
-        try {
-          Thread.sleep(1);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
+        if (jobParameters.getGap() > 0) {
+          try {
+            Thread.sleep(jobParameters.getGap());
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
         }
       }
       startOfMessages.add(Utils.getTime());
