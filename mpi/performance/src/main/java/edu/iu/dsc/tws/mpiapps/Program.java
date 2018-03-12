@@ -79,7 +79,7 @@ public class Program {
       NBReduce allGather = new NBReduce(dataSize, iterations);
       allGather.execute();
     } else if (collective == 10) {
-      Gather allGather = new Gather(dataSize, iterations);
+      edu.iu.dsc.tws.mpiapps.cols.Gather allGather = new edu.iu.dsc.tws.mpiapps.cols.Gather(dataSize, iterations);
       allGather.execute();
     }
 
