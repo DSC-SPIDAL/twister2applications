@@ -3,6 +3,7 @@ package edu.iu.dsc.tws.apps.stream;
 import edu.iu.dsc.tws.apps.batch.IdentityFunction;
 import edu.iu.dsc.tws.apps.batch.IntReduceWorker;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
+import edu.iu.dsc.tws.apps.data.DataType;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
@@ -66,14 +67,14 @@ public class IntAllReduceStream implements IContainer {
     LOG.info(String.format("Setting up reduce dataflow operation %s %s", sources, dests));
     // this method calls the init method
     FinalReduceReceiver reduceReceiver = new FinalReduceReceiver();
-    reduce = channel.allReduce(newCfg, MessageType.INTEGER, 0, 1, sources,
+    reduce = channel.allReduce(newCfg, MessageType.OBJECT, 0, 1, sources,
         dests, middle, new IdentityFunction(), reduceReceiver, true);
 
     Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
     tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
     IntReduceWorker reduceWorker = null;
     for (int i : tasksOfExecutor) {
-      reduceWorker = new IntReduceWorker(i, jobParameters, reduce, dataGenerator);
+      reduceWorker = new IntReduceWorker(i, jobParameters, reduce, dataGenerator, DataType.INT_OBJECT);
       reduceWorkers.put(i, reduceWorker);
       // the map thread where datacols is produced
       Thread mapThread = new Thread(reduceWorker);

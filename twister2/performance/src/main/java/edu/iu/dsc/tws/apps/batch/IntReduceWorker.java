@@ -1,7 +1,9 @@
 package edu.iu.dsc.tws.apps.batch;
 
 import edu.iu.dsc.tws.apps.data.DataGenerator;
+import edu.iu.dsc.tws.apps.data.DataType;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
+import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.comms.api.DataFlowOperation;
 import edu.iu.dsc.tws.comms.api.MessageFlags;
 
@@ -24,21 +26,31 @@ public class IntReduceWorker implements Runnable {
 
   private List<Long> startOfMessages;
 
-  public IntReduceWorker(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator) {
+  Object data;
+
+  public IntReduceWorker(int task, JobParameters jobParameters, DataFlowOperation op, DataGenerator dataGenerator, DataType genString) {
     this.task = task;
     this.jobParameters = jobParameters;
     this.operation = op;
     this.generator = dataGenerator;
     this.startOfMessages = new ArrayList<>();
+
+    if (genString == DataType.STRING) {
+      data = generator.generateStringData();
+    } else if (genString == DataType.INT_OBJECT) {
+      data = generator.generateData();
+    } else if (genString == DataType.INT_ARRAY) {
+      data = generator.generateByteData();
+    } else {
+      throw new RuntimeException("Un-expected data type");
+    }
   }
 
   @Override
   public void run() {
     startSendingTime = System.currentTimeMillis();
-    int[] data = generator.generateIntData();
     int iterations = jobParameters.getIterations();
     for (int i = 0; i < iterations; i++) {
-      startOfMessages.add(System.currentTimeMillis());
       int flag = 0;
       if (i == iterations - 1) {
         flag = MessageFlags.FLAGS_LAST;
@@ -52,6 +64,7 @@ public class IntReduceWorker implements Runnable {
           e.printStackTrace();
         }
       }
+      startOfMessages.add(Utils.getTime());
     }
   }
 
