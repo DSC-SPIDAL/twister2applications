@@ -13,4 +13,5 @@ public class Constants {
   public static final String ARGS_OUTSTANDING = "outstanding";
   public static final String ARGS_STREAM = "stream";
   public static final String ARGS_THREADS = "threads";
+  public static final String ARGS_PRINT_INTERVAL = "pi";
 }

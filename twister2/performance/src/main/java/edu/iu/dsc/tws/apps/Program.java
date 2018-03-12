@@ -35,6 +35,7 @@ public class Program {
     options.addOption(Utils.createOption(Constants.ARGS_FNAME, true, "File name", true));
     options.addOption(Utils.createOption(Constants.ARGS_OUTSTANDING, true, "Throughput no of messages", false));
     options.addOption(Utils.createOption(Constants.ARGS_THREADS, false, "Threads", false));
+    options.addOption(Utils.createOption(Constants.ARGS_PRINT_INTERVAL, true, "Threads", false));
 
     CommandLineParser commandLineParser = new BasicParser();
     CommandLine cmd = commandLineParser.parse(options, args);
@@ -57,6 +58,10 @@ public class Program {
     if (cmd.hasOption(Constants.ARGS_OUTSTANDING)) {
       outstanding = cmd.getOptionValue(Constants.ARGS_OUTSTANDING);
     }
+    String printInt = "0";
+    if (cmd.hasOption(Constants.ARGS_PRINT_INTERVAL)) {
+      printInt = cmd.getOptionValue(Constants.ARGS_PRINT_INTERVAL);
+    }
 
     // build JobConfig
     JobConfig jobConfig = new JobConfig();
@@ -69,6 +74,7 @@ public class Program {
     jobConfig.put(Constants.ARGS_FNAME, fName);
     jobConfig.put(Constants.ARGS_OUTSTANDING, outstanding);
     jobConfig.put(Constants.ARGS_THREADS, Boolean.toString(threads));
+    jobConfig.put(Constants.ARGS_PRINT_INTERVAL, printInt);
 
     // build the job
     BasicJob basicJob = null;

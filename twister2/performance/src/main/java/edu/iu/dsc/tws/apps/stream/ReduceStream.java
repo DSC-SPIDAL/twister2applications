@@ -133,13 +133,20 @@ public class ReduceStream implements IContainer {
     }
   }
 
-  public static class IdentityFunction implements ReduceFunction {
+  public class IdentityFunction implements ReduceFunction {
+    int count = 0;
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
     }
 
     @Override
     public Object reduce(Object t1, Object t2) {
+      count++;
+      if (jobParameters.getPrintInterval() > 0) {
+        if (count % jobParameters.getPrintInterval() == 0) {
+          LOG.info(String.format("%d Identity function: %d", id, count));
+        }
+      }
       return t1;
     }
   }
