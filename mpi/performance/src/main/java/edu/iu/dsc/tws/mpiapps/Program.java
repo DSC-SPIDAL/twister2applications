@@ -78,6 +78,9 @@ public class Program {
     } else if (collective == 9) {
       NBReduce allGather = new NBReduce(dataSize, iterations);
       allGather.execute();
+    } else if (collective == 10) {
+      Gather allGather = new Gather(dataSize, iterations);
+      allGather.execute();
     }
 
     long endTime = System.currentTimeMillis();
