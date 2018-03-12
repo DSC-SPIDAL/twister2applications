@@ -70,7 +70,7 @@ public class GatherStream implements IContainer {
     try {
       // this method calls the init method
       // I think this is wrong
-      reduce = channel.gather(newCfg, MessageType.OBJECT, 0, sources,
+      reduce = channel.gather(newCfg, MessageType.BYTE, 0, sources,
           dest, new StreamingFinalGatherReceiver(new FinalReduceReceiver()));
 
       Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
