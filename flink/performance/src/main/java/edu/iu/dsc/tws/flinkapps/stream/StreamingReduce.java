@@ -63,7 +63,7 @@ public class StreamingReduce {
       public Tuple2<Integer, CollectiveData> map(CollectiveData s) throws Exception {
         return new Tuple2<Integer, CollectiveData>(0, s);
       }
-    }).keyBy(0).reduce(new ReduceFunction<Tuple2<Integer, CollectiveData>>() {
+    }).keyBy(0).countWindow(1).reduce(new ReduceFunction<Tuple2<Integer, CollectiveData>>() {
       @Override
       public Tuple2<Integer, CollectiveData> reduce(Tuple2<Integer, CollectiveData> c1,
                                                     Tuple2<Integer, CollectiveData> c2) throws Exception {

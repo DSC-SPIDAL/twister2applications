@@ -10,7 +10,7 @@
     <modules>
         <module>performance</module>
         <module>terasort</module>
-        <!--<module>smarthomesMPI</module>-->
+        <module>kmeans</module>
     </modules>
 
 </project>
