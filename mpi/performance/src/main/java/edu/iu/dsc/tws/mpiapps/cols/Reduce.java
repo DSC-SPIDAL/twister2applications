@@ -26,8 +26,8 @@ public class Reduce extends Collective {
   public void execute() throws MPIException {
     IntBuffer sendBuffer = MPI.newIntBuffer(size);
     IntBuffer receiveBuffer = MPI.newIntBuffer(size);
+    sendBuffer.put(values);
     for (int i = 0; i < iterations; i++) {
-      sendBuffer.put(values);
       MPI.COMM_WORLD.reduce(sendBuffer, receiveBuffer, size, MPI.BYTE, MPI.SUM, 0);
       receiveBuffer.clear();
       sendBuffer.clear();
