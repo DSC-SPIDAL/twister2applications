@@ -77,9 +77,9 @@ public class StreamPartitioning {
           start = System.nanoTime();
         }
         count++;
-        if (count >= iterations) {
-          System.out.println("Final: " + count + " " + (System.nanoTime() - start) / 1000000 + " ");
-        }
+//        if (count >= iterations) {
+//          System.out.println("Final: " + count + " " + (System.nanoTime() - start) / 1000000 + " ");
+//        }
       }
       long start;
       int count = 0;

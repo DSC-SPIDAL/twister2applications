@@ -89,9 +89,9 @@ public class StreamingReduce {
           start = System.nanoTime();
         }
         count++;
-        if (count >= iterations) {
-          System.out.println("Final: " + count + " " + (System.nanoTime() - start) / 1000000 + " " + (integerStringTuple2.f1));
-        }
+//        if (count >= iterations) {
+//          System.out.println("Final: " + count + " " + (System.nanoTime() - start) / 1000000 + " " + (integerStringTuple2.f1));
+//        }
       }
     });
 
