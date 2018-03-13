@@ -1,6 +1,7 @@
 package edu.iu.dsc.tws.flinkapps.stream;
 
 import edu.iu.dsc.tws.flinkapps.data.CollectiveData;
+import org.apache.flink.api.common.functions.Partitioner;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
@@ -9,6 +10,8 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
+
+import java.util.Random;
 
 public class StreamPartitioning {
   int size;
@@ -24,7 +27,7 @@ public class StreamPartitioning {
   }
 
   public void execute() {
-    DataStream<CollectiveData> stringStream = env.addSource(new RichParallelSourceFunction<CollectiveData>() {
+    DataStream<Tuple2<Integer, CollectiveData>> stringStream = env.addSource(new RichParallelSourceFunction<CollectiveData>() {
       int i = 1;
       int count = 0;
       int size = 0;
@@ -52,19 +55,24 @@ public class StreamPartitioning {
       @Override
       public void cancel() {
       }
-    }).map(new RichMapFunction<CollectiveData, CollectiveData>() {
-      @Override
-      public CollectiveData map(CollectiveData s) throws Exception {
-        return s;
-      }
-    }).shuffle();
+    }).map(new RichMapFunction<CollectiveData, Tuple2<Integer, CollectiveData>>() {
+      Random random;
 
-    stringStream.addSink(new RichSinkFunction<CollectiveData>() {
-      long start;
-      int count = 0;
-      int iterations;
       @Override
-      public void invoke(CollectiveData collectiveData) throws Exception {
+      public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        random = new Random();
+      }
+
+      @Override
+      public Tuple2<Integer, CollectiveData> map(CollectiveData s) throws Exception {
+        return new Tuple2<>(random.nextInt(640 * 2), s);
+      }
+    }).partitionCustom(new MyPartitioner(), 0);
+
+    stringStream.addSink(new RichSinkFunction<Tuple2<Integer, CollectiveData>>() {
+      @Override
+      public void invoke(Tuple2<Integer, CollectiveData> integerCollectiveDataTuple2) throws Exception {
         if (count == 0) {
           start = System.nanoTime();
         }
@@ -73,7 +81,16 @@ public class StreamPartitioning {
           System.out.println("Final: " + count + " " + (System.nanoTime() - start) / 1000000 + " ");
         }
       }
+      long start;
+      int count = 0;
+      int iterations;
     });
+  }
 
+  public class MyPartitioner implements Partitioner<Integer> {
+    @Override
+    public int partition(Integer key, int numPartitions) {
+      return key % numPartitions;
+    }
   }
 }
