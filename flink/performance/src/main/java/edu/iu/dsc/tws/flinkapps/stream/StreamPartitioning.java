@@ -1,6 +1,8 @@
 package edu.iu.dsc.tws.flinkapps.stream;
 
 import edu.iu.dsc.tws.flinkapps.data.CollectiveData;
+import org.apache.flink.api.common.functions.RichMapFunction;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -49,6 +51,11 @@ public class StreamPartitioning {
 
       @Override
       public void cancel() {
+      }
+    }).map(new RichMapFunction<CollectiveData, CollectiveData>() {
+      @Override
+      public CollectiveData map(CollectiveData s) throws Exception {
+        return s;
       }
     }).shuffle();
 
