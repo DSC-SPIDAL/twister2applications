@@ -27,15 +27,19 @@ public class BroadcastSource extends PartitionSource {
     long time = 0;
 
     try {
-      int count = addAckCount(id);
-      if (count == destinationsCount) {
-        removeAckCount(id);
-
-        time = emitTimes.remove(id);
-        ackCount++;
-        outstanding--;
-        finalTimes.add(Utils.getTime() - time);
-      }
+//      int count = addAckCount(id);
+//      if (count == destinationsCount) {
+//        removeAckCount(id);
+//
+//        time = emitTimes.remove(id);
+//        ackCount++;
+//        outstanding--;
+//        finalTimes.add(Utils.getTime() - time);
+//      }
+      time = emitTimes.remove(id);
+      ackCount++;
+      outstanding--;
+      finalTimes.add(Utils.getTime() - time);
     } catch (NullPointerException e) {
       LOG.info(String.format("%d %d ******* Ack received %d", executorId, task, id));
     }

@@ -1,6 +1,7 @@
 package edu.iu.dsc.tws.apps.storm;
 
 import edu.iu.dsc.tws.apps.data.DataGenerator;
+import edu.iu.dsc.tws.apps.data.PartitionData;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
@@ -9,7 +10,9 @@ import edu.iu.dsc.tws.comms.core.TWSCommunication;
 import edu.iu.dsc.tws.comms.core.TWSNetwork;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
 import edu.iu.dsc.tws.comms.mpi.MPIDataFlowBroadcast;
-import edu.iu.dsc.tws.comms.mpi.MPIDataFlowPartition;
+import edu.iu.dsc.tws.comms.mpi.MPIDataFlowReduce;
+import edu.iu.dsc.tws.comms.mpi.io.reduce.ReduceStreamingFinalReceiver;
+import edu.iu.dsc.tws.comms.mpi.io.reduce.ReduceStreamingPartialReceiver;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourceContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
@@ -24,7 +27,7 @@ public class BroadcastStream implements IContainer {
 
   private MPIDataFlowBroadcast broadcast;
 
-  private MPIDataFlowPartition partition;
+  private MPIDataFlowReduce partition;
   private int id;
   private JobParameters jobParameters;
 
@@ -71,6 +74,7 @@ public class BroadcastStream implements IContainer {
 
     Set<Integer> secondDests = new HashSet<>();
     secondDests.add(dests.size() + sources.size());
+    int secondDest = dests.size() + sources.size();
 
     Map<String, Object> newCfg = new HashMap<>();
 
@@ -116,8 +120,9 @@ public class BroadcastStream implements IContainer {
 
       broadcast = (MPIDataFlowBroadcast) channel.broadCast(newCfg, MessageType.OBJECT, 0, 0,
           dests, new BroadcastReceiver());
-      partition = (MPIDataFlowPartition) channel.partition(newCfg, MessageType.OBJECT,
-          1, dests, secondDests, new AckReduceReceiver());
+      partition = (MPIDataFlowReduce) channel.reduce(newCfg, MessageType.OBJECT,
+          1, dests, secondDest, new ReduceStreamingFinalReceiver(new IdentityFunction(), new AckReduceReceiver()),
+          new ReduceStreamingPartialReceiver(secondDest, new IdentityFunction()));
 
       for (int k = 0; k < sourceTasksOfExecutor.size(); k++) {
         int sourceTask = sourceTasksOfExecutor.get(k);
@@ -173,7 +178,7 @@ public class BroadcastStream implements IContainer {
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
       LOG.log(Level.INFO, String.format("%d Initialize worker: %s", id, expectedIds));
       for (Map.Entry<Integer, List<Integer>> e : expectedIds.entrySet()) {
-        Queue<Message> queue = new ArrayBlockingQueue<>(1);
+        Queue<Message> queue = new ArrayBlockingQueue<>(16);
         workerMessageQueue.put(e.getKey(), queue);
       }
     }
@@ -191,7 +196,7 @@ public class BroadcastStream implements IContainer {
     }
   }
 
-  public class AckReduceReceiver implements MessageReceiver {
+  public class AckReduceReceiver implements ReduceReceiver {
     private Map<Integer, List<Long>> receiveIds = new HashMap<>();
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
@@ -203,16 +208,34 @@ public class BroadcastStream implements IContainer {
       }
     }
 
-    @Override
-    public boolean onMessage(int source, int path, int target, int flags, Object object) {
-//      LOG.log(Level.INFO, String.format("%d Received ack: source %d target %d", id, source, target));
+    public boolean receive(int target, Object object) {
+//      LOG.log(Level.INFO, String.format("%d Received ack: source target %d", id, target));
       Queue<Message> messageQueue = ackMessageQueue.get(target);
-      boolean offer = messageQueue.offer(new Message(target, source, object));
+      boolean offer = messageQueue.offer(new Message(target, 0, object));
       return offer;
     }
 
+//    @Override
+//    public boolean onMessage(int source, int path, int target, int flags, Object object) {
+////      LOG.log(Level.INFO, String.format("%d Received ack: source %d target %d", id, source, target));
+//      Queue<Message> messageQueue = ackMessageQueue.get(target);
+//      boolean offer = messageQueue.offer(new Message(target, source, object));
+//      return offer;
+//    }
+//
+//    @Override
+//    public void progress() {
+//    }
+  }
+
+  public static class IdentityFunction implements ReduceFunction {
     @Override
-    public void progress() {
+    public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
+    }
+
+    @Override
+    public Object reduce(Object t1, Object t2) {
+      return t1;
     }
   }
 }
