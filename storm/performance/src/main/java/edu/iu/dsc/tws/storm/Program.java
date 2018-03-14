@@ -106,6 +106,10 @@ public class Program {
       buildShuffle(builder, p, conf, spoutParallel);
     } else if (mode.equals("r")) {
       buildReduceGroup(builder, p, conf, spoutParallel);
+    } else if (mode.equals("b")) {
+      buildBroadcastGroup(builder, p, conf, spoutParallel);
+    } else {
+      throw new RuntimeException("Failed to recognize mode option: " + mode);
     }
 
     // put the no of parallel tasks as a config property
@@ -149,6 +153,16 @@ public class Program {
     builder.setSpout(Constants.Topology.SPOUT, spout, spoutParallel);
     conf.setComponentRam(Constants.Topology.SPOUT, ByteAmount.fromMegabytes(megabytes));
     builder.setBolt(Constants.Topology.LAST, lastBolt, 1).shuffleGrouping(Constants.Topology.SPOUT, Constants.Fields.CHAIN_STREAM);
+    conf.setComponentRam(Constants.Topology.LAST, ByteAmount.fromMegabytes(megabytes));
+  }
+
+  private static void buildBroadcastGroup(TopologyBuilder builder, int p, Config conf, int spoutParallel) {
+    CollectiveAckSpout spout = new CollectiveAckSpout();
+    SingleDataCollectionBolt lastBolt = new SingleDataCollectionBolt();
+
+    builder.setSpout(Constants.Topology.SPOUT, spout, 1);
+    conf.setComponentRam(Constants.Topology.SPOUT, ByteAmount.fromMegabytes(megabytes));
+    builder.setBolt(Constants.Topology.LAST, lastBolt, p).allGrouping(Constants.Topology.SPOUT, Constants.Fields.CHAIN_STREAM);
     conf.setComponentRam(Constants.Topology.LAST, ByteAmount.fromMegabytes(megabytes));
   }
 }
