@@ -11,6 +11,8 @@ xlabels_small = [16, 32, 64, 128, 256, 512]
 
 x_sizes = [1, 2, 4, 8, 16, 32, 64]
 xlabels_1_64 = [1, 2, 4, 8, 16, 32, 64]
+xlabels_1_400 = [.125, .250, .5, 1, 2, 4]
+xlabels_1_32 = [1, 2, 4, 8, 16, 32]
 
 markers=["o", "x", "^", "v", "D", "*"]
 cls=["red", "blue", "green", "cyan", "yellow", "black", "magenta"]
@@ -65,9 +67,9 @@ def plot_line(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, le
             p.legend(legend, loc=legendloc, fancybox=True, framealpha=0.25)
         else:
             p.legend(legend, loc="upper left", fancybox=True, framealpha=0.25)
-    p.minorticks_on()
+    # p.minorticks_on()
     p.grid(b=True, which='major', color='k', linestyle='-')
-    p.grid(b=True, which='minor', color='grey', linestyle='-', alpha=0.1)
+    # p.grid(b=True, which='minor', color='grey', linestyle='-', alpha=0.1)
     # p.tight_layout()
     if not plot:
         p.show()
@@ -129,26 +131,83 @@ def plot_bar(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, leg
         p.show()
     return plt
 
-def plot_latency_ib():
-    heron_reduce = [[13,	15,	25,	41,	52,	59,	77],
-                    [0.33,	0.36,	0.39,	0.42,	0.56,	0.65,	0.95],
-                    [2.88,	2.96,	3.07,	3.4,	5.33,	10.07,	19.99]]
-    y_long_small = [[3.1,3.1,3.09,3.11,3.1,3.09],
-                    [3.0,3.1,3.08,3.1,3.08,3.07],
-                    [1.2,1.3,1.3,1.3,1.4,1.4]]
+def plot_latency_heron():
+    heron_partition = [[13,	15,	25,	41,	52,	59,	77],
+                       [0.33,	0.36,	0.39,	0.42,	0.56,	0.65,	0.95],
+                       [2.88,	2.96,	3.07,	3.4,	5.33,	10.07,	19.99]]
+
+    heron_reduce = [[77,	104,	194,	276,	450,	695,	1217],
+                    [0.5,	0.52,	0.56,	0.61,	0.66,	0.776,	0.826],
+                    [0.66,	0.95,	1.3,	1.47,	1.88,	2.76,	4.5]]
+
+    heron_broadcast = [[1.3,	1.29,	1.31,	1.3,	1.36,	1.7,	2.1],
+                       [2.9,	3,	3.2,	3.7,	5.78,	11.06,	20.95],
+                       [42,	45,	61,	103, 184,	348,	675]]
 
     fig = plt.figure(figsize=(18, 4), dpi=100)
 
-    plt.subplot2grid((1,35), (0, 0), colspan=8)
-    plot_line(heron_reduce, x=x_sizes, legend=["Heron-1Gbps", "Twister2-IB", "Twister2-GBps"], title="Latency of Twister:Net and Heron", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="Latency (ms) Log")
+    plt.subplot2grid((1,27), (0, 0), colspan=8)
+    plot_line(heron_partition, x=x_sizes, legend=["Heron-1Gbps", "Twister2-IB", "Twister2-GBps"], title="Latency of Partition", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="Latency (ms) Log", ymax=10000)
 
-    plt.subplot2grid((1,35), (0, 9), colspan=8)
-    plot_line(y_long_small, x=x_small, xlabel="Message size bytes", legend=["TCP", "IPoIB", "IB"], title="b) Top. A Small Messages", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="time(ms)")
+    plt.subplot2grid((1,27), (0, 9), colspan=8)
+    plot_line(heron_reduce, x=x_sizes, legend=["Heron-1Gbps", "Twister2-IB", "Twister2-GBps"], title="Latency of Reduce", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="Latency (ms) Log", ymax=10000)
+
+    plt.subplot2grid((1,27), (0, 18), colspan=8)
+    plot_line(heron_broadcast, x=x_sizes, legend=["Twister2-IB", "Twister2-1GBps", "Heron-1Gbps"], title="Latency of Broadcast", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="Latency (ms) Log", ymax=10000)
 
     plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
+
     fig.tight_layout()
     fig = plt.gcf()
-    # fig.savefig("/home/supun/data/heron/pics/ib_latency.png")
+    fig.savefig("/home/supun/data/twister2/pics/heron_latency.png")
+    plt.show()
+
+def plot_latency_flink():
+    flink_reduce = [[486,	770,	1300,	2430,	5020,	10360],
+                    [0.65,	0.66,	0.64,	0.7,	0.9,	1.1]]
+
+    flink_partition = [[615,	2600,	6000,	12600,	26800,	63400],
+                    [445,	470,	510,	592,	910,	1700]]
+
+    fig = plt.figure(figsize=(9, 4), dpi=100)
+    plt.subplot2grid((1, 18), (0, 0), colspan=8)
+    plot_line(flink_partition, x=xlabels_1_32, legend=["Flink-IPoIB", "Twister2-IB"], title="Latency of Partition", plot=plt, ticks=xlabels_1_32, logy=True, ylabel="Latency (ms) Log", ymax=100000)
+
+    plt.subplot2grid((1, 18), (0, 9), colspan=8)
+    plot_line(flink_reduce, x=xlabels_1_32, legend=["Flink-IPoIB", "Twister2-IB"], title="Latency of Reduce", plot=plt, ticks=xlabels_1_32, logy=True, ylabel="Latency (ms) Log", ymax=20000, legendloc="center right")
+
+    plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
+
+    fig.tight_layout()
+    fig = plt.gcf()
+    fig.savefig("/home/supun/data/twister2/pics/flink_time.png")
+    plt.show()
+
+
+def plot_latency_mpi():
+    reduce = [[0.04,	0.08,	0.26,	0.4,	0.95,	1.6, 2.8],
+              [0.36,	0.55,	0.87,	1.8,	3.2,	8.5, 16],
+              [0.06,	0.13,	0.22,	0.31,	0.57,	1.04,	1.94],
+              [0.14,	0.17,	0.28,	0.49,	1.06,	1.94,	4.1]]
+
+    gather = [[0.2,	0.25,	0.3,	0.7,	1.7,	2.5],
+              [1.2,	1.5,	1.9,	2.2,	2.6,	3.1],
+              [1.3,	1.43,	1.64,	2.03,	3.6,	7.2],
+              [1.6,	1.8,	2.1,	2.82,	5.08,	7.9]]
+
+    fig = plt.figure(figsize=(9, 4), dpi=100)
+
+    plt.subplot2grid((1, 19), (0, 0), colspan=8)
+    plot_line(reduce, x=xlabels_1_64, legend=["MPI-INT", "MPI-OBJECT","TWS-INT", "TWS-OBJECT"], title="Latency of Reduce", plot=plt, ticks=xlabels_1_64, logy=False, ylabel="Latency (ms)", ymax=20)
+
+    plt.subplot2grid((1, 19), (0, 9), colspan=8)
+    plot_line(gather, x=xlabels_1_400, legend=["MPI-INT", "MPI-OBJECT","TWS-INT", "TWS-OBJECT"], title="Latency of Gather", plot=plt, ticks=xlabels_1_400, logy=False, ylabel="Latency (ms)", ymax=10)
+
+    plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
+
+    fig.tight_layout()
+    fig = plt.gcf()
+    fig.savefig("/home/supun/data/twister2/pics/mpi_latency.png")
     plt.show()
 
 def plot_latency_parallel_ib():
@@ -370,7 +429,9 @@ def proto_buf():
 
 
 def main():
-    plot_latency_ib()
+    plot_latency_heron()
+    plot_latency_flink()
+    plot_latency_mpi()
     # plot_latency_parallel_ib()
     # plot_yahoo_percentages()
     # plot_inflight()
