@@ -114,9 +114,9 @@ public class StreamingGather {
   }
 
   private static CollectiveData add(CollectiveData i, CollectiveData j) {
-    List<Integer> r= new ArrayList<>();
-    for (int k = 0; k < i.getList().size(); k++) {
-      r.add((i.getList().get(k) + j.getList().get(k)));
+    int[] r= new int[i.getList().length];
+    for (int k = 0; k < i.getList().length; k++) {
+      r[k] = ((i.getList()[k] + j.getList()[k]));
     }
     return new CollectiveData(r);
   }

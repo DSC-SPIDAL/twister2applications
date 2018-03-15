@@ -6,29 +6,29 @@ import java.util.List;
 import java.util.Random;
 
 public class CollectiveData implements Serializable {
-  private List<Integer> list = new ArrayList<>();
+  private int[] list;
 
   private Random random;
 
   public CollectiveData(int size) {
     random = new Random();
     for (int i = 0; i < size; i++) {
-      list.add(random.nextInt());
+      list[i] = (random.nextInt());
     }
-  }
-
-  public CollectiveData(List<Integer> list) {
-    this.list = list;
   }
 
   public CollectiveData() {
   }
 
-  public List<Integer> getList() {
+  public CollectiveData(int[] list) {
+    this.list = list;
+  }
+
+  public int[] getList() {
     return list;
   }
 
-  public void setList(List<Integer> list) {
+  public void setList(int[] list) {
     this.list = list;
   }
 
