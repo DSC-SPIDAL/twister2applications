@@ -84,7 +84,8 @@ public class StreamPartitioning {
       long start;
       int count = 0;
       int iterations;
-    }).disableChaining();
+    });
+    env.disableOperatorChaining();
   }
 
   public class MyPartitioner implements Partitioner<Integer> {
