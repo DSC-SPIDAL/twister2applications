@@ -204,6 +204,15 @@ public class Program {
             .build();
         // now submit the job
         Twister2Submitter.submitContainerJob(basicJob, config);
+      } else if (col == 9) {
+        basicJob = BasicJob.newBuilder()
+            .setName("non-ack-partition")
+            .setContainerClass(edu.iu.dsc.tws.apps.storm.NonAckPartitionStream.class.getName())
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
+            .setConfig(jobConfig)
+            .build();
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
       }
     }
   }
