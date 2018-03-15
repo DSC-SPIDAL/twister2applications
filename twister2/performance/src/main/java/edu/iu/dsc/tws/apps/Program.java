@@ -195,6 +195,15 @@ public class Program {
             .build();
         // now submit the job
         Twister2Submitter.submitContainerJob(basicJob, config);
+      } else if (col == 8) {
+        basicJob = BasicJob.newBuilder()
+            .setName("partition-stream-bench")
+            .setContainerClass(edu.iu.dsc.tws.apps.stream.BenchmarkStream.class.getName())
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
+            .setConfig(jobConfig)
+            .build();
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
       }
     }
   }

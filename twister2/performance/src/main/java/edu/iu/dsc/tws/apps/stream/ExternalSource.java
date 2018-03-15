@@ -79,17 +79,7 @@ public class ExternalSource {
     this.destEnabled = destEnabled;
 
     startSendingTime = System.currentTimeMillis();
-    if (genString == DataType.STRING) {
-      data = generator.generateStringData();
-    } else if (genString == DataType.INT_OBJECT) {
-      data = generator.generateData();
-    } else if (genString == DataType.BYTE_ARRAY) {
-      data = generator.generateByteData();
-    } else if (genString == DataType.INT_ARRAY) {
-      data = generator.generateIntData(1);
-    } else {
-      throw new RuntimeException("Un-expected data type");
-    }
+    data = Utils.generateData(genString, generator);
   }
 
   public void setOperation(DataFlowOperation operation) {
