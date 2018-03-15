@@ -61,11 +61,14 @@ public class NBSend extends Collective {
     }
 
     int completed = 0;
+    int sent = 0;
     while (completed < iterations) {
       if (sendBuffers.size() > 0) {
         ByteBuffer sendBuffer = sendBuffers.poll();
         sendBuffer.clear();
         sendBuffer.put(bytes);
+        sendBuffer.putInt(0, sent);
+        sent++;
 
         Request dataR = MPI.COMM_WORLD.iSend(sendBuffer, size, MPI.BYTE, 1, 0);
         reqestQueue.add(new RequestInfo(sendBuffer, null, bytes, dataR));
@@ -118,6 +121,8 @@ public class NBSend extends Collective {
           receiveBuffer.position(count);
           receiveBuffer.flip();
           receiveBuffer.get(receiveBytes);
+          int c = receiveBuffer.getInt(0);
+//          LOG.info("Completed: " + c);
           recvBuffers.add(receiveBuffer);
         } else{
           break;
