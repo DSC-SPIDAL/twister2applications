@@ -89,15 +89,23 @@ public class ReduceStream implements IContainer {
 
         source.setOperation(reduce);
 
-        StreamExecutor executor = new StreamExecutor(id, source, jobParameters);
-        // the map thread where datacols is produced
-        Thread mapThread = new Thread(executor);
-        mapThread.start();
+        if (jobParameters.isThreads()) {
+          StreamExecutor executor = new StreamExecutor(id, source, jobParameters);
+          // the map thread where datacols is produced
+          Thread mapThread = new Thread(executor);
+          mapThread.start();
+        }
       }
 
       // we need to progress the communication
       while (true) {
         try {
+          for (ExternalSource s : reduceWorkers.values()) {
+            if (!source.isStop()) {
+              while (source.execute());
+            }
+            source.progress();
+          }
           // progress the channel
           channel.progress();
           if (source != null) {
