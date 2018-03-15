@@ -12,6 +12,7 @@ public class CollectiveData implements Serializable {
 
   public CollectiveData(int size) {
     random = new Random();
+    list = new int[size];
     for (int i = 0; i < size; i++) {
       list[i] = (random.nextInt());
     }
