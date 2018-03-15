@@ -65,6 +65,7 @@ public class NBSend extends Collective {
       if (sendBuffers.size() > 0) {
         ByteBuffer sendBuffer = sendBuffers.poll();
         sendBuffer.clear();
+        sendBuffer.put(bytes);
 
         Request dataR = MPI.COMM_WORLD.iSend(sendBuffer, size, MPI.BYTE, 1, 0);
         reqestQueue.add(new RequestInfo(sendBuffer, null, bytes, dataR));
