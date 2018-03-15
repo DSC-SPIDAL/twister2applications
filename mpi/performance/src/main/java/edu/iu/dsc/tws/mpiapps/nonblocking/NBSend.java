@@ -51,7 +51,7 @@ public class NBSend extends Collective {
 
   public void sendProcess() throws MPIException {
     byte[] bytes = new byte[size];
-    int maxPending = 1;
+    int maxPending = 16;
     Queue<ByteBuffer> sendBuffers = new ArrayBlockingQueue<>(maxPending);
 
     Queue<RequestInfo> reqestQueue = new ArrayBlockingQueue<>(maxPending);
@@ -87,7 +87,7 @@ public class NBSend extends Collective {
   }
 
   public void receiveProcess() throws MPIException {
-    int maxPending = 1;
+    int maxPending = 16;
     Queue<ByteBuffer> recvBuffers = new ArrayBlockingQueue<>(maxPending);
     byte[] receiveBytes = new byte[size];
 
