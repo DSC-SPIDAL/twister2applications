@@ -55,7 +55,7 @@ public class StreamPartitioning {
       @Override
       public void cancel() {
       }
-    }).slotSharingGroup("map").map(new RichMapFunction<CollectiveData, Tuple2<Integer, CollectiveData>>() {
+    }).map(new RichMapFunction<CollectiveData, Tuple2<Integer, CollectiveData>>() {
       Random random;
 
       @Override
@@ -68,7 +68,7 @@ public class StreamPartitioning {
       public Tuple2<Integer, CollectiveData> map(CollectiveData s) throws Exception {
         return new Tuple2<>(random.nextInt(640 * 2), s);
       }
-    }).slotSharingGroup("map").partitionCustom(new MyPartitioner(), 0);
+    }).partitionCustom(new MyPartitioner(), 0);
 
     stringStream.addSink(new RichSinkFunction<Tuple2<Integer, CollectiveData>>() {
       @Override
@@ -84,7 +84,7 @@ public class StreamPartitioning {
       long start;
       int count = 0;
       int iterations;
-    }).slotSharingGroup("sink");
+    });
   }
 
   public class MyPartitioner implements Partitioner<Integer> {
