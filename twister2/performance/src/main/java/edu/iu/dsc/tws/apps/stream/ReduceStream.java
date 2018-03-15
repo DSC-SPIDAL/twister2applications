@@ -157,6 +157,11 @@ public class ReduceStream implements IContainer {
         }
       }
       if (dataType == DataType.INT_ARRAY) {
+        if (jobParameters.getPrintInterval() > 0) {
+          if (count % jobParameters.getPrintInterval() == 0) {
+            LOG.info(String.format("%d Reducing ints: %d", id, count));
+          }
+        }
         int[] data1 = (int[]) t1;
         int[] data2 = (int[]) t2;
         int[] data3 = new int[data1.length];
