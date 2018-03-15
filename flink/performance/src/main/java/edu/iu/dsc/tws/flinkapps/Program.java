@@ -3,6 +3,7 @@ package edu.iu.dsc.tws.flinkapps;
 import edu.iu.dsc.tws.flinkapps.batch.*;
 import edu.iu.dsc.tws.flinkapps.iter.ReduceIterative;
 import edu.iu.dsc.tws.flinkapps.stream.StreamPartitioning;
+import edu.iu.dsc.tws.flinkapps.stream.StreamPartitioningBytes;
 import edu.iu.dsc.tws.flinkapps.stream.StreamingGather;
 import edu.iu.dsc.tws.flinkapps.stream.StreamingReduce;
 import org.apache.flink.api.java.ExecutionEnvironment;
@@ -80,6 +81,10 @@ public class Program {
       env.execute();
     } else if (col == 2) {
       StreamingGather gather = new StreamingGather(size, itr, env, "");
+      gather.execute();
+      env.execute();
+    } else if (col == 4) {
+      StreamPartitioningBytes gather = new StreamPartitioningBytes(size, itr, env, "");
       gather.execute();
       env.execute();
     }
