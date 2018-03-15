@@ -93,7 +93,7 @@ public class BenchmarkStream implements IContainer {
     @Override
     public boolean onMessage(int source, int path, int target, int flags, Object object) {
       count++;
-      if (count % 100 == 0) {
+      if (jobParameters.getPrintInterval() > 0 && count % jobParameters.getPrintInterval() == 0) {
         LOG.info("Received: " + count + " " + ((byte [])object).length);
       }
       if (count >= jobParameters.getIterations()) {
