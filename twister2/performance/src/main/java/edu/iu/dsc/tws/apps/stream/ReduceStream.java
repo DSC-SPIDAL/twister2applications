@@ -90,6 +90,7 @@ public class ReduceStream implements IContainer {
         source.setOperation(reduce);
 
         if (jobParameters.isThreads()) {
+          LOG.info("Threads");
           StreamExecutor executor = new StreamExecutor(id, source, jobParameters);
           // the map thread where datacols is produced
           Thread mapThread = new Thread(executor);
@@ -100,11 +101,13 @@ public class ReduceStream implements IContainer {
       // we need to progress the communication
       while (true) {
         try {
-          for (ExternalSource s : reduceWorkers.values()) {
-            if (!source.isStop()) {
-              while (source.execute());
+          if (!jobParameters.isThreads()) {
+            for (ExternalSource s : reduceWorkers.values()) {
+              if (!source.isStop()) {
+                while (source.execute()) ;
+              }
+              source.progress();
             }
-            source.progress();
           }
           // progress the channel
           channel.progress();
