@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-TWISTER2_HOME=/home/supun/dev/projects/twister2/twister2/bazel-bin/scripts/package/twister2-dist
+TWISTER2_HOME=/home/supun/dev/projects/twister2/tw2/bazel-bin/scripts/package/twister2-dist
 
 mvn install
 
