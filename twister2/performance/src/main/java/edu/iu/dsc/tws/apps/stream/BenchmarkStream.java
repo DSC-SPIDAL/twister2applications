@@ -62,10 +62,10 @@ public class BenchmarkStream implements IContainer {
         if (id == 0) {
           sendMessage(0, 1);
         }
-        // progress the channel
-        channel.progress();
         // we should progress the communication directive
         partition.progress();
+        // progress the channel
+        channel.progress();
       }
     } catch (Throwable t) {
       t.printStackTrace();
