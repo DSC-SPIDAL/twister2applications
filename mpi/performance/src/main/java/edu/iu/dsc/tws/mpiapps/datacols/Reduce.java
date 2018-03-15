@@ -31,9 +31,9 @@ public class Reduce extends Collective {
     ByteBuffer sendBuffer = MPI.newByteBuffer(size * 5);
     ByteBuffer receiveBuffer = MPI.newByteBuffer(size * 5);
     Object next = DataGenUtils.generateData(size);
+    byte[] bytes = kryoSerializer.serialize(next);
 
     for (int i = 0; i < iterations; i++) {
-      byte[] bytes = kryoSerializer.serialize(next);
       long start = 0;
       maxSend.put(0, bytes.length);
       start = System.nanoTime();
