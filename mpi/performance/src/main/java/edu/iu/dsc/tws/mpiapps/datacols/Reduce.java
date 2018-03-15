@@ -93,7 +93,7 @@ public class Reduce extends Collective {
 
         inOut.clear();
         inOut.putInt(secondBytes.length);
-        inOut.put(secondBytes);
+//        inOut.put(secondBytes);
       }
     }, true);
   }
