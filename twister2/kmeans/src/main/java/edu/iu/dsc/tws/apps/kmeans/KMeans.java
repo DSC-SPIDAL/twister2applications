@@ -70,6 +70,7 @@ public class KMeans implements IContainer {
     Set<Integer> reduceTasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 1);
     int pointsPerTask = jobParameters.getNumPoints() / (jobParameters.getContainers() * mapTasksOfExecutor.size());
 
+    long start = System.nanoTime();
     try {
       points = PointReader.readPoints(jobParameters.getPointFile(), jobParameters.getNumPoints(),
           jobParameters.getContainers(), id, mapTasksOfExecutor.size(), jobParameters.getDimension());
@@ -77,6 +78,7 @@ public class KMeans implements IContainer {
     } catch (IOException e) {
       throw new RuntimeException("File read error", e);
     }
+    LOG.info(String.format("%d reading time %d", id, (System.nanoTime() - start) / 1000000));
 
     Map<String, Object> newCfg = new HashMap<>();
     LOG.log(Level.FINE,"Setting up firstPartition dataflow operation");

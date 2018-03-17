@@ -19,8 +19,6 @@ public class PointReader {
     BufferedReader b = new BufferedReader(new FileReader(f));
     String readLine = "";
 
-    System.out.println("Reading file using Buffered Reader");
-
     int noOfRecords = 0;
     int currentTask = 0;
     int currentRecordsPerTask = 0;
@@ -40,8 +38,8 @@ public class PointReader {
         throw new RuntimeException("Invalid line with length: " + split.length);
       }
 
-      LOG.info(String.format("ofset %d points per task %d records %d records per task %d current task %d",
-          offset, pointsPerTask, noOfRecords, currentRecordsPerTask, currentTask));
+//      LOG.info(String.format("ofset %d points per task %d records %d records per task %d current task %d",
+//          offset, pointsPerTask, noOfRecords, currentRecordsPerTask, currentTask));
       for (int i = 0; i < dimension; i++) {
         doubles[currentTask][i + currentTask * dimension] = Double.parseDouble(split[i].trim());
       }
@@ -61,8 +59,6 @@ public class PointReader {
     File f = new File(clusterFileName);
     BufferedReader b = new BufferedReader(new FileReader(f));
     String readLine = "";
-
-    System.out.println("Reading file using Buffered Reader");
 
     int noOfRecords = 0;
     while ((readLine = b.readLine()) != null) {

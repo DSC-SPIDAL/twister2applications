@@ -15,8 +15,6 @@ public class PipelinedTask {
 
   private double[] centerSums;
 
-  private int[] centerCounts;
-
   private int taskId;
 
   private int dimension;
@@ -35,8 +33,7 @@ public class PipelinedTask {
     this.noOfIterations = noOfIterations;
     this.pointsForThread = pointsForThread;
 
-    this.centerSums = new double[centers.length];
-    this.centerCounts = new int[centers.length / dimension];
+    this.centerSums = new double[centers.length + centers.length / dimension];
   }
 
   public void setAllReduce(MPIDataFlowAllReduce allReduce) {

@@ -21,7 +21,7 @@ public class Executor implements Runnable {
   @Override
   public void run() {
     // execute first time
-
+    long start = System.nanoTime();
     while (true) {
       try {
         if (!task.executeMap()) {
@@ -37,5 +37,6 @@ public class Executor implements Runnable {
         e.printStackTrace();
       }
     }
+    LOG.info(String.format("%d K-Means time %d", taskId, (System.nanoTime() - start) / 1000000));
   }
 }
