@@ -34,6 +34,9 @@ public class PipelinedTask {
     this.dimension = dimension;
     this.noOfIterations = noOfIterations;
     this.pointsForThread = pointsForThread;
+
+    this.centerSums = new double[centers.length];
+    this.centerCounts = new int[centers.length / dimension];
   }
 
   public void setAllReduce(MPIDataFlowAllReduce allReduce) {
@@ -42,10 +45,13 @@ public class PipelinedTask {
 
   public boolean executeMap() {
     if (currentIteration >= noOfIterations) {
+      LOG.info("Done iterations");
       return false;
     }
 
     findNearesetCenters(dimension, points, centers, centerSums, pointsForThread);
+    currentIteration++;
+
     // now communicate
     allReduce.send(taskId, centerSums, 0);
 

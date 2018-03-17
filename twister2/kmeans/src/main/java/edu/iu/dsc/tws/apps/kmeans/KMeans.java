@@ -104,12 +104,13 @@ public class KMeans implements IContainer {
 
       for (int k = 0; k < sourceTasksOfExecutor.size(); k++) {
         int sourceTask = sourceTasksOfExecutor.get(k);
+        int targetTask = sourcesToReceiveMapping.get(sourceTask);
 
         PipelinedTask source = partitionSources.get(sourceTask);
         source.setAllReduce(reduceOperation);
 
         // the map thread where datacols is produced
-        Executor executor = new Executor(source, workerMessageQueue.get(sourceTask), sourceTask);
+        Executor executor = new Executor(source, workerMessageQueue.get(targetTask), sourceTask);
         executors.put(sourceTask, executor);
 
         Thread mapThread = new Thread(executor);
