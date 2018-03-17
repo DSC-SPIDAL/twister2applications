@@ -32,6 +32,18 @@ public class JobParameters {
 
   private String dataType;
 
+  private int dimension;
+
+  private int k;
+
+  private int numPoints;
+
+  private int numCenters;
+
+  private String pointFile;
+
+  private String cenerFile;
+
   public JobParameters(int size, int iterations, int col,
                        int containers, List<Integer> taskStages, int gap) {
     this.size = size;
@@ -98,6 +110,30 @@ public class JobParameters {
     return dataType;
   }
 
+  public int getDimension() {
+    return dimension;
+  }
+
+  public int getK() {
+    return k;
+  }
+
+  public int getNumPoints() {
+    return numPoints;
+  }
+
+  public int getNumCenters() {
+    return numCenters;
+  }
+
+  public String getPointFile() {
+    return pointFile;
+  }
+
+  public String getCenerFile() {
+    return cenerFile;
+  }
+
   public static JobParameters build(Config cfg) {
     int iterations = Integer.parseInt(cfg.getStringValue(Constants.ARGS_ITR));
     int size = Integer.parseInt(cfg.getStringValue(Constants.ARGS_SIZE));
@@ -110,6 +146,13 @@ public class JobParameters {
     Boolean threads = Boolean.parseBoolean(cfg.getStringValue(Constants.ARGS_THREADS));
     int pi = Integer.parseInt(cfg.getStringValue(Constants.ARGS_PRINT_INTERVAL));
     String type = cfg.getStringValue(Constants.ARGS_DATA_TYPE);
+
+    String pointFile = cfg.getStringValue(Constants.ARGS_POINT);
+    String centerFile = cfg.getStringValue(Constants.ARGS_CENTERS);
+    int points = Integer.parseInt(cfg.getStringValue(Constants.ARGS_N_POINTS));
+    int centers = Integer.parseInt(cfg.getStringValue(Constants.ARGS_N_CENTERS));
+    int k = Integer.parseInt(cfg.getStringValue(Constants.ARGS_K));
+    int d = Integer.parseInt(cfg.getStringValue(Constants.ARGS_DIMENSIONS));
 
     String[] stages = taskStages.split(",");
     List<Integer> taskList = new ArrayList<>();
@@ -126,6 +169,13 @@ public class JobParameters {
     jobParameters.threads = threads;
     jobParameters.printInterval = pi;
     jobParameters.dataType = type;
+    jobParameters.k = k;
+    jobParameters.pointFile = pointFile;
+    jobParameters.cenerFile = centerFile;
+    jobParameters.numPoints = points;
+    jobParameters.numCenters = centers;
+    jobParameters.dimension = d;
+
     return jobParameters;
   }
 

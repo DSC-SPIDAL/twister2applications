@@ -141,12 +141,6 @@ public final class Utils {
     return out;
   }
 
-  public static Option createOption(String opt, boolean hasArg, String description, boolean required) {
-    Option symbolListOption = new Option(opt, hasArg, description);
-    symbolListOption.setRequired(required);
-    return symbolListOption;
-  }
-
   public synchronized static long getTime() {
     return System.nanoTime();
   }

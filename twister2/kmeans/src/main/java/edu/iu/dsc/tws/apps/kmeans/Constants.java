@@ -15,4 +15,11 @@ public class Constants {
   public static final String ARGS_THREADS = "threads";
   public static final String ARGS_PRINT_INTERVAL = "pi";
   public static final String ARGS_DATA_TYPE = "type";
+
+  public static final String ARGS_POINT = "pointsFile";
+  public static final String ARGS_CENTERS = "centersFile";
+  public static final String ARGS_DIMENSIONS = "dim";
+  public static final String ARGS_K = "k";
+  public static final String ARGS_N_POINTS = "np";
+  public static final String ARGS_N_CENTERS = "nc";
 }
