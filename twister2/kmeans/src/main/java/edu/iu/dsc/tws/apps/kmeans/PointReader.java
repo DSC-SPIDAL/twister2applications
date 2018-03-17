@@ -27,13 +27,13 @@ public class PointReader {
         continue;
       }
 
-      String[] split = readLine.split(" ");
+      String[] split = readLine.split(",");
       if (split.length != dimension) {
         throw new RuntimeException("Invalid line with length: " + split.length);
       }
 
       for (int i = 0; i < dimension; i++) {
-        doubles[currentTask][i + currentTask * dimension] = Double.parseDouble(split[i]);
+        doubles[currentTask][i + currentTask * dimension] = Double.parseDouble(split[i].trim());
       }
       currentRecordsPerTask++;
 

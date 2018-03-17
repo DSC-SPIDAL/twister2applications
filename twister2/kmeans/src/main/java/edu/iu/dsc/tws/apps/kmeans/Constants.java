@@ -21,5 +21,4 @@ public class Constants {
   public static final String ARGS_DIMENSIONS = "dim";
   public static final String ARGS_K = "k";
   public static final String ARGS_N_POINTS = "np";
-  public static final String ARGS_N_CENTERS = "nc";
 }

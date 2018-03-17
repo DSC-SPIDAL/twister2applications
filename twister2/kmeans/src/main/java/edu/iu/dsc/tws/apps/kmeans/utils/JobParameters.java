@@ -38,8 +38,6 @@ public class JobParameters {
 
   private int numPoints;
 
-  private int numCenters;
-
   private String pointFile;
 
   private String cenerFile;
@@ -122,10 +120,6 @@ public class JobParameters {
     return numPoints;
   }
 
-  public int getNumCenters() {
-    return numCenters;
-  }
-
   public String getPointFile() {
     return pointFile;
   }
@@ -150,7 +144,6 @@ public class JobParameters {
     String pointFile = cfg.getStringValue(Constants.ARGS_POINT);
     String centerFile = cfg.getStringValue(Constants.ARGS_CENTERS);
     int points = Integer.parseInt(cfg.getStringValue(Constants.ARGS_N_POINTS));
-    int centers = Integer.parseInt(cfg.getStringValue(Constants.ARGS_N_CENTERS));
     int k = Integer.parseInt(cfg.getStringValue(Constants.ARGS_K));
     int d = Integer.parseInt(cfg.getStringValue(Constants.ARGS_DIMENSIONS));
 
@@ -173,7 +166,6 @@ public class JobParameters {
     jobParameters.pointFile = pointFile;
     jobParameters.cenerFile = centerFile;
     jobParameters.numPoints = points;
-    jobParameters.numCenters = centers;
     jobParameters.dimension = d;
 
     return jobParameters;

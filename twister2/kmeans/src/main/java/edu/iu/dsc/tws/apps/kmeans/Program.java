@@ -34,6 +34,7 @@ public class Program {
     options.addOption(Utils.createOption(Constants.ARGS_CENTERS, true, "Centers", true));
     options.addOption(Utils.createOption(Constants.ARGS_DIMENSIONS, true, "Dimensions", true));
     options.addOption(Utils.createOption(Constants.ARGS_K, true, "K", true));
+    options.addOption(Utils.createOption(Constants.ARGS_N_POINTS, true, "K", true));
 
     CommandLineParser commandLineParser = new BasicParser();
     CommandLine cmd = commandLineParser.parse(options, args);
@@ -44,6 +45,8 @@ public class Program {
     String point = cmd.getOptionValue(Constants.ARGS_POINT);
     String centersFile = cmd.getOptionValue(Constants.ARGS_CENTERS);
     String k = cmd.getOptionValue(Constants.ARGS_K);
+    String np = cmd.getOptionValue(Constants.ARGS_N_POINTS);
+    String dim = cmd.getOptionValue(Constants.ARGS_DIMENSIONS);
 
     String threads = "true";
     if (cmd.hasOption(Constants.ARGS_THREADS)) {
@@ -85,8 +88,10 @@ public class Program {
     jobConfig.put(Constants.ARGS_PRINT_INTERVAL, printInt);
     jobConfig.put(Constants.ARGS_DATA_TYPE, dataType);
     jobConfig.put(Constants.ARGS_CENTERS, centersFile);
-    jobConfig.put(Constants.ARGS_POINT, point);
+    jobConfig.put(Constants.ARGS_N_POINTS, np);
     jobConfig.put(Constants.ARGS_K, k);
+    jobConfig.put(Constants.ARGS_POINT, point);
+    jobConfig.put(Constants.ARGS_DIMENSIONS, dim);
 
     // build the job
     BasicJob basicJob = null;
