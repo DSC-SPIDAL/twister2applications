@@ -149,6 +149,8 @@ public class KMeans2 implements IContainer {
   public class FinalReduceReceiver implements ReduceReceiver {
     int source;
 
+    int count = 0;
+
     public FinalReduceReceiver(int source) {
       this.source = source;
     }
@@ -160,7 +162,7 @@ public class KMeans2 implements IContainer {
     @Override
     public boolean receive(int i, Object o) {
       try {
-        LOG.info(String.format("%d Broadcasting from source %s", id, source));
+        LOG.info(String.format("%d Broadcasting from source %s %d", id, source, ++count));
         return broadcastOperation.send(source, o, 0);
       } catch (Throwable t) {
         LOG.log(Level.SEVERE, String.format("%d Error source %d target %d", id, source, i), t);
@@ -170,6 +172,7 @@ public class KMeans2 implements IContainer {
   }
 
   public class BCastReceiver implements MessageReceiver {
+    int count = 0;
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
       LOG.log(Level.FINE, String.format("%d Initialize worker: %s", id, expectedIds));
@@ -181,7 +184,7 @@ public class KMeans2 implements IContainer {
 
     @Override
     public boolean onMessage(int source, int path, int target, int flags, Object object) {
-      LOG.info(String.format("%d Received broadcast %d", id, target));
+      LOG.info(String.format("%d Received broadcast %d %d", id, target, ++count));
       Queue<Message> messageQueue = workerMessageQueue.get(target);
       return messageQueue.offer(new Message(target, 0, object));
     }
