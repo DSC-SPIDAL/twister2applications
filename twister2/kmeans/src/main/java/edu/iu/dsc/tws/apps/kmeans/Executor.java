@@ -33,13 +33,16 @@ public class Executor implements Runnable {
         computeTime += (System.nanoTime() - computeStart);
 
         long communicateStart = System.nanoTime();
-        task.progress();
-        // wait for the results
-        Message m = messages.take();
+        Message m = null;
+        while (m == null) {
+          task.progress();
+          // wait for the results
+          m = messages.poll();
+        }
         // update the centers
         task.updateCenters((double []) m.getMessage());
         communicateTime += (System.nanoTime() - communicateStart);
-      } catch (InterruptedException e) {
+      } catch (Throwable e) {
         e.printStackTrace();
       }
     }

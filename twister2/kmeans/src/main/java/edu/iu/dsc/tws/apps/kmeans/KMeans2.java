@@ -165,10 +165,12 @@ public class KMeans2 implements IContainer {
         List<Long> times = new ArrayList<>();
         List<Double> cTimes = new ArrayList<>();
         for (PipelinedTask p : partitionSources.values()) {
-          long time = p.getEmitTimes().get(count);
-          time = System.currentTimeMillis() - time;
-          times.add(time);
-          cTimes.add(p.getComputeTimes().get(count));
+          if (p.getEmitTimes().size() > count) {
+            long time = p.getEmitTimes().get(count);
+            time = System.currentTimeMillis() - time;
+            times.add(time);
+            cTimes.add(p.getComputeTimes().get(count));
+          }
         }
 
         LOG.info(String.format("%d Broadcasting from source %s %d %s %s", id, source, ++count, times, cTimes));

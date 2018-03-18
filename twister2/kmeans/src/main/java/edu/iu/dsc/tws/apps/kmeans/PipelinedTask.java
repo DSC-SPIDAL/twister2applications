@@ -1,8 +1,6 @@
 package edu.iu.dsc.tws.apps.kmeans;
 
 import edu.iu.dsc.tws.comms.api.DataFlowOperation;
-import edu.iu.dsc.tws.comms.mpi.MPIDataFlowAllReduce;
-import edu.iu.dsc.tws.comms.mpi.MPIDataFlowOperation;
 
 import java.util.ArrayList;
 import java.util.List;
