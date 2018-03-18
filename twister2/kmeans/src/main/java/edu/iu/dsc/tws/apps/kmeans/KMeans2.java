@@ -163,7 +163,7 @@ public class KMeans2 implements IContainer {
     public boolean receive(int i, Object o) {
       try {
         List<Long> times = new ArrayList<>();
-        List<Long> cTimes = new ArrayList<>();
+        List<Double> cTimes = new ArrayList<>();
         for (PipelinedTask p : partitionSources.values()) {
           long time = p.getEmitTimes().get(count);
           time = System.currentTimeMillis() - time;
