@@ -97,7 +97,7 @@ public class Program {
     BasicJob basicJob = null;
     basicJob = BasicJob.newBuilder()
         .setName("kmeans-bench")
-        .setContainerClass(KMeans.class.getName())
+        .setContainerClass(KMeans2.class.getName())
         .setRequestResource(new ResourceContainer(2, 1024), containers)
         .setConfig(jobConfig)
         .build();

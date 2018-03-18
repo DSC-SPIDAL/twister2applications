@@ -1,6 +1,8 @@
 package edu.iu.dsc.tws.apps.kmeans;
 
+import edu.iu.dsc.tws.comms.api.DataFlowOperation;
 import edu.iu.dsc.tws.comms.mpi.MPIDataFlowAllReduce;
+import edu.iu.dsc.tws.comms.mpi.MPIDataFlowOperation;
 
 import java.util.logging.Logger;
 
@@ -19,7 +21,7 @@ public class PipelinedTask {
 
   private int dimension;
 
-  private MPIDataFlowAllReduce allReduce;
+  private DataFlowOperation allReduce;
 
   private int noOfIterations;
 
@@ -36,7 +38,7 @@ public class PipelinedTask {
     this.centerSums = new double[centers.length + centers.length / dimension];
   }
 
-  public void setAllReduce(MPIDataFlowAllReduce allReduce) {
+  public void setAllReduce(DataFlowOperation allReduce) {
     this.allReduce = allReduce;
   }
 
