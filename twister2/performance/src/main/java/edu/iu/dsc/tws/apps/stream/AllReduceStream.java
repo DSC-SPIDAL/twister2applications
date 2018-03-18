@@ -68,7 +68,7 @@ public class AllReduceStream implements IContainer {
     LOG.info(String.format("Setting up reduce dataflow operation %s %s", sources, dests));
     // this method calls the init method
     FinalReduceReceiver reduceReceiver = new FinalReduceReceiver();
-    reduce = channel.allReduce(newCfg, MessageType.OBJECT, 0, 1, sources,
+    reduce = channel.allReduce(newCfg, Utils.getMessageTupe(jobParameters.getDataType()), 0, 1, sources,
         dests, middle, new IdentityFunction(), reduceReceiver, true);
 
     Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
@@ -79,7 +79,7 @@ public class AllReduceStream implements IContainer {
     tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
     ExternalSource source = null;
     for (int i : tasksOfExecutor) {
-      source = new ExternalSource(i, DataType.BYTE_ARRAY, jobParameters, dataGenerator, id, true, false);
+      source = new ExternalSource(i, Utils.getDataType(jobParameters.getDataType()), jobParameters, dataGenerator, id, true, false);
       reduceWorkers.put(i, source);
 
       source.setOperation(reduce);

@@ -158,6 +158,8 @@ public final class Utils {
       return MessageType.BYTE;
     } else if (type.equals("object")) {
       return MessageType.OBJECT;
+    } else if (type.equals("double")) {
+      return MessageType.DOUBLE;
     }
     return MessageType.OBJECT;
   }
@@ -169,6 +171,8 @@ public final class Utils {
       return DataType.BYTE_ARRAY;
     } else if (type.equals("object")) {
       return DataType.INT_OBJECT;
+    } else if (type.equals("double")) {
+      return DataType.DOUBLE_ARRAY;
     }
     return DataType.INT_OBJECT;
   }
@@ -183,6 +187,8 @@ public final class Utils {
       data = generator.generateByteData();
     } else if (genString == DataType.INT_ARRAY) {
       data = generator.generateIntData(1);
+    } else if (genString == DataType.DOUBLE_ARRAY) {
+      data = generator.generateDoubleData();
     } else {
       throw new RuntimeException("Un-expected data type");
     }

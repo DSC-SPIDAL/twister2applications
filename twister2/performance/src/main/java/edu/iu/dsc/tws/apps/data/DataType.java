@@ -4,5 +4,6 @@ public enum DataType {
   STRING,
   INT_OBJECT,
   BYTE_ARRAY,
-  INT_ARRAY
+  INT_ARRAY,
+  DOUBLE_ARRAY
 }
