@@ -59,7 +59,7 @@ public class PipelinedTask {
     findNearesetCenters(dimension, points, centers, centerSums, pointsForThread);
     currentIteration++;
     long time = System.nanoTime() - start;
-    computeTimes.add(start);
+    computeTimes.add(time);
 
     // now communicate
     emitTimes.add(System.currentTimeMillis());
