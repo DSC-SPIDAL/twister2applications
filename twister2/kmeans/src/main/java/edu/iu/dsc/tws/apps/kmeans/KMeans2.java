@@ -173,7 +173,12 @@ public class KMeans2 implements IContainer {
           }
         }
 
-        LOG.info(String.format("%d Broadcasting from source %s %d %s %s", id, source, ++count, times, cTimes));
+//        double[] d = (double[]) o;
+//        if (d.length != 200) {
+//          throw new RuntimeException(String.format("%d Reduce received %d length %d", id, i, d.length));
+//        }
+//
+//        LOG.info(String.format("%d Broadcasting from source %s %d %s %s", id, source, ++count, times, cTimes));
         return broadcastOperation.send(source, o, 0);
       } catch (Throwable t) {
         LOG.log(Level.SEVERE, String.format("%d Error source %d target %d", id, source, i), t);
@@ -196,6 +201,12 @@ public class KMeans2 implements IContainer {
     @Override
     public boolean onMessage(int source, int path, int target, int flags, Object object) {
       // LOG.info(String.format("%d Received broadcast %d %d", id, target, ++count));
+
+//      double[] d = (double[]) object;
+//      if (d.length != 200) {
+//        throw new RuntimeException(String.format("%d Bcast received %d length %d", id, target, d.length));
+//      }
+
       Queue<Message> messageQueue = workerMessageQueue.get(target);
       return messageQueue.offer(new Message(target, 0, object));
     }
@@ -204,7 +215,7 @@ public class KMeans2 implements IContainer {
     }
   }
 
-  public static class IdentityFunction implements ReduceFunction {
+  public class IdentityFunction implements ReduceFunction {
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
     }
@@ -217,6 +228,11 @@ public class KMeans2 implements IContainer {
       for (int i = 0; i < data1.length; i++) {
         data3[i] = data1[i] + data2[i];
       }
+
+//      if (data3.length != 200) {
+//        LOG.log(Level.SEVERE,"Error", new RuntimeException(String.format("%d Reduce received length %d %d %d", id, data3.length, data1.length, data2.length)));
+//      }
+
       return data3;
     }
   }

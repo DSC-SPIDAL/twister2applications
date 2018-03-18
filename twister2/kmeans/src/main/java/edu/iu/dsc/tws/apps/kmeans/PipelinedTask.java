@@ -39,7 +39,7 @@ public class PipelinedTask {
     this.noOfIterations = noOfIterations;
     this.pointsForThread = pointsForThread;
 
-    this.centerSums = new double[centers.length + centers.length / dimension];
+    this.centerSums = new double[centers.length];
   }
 
   public void setAllReduce(DataFlowOperation allReduce) {
@@ -53,7 +53,7 @@ public class PipelinedTask {
     }
 
     long start = System.nanoTime();
-    LOG.info(String.format("%d Points per thread %d itr %d", taskId,  pointsForThread, currentIteration));
+//    LOG.info(String.format("%d Points per thread %d itr %d", taskId,  pointsForThread, currentIteration));
     findNearesetCenters(dimension, points, centers, centerSums, pointsForThread);
     currentIteration++;
     double time = (System.nanoTime() - start) / 1000000.0;
@@ -61,6 +61,7 @@ public class PipelinedTask {
 
     // now communicate
     emitTimes.add(System.currentTimeMillis());
+//    LOG.info(String.format("%d Sending centersum with length %d", taskId, centerSums.length));
     allReduce.send(taskId, centerSums, 0);
 
     return true;
@@ -75,6 +76,9 @@ public class PipelinedTask {
   }
 
   public void updateCenters(double[] newCenters) {
+    if (centers.length != newCenters.length) {
+      throw new RuntimeException(String.format("%d Received new centers with length %d", taskId, newCenters.length));
+    }
     centers = newCenters;
   }
 
@@ -82,7 +86,7 @@ public class PipelinedTask {
     allReduce.progress();
   }
 
-  private static void findNearesetCenters(int dimension, double[] points, double[] centers,
+  private void findNearesetCenters(int dimension, double[] points, double[] centers,
                                           double[] centerSumsAndCountsForThread,
                                           int pointsForThread) {
     for (int i = 0; i < pointsForThread; ++i) {
@@ -92,10 +96,11 @@ public class PipelinedTask {
     }
   }
 
-  private static int findCenterWithMinDistance(double[] points, double[] centers, int dimension, int pointOffset) {
+  private int findCenterWithMinDistance(double[] points, double[] centers, int dimension, int pointOffset) {
     int k = centers.length / dimension;
     double dMin = Double.MAX_VALUE;
     int dMinIdx = -1;
+//    LOG.info(String.format("%d K %d", taskId, k));
     for (int j = 0; j < k; ++j) {
       double dist = getEuclideanDistance(points, centers, dimension, pointOffset, j * dimension);
       if (dist < dMin) {
@@ -106,14 +111,14 @@ public class PipelinedTask {
     return dMinIdx;
   }
 
-  private static void accumulate(double[] points, double[] centerSumsAndCounts,
+  private void accumulate(double[] points, double[] centerSumsAndCounts,
                                  int pointOffset, int centerOffset, int dimension) {
     for (int i = 0; i < dimension; ++i) {
       centerSumsAndCounts[centerOffset + i] += points[pointOffset + i];
     }
   }
 
-  private static double getEuclideanDistance(double[] point1, double[] point2,
+  private double getEuclideanDistance(double[] point1, double[] point2,
                                              int dimension, int point1Offset, int point2Offset) {
     double d = 0.0;
     for (int i = 0; i < dimension; ++i) {
