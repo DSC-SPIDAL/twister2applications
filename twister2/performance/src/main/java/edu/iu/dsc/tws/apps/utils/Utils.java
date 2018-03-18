@@ -116,6 +116,12 @@ public final class Utils {
     return new TaskPlan(executorToGraphNodes, groupsToExeuctors, thisExecutor);
   }
 
+  public static Option createOption(String opt, boolean hasArg, String description, boolean required) {
+    Option symbolListOption = new Option(opt, hasArg, description);
+    symbolListOption.setRequired(required);
+    return symbolListOption;
+  }
+
   private static int nextExecutorId(int current, int noOfContainers) {
     if (current < noOfContainers - 1) {
       return ++current;
