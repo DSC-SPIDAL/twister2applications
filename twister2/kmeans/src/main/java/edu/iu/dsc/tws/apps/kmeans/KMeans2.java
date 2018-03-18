@@ -106,8 +106,8 @@ public class KMeans2 implements IContainer {
       }
 
       reduceOperation = (MPIDataFlowReduce) channel.reduce(newCfg, MessageType.DOUBLE, 0, sources,
-          middle, new ReduceStreamingPartialReceiver(middle, new KMeans.IdentityFunction()),
-          new ReduceStreamingFinalReceiver(new KMeans.IdentityFunction(), new FinalReduceReceiver(middle)));
+          middle, new ReduceStreamingFinalReceiver(new IdentityFunction(), new FinalReduceReceiver(middle)),
+          new ReduceStreamingPartialReceiver(middle, new IdentityFunction()));
 
       broadcastOperation = (MPIDataFlowBroadcast) channel.broadCast(newCfg, MessageType.DOUBLE, 1,
           middle, dests, new BCastReceiver());
@@ -136,6 +136,7 @@ public class KMeans2 implements IContainer {
           // progress the channel
           channel.progress();
           reduceOperation.progress();
+          broadcastOperation.progress();
         } catch (Throwable t) {
           t.printStackTrace();
         }
@@ -158,7 +159,13 @@ public class KMeans2 implements IContainer {
 
     @Override
     public boolean receive(int i, Object o) {
-      return broadcastOperation.send(source, o, 0);
+      try {
+        LOG.info(String.format("%d Broadcasting from source %s", id, source));
+        return broadcastOperation.send(source, o, 0);
+      } catch (Throwable t) {
+        LOG.log(Level.SEVERE, String.format("%d Error source %d target %d", id, source, i), t);
+      }
+      return true;
     }
   }
 
@@ -173,9 +180,10 @@ public class KMeans2 implements IContainer {
     }
 
     @Override
-    public boolean onMessage(int i, int i1, int i2, int i3, Object o) {
-      Queue<Message> messageQueue = workerMessageQueue.get(i);
-      return messageQueue.offer(new Message(i, 0, o));
+    public boolean onMessage(int source, int path, int target, int flags, Object object) {
+      LOG.info(String.format("%d Received broadcast %d", id, target));
+      Queue<Message> messageQueue = workerMessageQueue.get(target);
+      return messageQueue.offer(new Message(target, 0, object));
     }
 
     public void progress() {
