@@ -46,7 +46,7 @@ public class Executor implements Runnable {
         e.printStackTrace();
       }
     }
-    LOG.info(String.format("%d K-Means time %d %d communicated %d", taskId, (System.nanoTime() - start) / 1000000,
+    LOG.info(String.format("%d K-Means time %d communicate %d compute %d", taskId, (System.nanoTime() - start) / 1000000,
         communicateTime / 1000000, computeTime / 1000000));
   }
 }
