@@ -34,7 +34,9 @@ public class Program {
     options.addOption(Utils.createOption(Constants.ARGS_GAP, true, "Gap", false));
     options.addOption(Utils.createOption(Constants.ARGS_FNAME, true, "File name", true));
     options.addOption(Utils.createOption(Constants.ARGS_OUTSTANDING, true, "Throughput no of messages", false));
-    options.addOption(Utils.createOption(Constants.ARGS_THREADS, false, "Threads", false));
+    options.addOption(Utils.createOption(Constants.ARGS_THREADS, true, "Threads", false));
+    options.addOption(Utils.createOption(Constants.ARGS_PRINT_INTERVAL, true, "Threads", false));
+    options.addOption(Utils.createOption(Constants.ARGS_DATA_TYPE, true, "Data", false));
 
     CommandLineParser commandLineParser = new BasicParser();
     CommandLine cmd = commandLineParser.parse(options, args);
@@ -43,7 +45,10 @@ public class Program {
     int itr = Integer.parseInt(cmd.getOptionValue(Constants.ARGS_ITR));
     int col = Integer.parseInt(cmd.getOptionValue(Constants.ARGS_COL));
     boolean stream = cmd.hasOption(Constants.ARGS_STREAM);
-    boolean threads = cmd.hasOption(Constants.ARGS_THREADS);
+    String threads = "true";
+    if (cmd.hasOption(Constants.ARGS_THREADS)) {
+      threads = cmd.getOptionValue(Constants.ARGS_THREADS);
+    }
     String taskStages = cmd.getOptionValue(Constants.ARGS_TASK_STAGES);
     String gap = "0";
     if (cmd.hasOption(Constants.ARGS_GAP)) {
@@ -57,6 +62,14 @@ public class Program {
     if (cmd.hasOption(Constants.ARGS_OUTSTANDING)) {
       outstanding = cmd.getOptionValue(Constants.ARGS_OUTSTANDING);
     }
+    String printInt = "0";
+    if (cmd.hasOption(Constants.ARGS_PRINT_INTERVAL)) {
+      printInt = cmd.getOptionValue(Constants.ARGS_PRINT_INTERVAL);
+    }
+    String dataType = "default";
+    if (cmd.hasOption(Constants.ARGS_DATA_TYPE)) {
+      dataType = cmd.getOptionValue(Constants.ARGS_DATA_TYPE);
+    }
 
     // build JobConfig
     JobConfig jobConfig = new JobConfig();
@@ -68,7 +81,9 @@ public class Program {
     jobConfig.put(Constants.ARGS_GAP, gap);
     jobConfig.put(Constants.ARGS_FNAME, fName);
     jobConfig.put(Constants.ARGS_OUTSTANDING, outstanding);
-    jobConfig.put(Constants.ARGS_THREADS, Boolean.toString(threads));
+    jobConfig.put(Constants.ARGS_THREADS, threads);
+    jobConfig.put(Constants.ARGS_PRINT_INTERVAL, printInt);
+    jobConfig.put(Constants.ARGS_DATA_TYPE, dataType);
 
     // build the job
     BasicJob basicJob = null;
@@ -169,6 +184,33 @@ public class Program {
         basicJob = BasicJob.newBuilder()
             .setName("partition-stream-bench")
             .setContainerClass(edu.iu.dsc.tws.apps.storm.ReduceStream.class.getName())
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
+            .setConfig(jobConfig)
+            .build();
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
+      }  else if (col == 7) {
+        basicJob = BasicJob.newBuilder()
+            .setName("partition-stream-bench")
+            .setContainerClass(edu.iu.dsc.tws.apps.storm.BroadcastStream.class.getName())
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
+            .setConfig(jobConfig)
+            .build();
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
+      } else if (col == 8) {
+        basicJob = BasicJob.newBuilder()
+            .setName("partition-stream-bench")
+            .setContainerClass(edu.iu.dsc.tws.apps.stream.BenchmarkStream.class.getName())
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
+            .setConfig(jobConfig)
+            .build();
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
+      } else if (col == 9) {
+        basicJob = BasicJob.newBuilder()
+            .setName("non-ack-partition")
+            .setContainerClass(edu.iu.dsc.tws.apps.storm.NonAckPartitionStream.class.getName())
             .setRequestResource(new ResourceContainer(2, 1024), containers)
             .setConfig(jobConfig)
             .build();

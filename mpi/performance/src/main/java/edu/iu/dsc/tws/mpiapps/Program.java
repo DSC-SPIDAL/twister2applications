@@ -2,6 +2,7 @@ package edu.iu.dsc.tws.mpiapps;
 
 import edu.iu.dsc.tws.mpiapps.datacols.*;
 import edu.iu.dsc.tws.mpiapps.nonblocking.NBReduce;
+import edu.iu.dsc.tws.mpiapps.nonblocking.NBSend;
 import mpi.MPI;
 import mpi.MPIException;
 import org.apache.commons.cli.*;
@@ -78,6 +79,12 @@ public class Program {
     } else if (collective == 9) {
       NBReduce allGather = new NBReduce(dataSize, iterations);
       allGather.execute();
+    } else if (collective == 10) {
+      edu.iu.dsc.tws.mpiapps.cols.Gather allGather = new edu.iu.dsc.tws.mpiapps.cols.Gather(dataSize, iterations);
+      allGather.execute();
+    } else if (collective == 11) {
+      NBSend nbSend = new NBSend(dataSize, iterations);
+      nbSend.execute();
     }
 
     long endTime = System.currentTimeMillis();

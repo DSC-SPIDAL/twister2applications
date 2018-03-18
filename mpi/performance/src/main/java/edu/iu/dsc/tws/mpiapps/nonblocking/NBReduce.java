@@ -2,7 +2,6 @@ package edu.iu.dsc.tws.mpiapps.nonblocking;
 
 import edu.iu.dsc.tws.mpiapps.Collective;
 import edu.iu.dsc.tws.mpiapps.KryoSerializer;
-import edu.iu.dsc.tws.mpiapps.data.IntData;
 import mpi.*;
 
 import java.nio.ByteBuffer;

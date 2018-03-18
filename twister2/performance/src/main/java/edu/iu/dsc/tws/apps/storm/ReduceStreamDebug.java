@@ -14,7 +14,6 @@ import edu.iu.dsc.tws.comms.core.TaskPlan;
 import edu.iu.dsc.tws.comms.mpi.MPIContext;
 import edu.iu.dsc.tws.comms.mpi.MPIDataFlowBroadcast;
 import edu.iu.dsc.tws.comms.mpi.MPIDataFlowReduce;
-import edu.iu.dsc.tws.comms.mpi.RoutingParameters;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourceContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;

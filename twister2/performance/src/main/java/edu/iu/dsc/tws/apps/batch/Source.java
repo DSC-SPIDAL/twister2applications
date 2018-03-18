@@ -63,7 +63,7 @@ public class Source implements Runnable {
       data = generator.generateStringData();
     } else if (genString == DataType.INT_OBJECT) {
       data = generator.generateData();
-    } else if (genString == DataType.INT_ARRAY) {
+    } else if (genString == DataType.BYTE_ARRAY) {
       data = generator.generateByteData();
     } else {
       throw new RuntimeException("Un-expected data type");

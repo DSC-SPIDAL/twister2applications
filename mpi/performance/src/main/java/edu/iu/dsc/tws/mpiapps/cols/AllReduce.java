@@ -10,30 +10,22 @@ public class AllReduce extends Collective {
 
   private long reduceTime = 0;
 
-  private byte[] values;
+  private int[] values;
 
   public AllReduce(int size, int iterations) {
     super(size, iterations);
-    values = new byte[size];
+    values = new int[size];
   }
 
   @Override
   public void execute() throws MPIException {
     int rank = MPI.COMM_WORLD.getRank();
-    ByteBuffer sendBuffer = MPI.newByteBuffer(size);
-    ByteBuffer receiveBuffer = MPI.newByteBuffer(size);
+    IntBuffer sendBuffer = MPI.newIntBuffer(size);
+    IntBuffer receiveBuffer = MPI.newIntBuffer(size);
     for (int i = 0; i < iterations; i++) {
       sendBuffer.clear();
       sendBuffer.put(values);
       MPI.COMM_WORLD.allReduce(sendBuffer, receiveBuffer, size, MPI.BYTE, MPI.SUM);
-
-      if (rank == 0) {
-        byte[] receiveBytes = new byte[size];
-        receiveBuffer.position(size);
-        receiveBuffer.flip();
-        receiveBuffer.get();
-        receiveBuffer.get(receiveBytes);
-      }
       receiveBuffer.clear();
       sendBuffer.clear();
     }

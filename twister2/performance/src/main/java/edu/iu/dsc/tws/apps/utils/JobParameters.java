@@ -28,6 +28,10 @@ public class JobParameters {
 
   private boolean threads = false;
 
+  private int printInterval = 0;
+
+  private String dataType;
+
   public JobParameters(int size, int iterations, int col,
                        int containers, List<Integer> taskStages, int gap) {
     this.size = size;
@@ -86,6 +90,14 @@ public class JobParameters {
     return threads;
   }
 
+  public int getPrintInterval() {
+    return printInterval;
+  }
+
+  public String getDataType() {
+    return dataType;
+  }
+
   public static JobParameters build(Config cfg) {
     int iterations = Integer.parseInt(cfg.getStringValue(Constants.ARGS_ITR));
     int size = Integer.parseInt(cfg.getStringValue(Constants.ARGS_SIZE));
@@ -96,6 +108,8 @@ public class JobParameters {
     String fName = cfg.getStringValue(Constants.ARGS_FNAME);
     int outstanding = Integer.parseInt(cfg.getStringValue(Constants.ARGS_OUTSTANDING));
     Boolean threads = Boolean.parseBoolean(cfg.getStringValue(Constants.ARGS_THREADS));
+    int pi = Integer.parseInt(cfg.getStringValue(Constants.ARGS_PRINT_INTERVAL));
+    String type = cfg.getStringValue(Constants.ARGS_DATA_TYPE);
 
     String[] stages = taskStages.split(",");
     List<Integer> taskList = new ArrayList<>();
@@ -110,6 +124,8 @@ public class JobParameters {
     jobParameters.fileName = fName;
     jobParameters.outstanding = outstanding;
     jobParameters.threads = threads;
+    jobParameters.printInterval = pi;
+    jobParameters.dataType = type;
     return jobParameters;
   }
 

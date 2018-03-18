@@ -1,8 +1,6 @@
 package edu.iu.dsc.tws.apps.stream;
 
-import edu.iu.dsc.tws.apps.batch.Source;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
-import edu.iu.dsc.tws.apps.data.DataSave;
 import edu.iu.dsc.tws.apps.data.DataType;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
@@ -35,9 +33,11 @@ public class AllGatherStream implements IContainer {
 
   private long startSendingTime;
 
-  private Map<Integer, Source> reduceWorkers = new HashMap<>();
+  private Map<Integer, ExternalSource> gatherWorkers = new HashMap<>();
 
   private List<Integer> tasksOfThisExec;
+
+  private Map<Integer, Integer> gatherToSourceMapping = new HashMap<>();
 
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
@@ -78,12 +78,22 @@ public class AllGatherStream implements IContainer {
 
       Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
       tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
-      Source source = null;
+      Set<Integer> reduceTasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 1);
+      List<Integer> taskOfExecutorList = new ArrayList<>(tasksOfExecutor);
+      List<Integer> reduceTaskOfExecutorList = new ArrayList<>(reduceTasksOfExecutor);
+
       for (int i : tasksOfExecutor) {
-        source = new Source(i, jobParameters, reduce, dataGenerator, DataType.STRING, false);
-        reduceWorkers.put(i, source);
+        ExternalSource source = new ExternalSource(i, DataType.BYTE_ARRAY, jobParameters, dataGenerator, id, true, false);
+        gatherWorkers.put(i, source);
+
+        source.setOperation(reduce);
+
+        StreamExecutor executor = new StreamExecutor(id, source, jobParameters);
+        int sourceIndex = taskOfExecutorList.indexOf(i);
+        gatherToSourceMapping.put(reduceTaskOfExecutorList.get(sourceIndex), i);
+
         // the map thread where datacols is produced
-        Thread mapThread = new Thread(source);
+        Thread mapThread = new Thread(executor);
         mapThread.start();
       }
 
@@ -94,10 +104,6 @@ public class AllGatherStream implements IContainer {
           channel.progress();
           // we should progress the communication directive
           reduce.progress();
-
-          if (source != null) {
-            startSendingTime = source.getStartSendingTime();
-          }
         } catch (Throwable t) {
           t.printStackTrace();
         }
@@ -120,28 +126,7 @@ public class AllGatherStream implements IContainer {
 
     @Override
     public boolean onMessage(int source, int path, int target, int flags, Object object) {
-      long time = (System.currentTimeMillis() - startSendingTime);
-      List<Long> timesForTarget = times.get(target);
-      timesForTarget.add(System.currentTimeMillis());
-
-      try {
-        if (timesForTarget.size() >= jobParameters.getIterations()) {
-          List<Long> times = reduceWorkers.get(tasksOfThisExec.get(0)).getStartOfEachMessage();
-          List<Long> latencies = new ArrayList<>();
-          long average = 0;
-          for (int i = 0; i < times.size(); i++) {
-            average += (timesForTarget.get(i) - times.get(i));
-            latencies.add(timesForTarget.get(i) - times.get(i));
-          }
-          LOG.info(String.format("%d Average: %d", id, average / (times.size())));
-          LOG.info(String.format("%d Finished %d %d", id, target, time));
-
-          DataSave.saveList("reduce", latencies);
-        }
-      } catch (Throwable r) {
-        LOG.log(Level.SEVERE, String.format("%d excpetion %s %s", id, tasksOfThisExec, reduceWorkers.keySet()), r);
-      }
-
+      gatherWorkers.get(gatherToSourceMapping.get(target)).ack(0);
       return true;
     }
 

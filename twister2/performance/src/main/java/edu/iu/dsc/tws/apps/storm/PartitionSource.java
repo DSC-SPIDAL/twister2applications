@@ -14,52 +14,47 @@ import java.util.logging.Logger;
 public class PartitionSource {
   private static final Logger LOG = Logger.getLogger(PartitionSource.class.getName());
 
-  private long startSendingTime;
+  protected long startSendingTime;
 
-  private int task;
+  protected int task;
 
-  private DataFlowOperation operation;
+  protected DataFlowOperation operation;
 
-  private DataGenerator generator;
+  protected DataGenerator generator;
 
-  private JobParameters jobParameters;
+  protected JobParameters jobParameters;
 
-  private int gap;
+  protected int gap;
 
-  private boolean genString;
+  protected List<Integer> destinations;
 
-  private List<Integer> destinations;
+  protected long lastMessageTime = 0;
 
-  private long lastMessageTime = 0;
+  protected long currentIteration = 0;
 
-  private long currentIteration = 0;
+  protected int nextIndex = 0;
 
-  private int nextIndex = 0;
+  protected int executorId;
 
-  private int executorId;
+  protected byte[] data;
 
-  private byte[] data;
+  protected int ackCount = 0;
 
-  private int ackCount = 0;
+  protected Map<Long, Long> emitTimes = new HashMap<>();
 
-  private Map<Long, Long> emitTimes = new HashMap<>();
+  protected List<Long> finalTimes = new ArrayList<>();
 
-  private List<Long> finalTimes = new ArrayList<>();
+  protected int noOfIterations;
 
-  private int noOfIterations;
+  protected int outstanding;
 
-  private int outstanding;
-
-  private boolean stop = false;
-
-  private Random random;
+  protected boolean stop = false;
 
   public PartitionSource(int task, JobParameters jobParameters, DataGenerator dataGenerator, int executorId) {
     this.task = task;
     this.jobParameters = jobParameters;
     this.generator = dataGenerator;
     this.gap = jobParameters.getGap();
-    this.genString = false;
     this.destinations = new ArrayList<>();
     this.executorId = executorId;
     this.noOfIterations = jobParameters.getIterations();
@@ -71,7 +66,6 @@ public class PartitionSource {
     startSendingTime = System.currentTimeMillis();
     data = dataGenerator.generateByteData();
     this.outstanding = 0;
-    this.random = new Random(System.nanoTime());
   }
 
   public void setOperation(DataFlowOperation operation) {

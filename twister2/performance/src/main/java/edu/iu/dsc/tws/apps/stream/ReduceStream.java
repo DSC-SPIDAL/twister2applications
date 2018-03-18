@@ -1,8 +1,6 @@
 package edu.iu.dsc.tws.apps.stream;
 
-import edu.iu.dsc.tws.apps.batch.Source;
 import edu.iu.dsc.tws.apps.data.DataGenerator;
-import edu.iu.dsc.tws.apps.data.DataSave;
 import edu.iu.dsc.tws.apps.data.DataType;
 import edu.iu.dsc.tws.apps.utils.JobParameters;
 import edu.iu.dsc.tws.apps.utils.Utils;
@@ -34,11 +32,13 @@ public class ReduceStream implements IContainer {
 
   private long startSendingTime;
 
-  private Map<Integer, Source> reduceWorkers = new HashMap<>();
+  private Map<Integer, ExternalSource> reduceWorkers = new HashMap<>();
 
   private List<Integer> tasksOfThisExec;
 
   private boolean executorWithDest = false;
+
+  private DataType dataType;
 
   @Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
@@ -71,31 +71,46 @@ public class ReduceStream implements IContainer {
 
     LOG.log(Level.FINE,"Setting up reduce dataflow operation");
     try {
+      dataType = Utils.getDataType(jobParameters.getDataType());
       // this method calls the init method
       // I think this is wrong
-      reduce = channel.reduce(newCfg, MessageType.BYTE, 0, sources,
+      reduce = channel.reduce(newCfg, Utils.getMessageTupe(jobParameters.getDataType()), 0, sources,
           dest, new ReduceStreamingFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()),
           new ReduceStreamingPartialReceiver(dest, new IdentityFunction()), new SendCompletion());
 
       Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
       tasksOfThisExec = new ArrayList<>(tasksOfExecutor);
-      Source source = null;
+      ExternalSource source = null;
+      int destExector = taskPlan.getExecutorForChannel(dest);
+      boolean acked = destExector == id;
       for (int i : tasksOfExecutor) {
-        source = new Source(i, jobParameters, reduce, dataGenerator, DataType.INT_ARRAY, executorWithDest);
+        source = new ExternalSource(i, dataType, jobParameters, dataGenerator, id, acked, true);
         reduceWorkers.put(i, source);
-        // the map thread where datacols is produced
-        Thread mapThread = new Thread(source);
-        mapThread.start();
+
+        source.setOperation(reduce);
+
+        if (jobParameters.isThreads()) {
+          LOG.info("Threads");
+          StreamExecutor executor = new StreamExecutor(id, source, jobParameters);
+          // the map thread where datacols is produced
+          Thread mapThread = new Thread(executor);
+          mapThread.start();
+        }
       }
 
       // we need to progress the communication
       while (true) {
         try {
+          if (!jobParameters.isThreads()) {
+            for (ExternalSource s : reduceWorkers.values()) {
+              if (!source.isStop()) {
+                while (source.execute()) ;
+              }
+              source.progress();
+            }
+          }
           // progress the channel
           channel.progress();
-          // we should progress the communication directive
-          reduce.progress();
-
           if (source != null) {
             startSendingTime = source.getStartSendingTime();
           }
@@ -121,47 +136,53 @@ public class ReduceStream implements IContainer {
 
     @Override
     public boolean receive(int target, Object object) {
+      if (dataType == DataType.INT_ARRAY) {
+        int[] data = (int[]) object;
+        for (int i = 0; i < data.length; i++) {
+          if (data[i] != jobParameters.getTaskStages().get(0)) {
+            LOG.info("SUM NOT EQUAL" + data[i]);
+          }
+        }
+      }
       if (executorWithDest) {
-        for (Source s : reduceWorkers.values()) {
+        for (ExternalSource s : reduceWorkers.values()) {
           s.ack(0);
         }
       }
-
-      long time = (System.currentTimeMillis() - startSendingTime);
-//      LOG.info(String.format("%d times %s", id, times));
-      List<Long> timesForTarget = times.get(target);
-      timesForTarget.add(System.nanoTime());
-
-      try {
-        if (timesForTarget.size() >= jobParameters.getIterations()) {
-          List<Long> times = reduceWorkers.get(tasksOfThisExec.get(0)).getStartOfEachMessage();
-          List<Long> latencies = new ArrayList<>();
-          long average = 0;
-          for (int i = 0; i < times.size(); i++) {
-            average += (timesForTarget.get(i) - times.get(i));
-            latencies.add(timesForTarget.get(i) - times.get(i));
-          }
-          LOG.info(String.format("%d Average: %d", id, average / (times.size())));
-          LOG.info(String.format("%d Finished %d %d", id, target, time));
-
-          DataSave.saveList(jobParameters.getFileName() + "_reduce", latencies);
-        }
-      } catch (Throwable r) {
-        LOG.log(Level.SEVERE, String.format("%d excpetion %s %s", id, tasksOfThisExec, reduceWorkers.keySet()), r);
-      }
-
       return true;
     }
   }
 
-  public static class IdentityFunction implements ReduceFunction {
+  public class IdentityFunction implements ReduceFunction {
+    int count = 0;
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
     }
 
     @Override
     public Object reduce(Object t1, Object t2) {
-      return t1;
+      count++;
+      if (jobParameters.getPrintInterval() > 0) {
+        if (count % jobParameters.getPrintInterval() == 0) {
+          LOG.info(String.format("%d Identity function: %d", id, count));
+        }
+      }
+      if (dataType == DataType.INT_ARRAY) {
+        if (jobParameters.getPrintInterval() > 0) {
+          if (count % jobParameters.getPrintInterval() == 0) {
+            LOG.info(String.format("%d Reducing ints: %d", id, count));
+          }
+        }
+        int[] data1 = (int[]) t1;
+        int[] data2 = (int[]) t2;
+        int[] data3 = new int[data1.length];
+        for (int i = 0; i < data1.length; i++) {
+          data3[i] = data1[i] + data2[i];
+        }
+        return data3;
+      } else {
+        return t1;
+      }
     }
   }
 

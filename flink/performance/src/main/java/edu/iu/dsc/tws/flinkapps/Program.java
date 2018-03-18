@@ -2,6 +2,9 @@ package edu.iu.dsc.tws.flinkapps;
 
 import edu.iu.dsc.tws.flinkapps.batch.*;
 import edu.iu.dsc.tws.flinkapps.iter.ReduceIterative;
+import edu.iu.dsc.tws.flinkapps.stream.StreamPartitioning;
+import edu.iu.dsc.tws.flinkapps.stream.StreamPartitioningBytes;
+import edu.iu.dsc.tws.flinkapps.stream.StreamingGather;
 import edu.iu.dsc.tws.flinkapps.stream.StreamingReduce;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.utils.ParameterTool;
@@ -68,9 +71,23 @@ public class Program {
     int itr = params.getInt("itr", 10);
     int col = params.getInt("col", 0);
 
-    StreamingReduce streamingReduce = new StreamingReduce(size, itr, env, "");
-    streamingReduce.execute();
-    env.execute();
+    if (col == 0) {
+      StreamingReduce streamingReduce = new StreamingReduce(size, itr, env, "");
+      streamingReduce.execute();
+      env.execute();
+    } else if (col == 1) {
+      StreamPartitioning streamingReduce = new StreamPartitioning(size, itr, env, "");
+      streamingReduce.execute();
+      env.execute();
+    } else if (col == 2) {
+      StreamingGather gather = new StreamingGather(size, itr, env, "");
+      gather.execute();
+      env.execute();
+    } else if (col == 4) {
+      StreamPartitioningBytes gather = new StreamPartitioningBytes(size, itr, env, "");
+      gather.execute();
+      env.execute();
+    }
   }
 
   private static void iterative(ParameterTool params) throws Exception {

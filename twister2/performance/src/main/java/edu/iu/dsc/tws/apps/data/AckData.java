@@ -5,12 +5,22 @@ public class AckData {
 
   private long id;
 
+  private Object data;
+
   public AckData(long time, long id) {
     this.time = time;
     this.id = id;
   }
 
   public AckData() {
+  }
+
+  public Object getData() {
+    return data;
+  }
+
+  public void setData(Object data) {
+    this.data = data;
   }
 
   public long getTime() {

@@ -63,7 +63,7 @@ public class StreamingReduce {
       public Tuple2<Integer, CollectiveData> map(CollectiveData s) throws Exception {
         return new Tuple2<Integer, CollectiveData>(0, s);
       }
-    }).keyBy(0).reduce(new ReduceFunction<Tuple2<Integer, CollectiveData>>() {
+    }).keyBy(0).countWindow(1).reduce(new ReduceFunction<Tuple2<Integer, CollectiveData>>() {
       @Override
       public Tuple2<Integer, CollectiveData> reduce(Tuple2<Integer, CollectiveData> c1,
                                                     Tuple2<Integer, CollectiveData> c2) throws Exception {
@@ -89,18 +89,18 @@ public class StreamingReduce {
           start = System.nanoTime();
         }
         count++;
-        if (count >= iterations) {
-          System.out.println("Final: " + count + " " + (System.nanoTime() - start) / 1000000 + " " + (integerStringTuple2.f1));
-        }
+//        if (count >= iterations) {
+//          System.out.println("Final: " + count + " " + (System.nanoTime() - start) / 1000000 + " " + (integerStringTuple2.f1));
+//        }
       }
     });
 
   }
 
   private static CollectiveData add(CollectiveData i, CollectiveData j) {
-    List<Integer> r= new ArrayList<>();
-    for (int k = 0; k < i.getList().size(); k++) {
-      r.add((i.getList().get(k) + j.getList().get(k)));
+    int[] r= new int[i.getList().length];
+    for (int k = 0; k < i.getList().length; k++) {
+      r[k] = ((i.getList()[k] + j.getList()[k]));
     }
     return new CollectiveData(r);
   }

@@ -63,8 +63,8 @@ public class MultiReduce implements IContainer {
     // this method calls the init method
     FinalReduceReceiver reduceReceiver = new FinalReduceReceiver();
     reduce = channel.keyedReduce(newCfg, MessageType.OBJECT, dests, sources,
-        dests, new ReduceMultiBatchPartialReceiver(new IdentityFunction()),
-        new ReduceMultiBatchFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()));
+        dests, new ReduceMultiBatchFinalReceiver(new IdentityFunction(), new FinalReduceReceiver()),
+        new ReduceMultiBatchPartialReceiver(new IdentityFunction()));
 
     Set<Integer> tasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
     MultiSource reduceWorker = null;
