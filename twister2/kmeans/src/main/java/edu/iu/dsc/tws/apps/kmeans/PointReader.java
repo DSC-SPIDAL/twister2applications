@@ -48,6 +48,9 @@ public class PointReader {
       if (currentRecordsPerTask == pointsPerTask) {
         currentRecordsPerTask = 0;
         currentTask++;
+        if (currentTask == taskPerProc) {
+          break;
+        }
       }
     }
     return doubles;
