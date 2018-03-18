@@ -4,6 +4,8 @@ import edu.iu.dsc.tws.comms.api.DataFlowOperation;
 import edu.iu.dsc.tws.comms.mpi.MPIDataFlowAllReduce;
 import edu.iu.dsc.tws.comms.mpi.MPIDataFlowOperation;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 public class PipelinedTask {
@@ -26,6 +28,8 @@ public class PipelinedTask {
   private int noOfIterations;
 
   private int pointsForThread;
+
+  private List<Long> emitTimes = new ArrayList<>();
 
   public PipelinedTask(double[] points, double[] centers, int taskId, int dimension, int noOfIterations, int pointsForThread) {
     this.points = points;
@@ -52,9 +56,14 @@ public class PipelinedTask {
     currentIteration++;
 
     // now communicate
+    emitTimes.add(System.currentTimeMillis());
     allReduce.send(taskId, centerSums, 0);
 
     return true;
+  }
+
+  public List<Long> getEmitTimes() {
+    return emitTimes;
   }
 
   public void updateCenters(double[] newCenters) {

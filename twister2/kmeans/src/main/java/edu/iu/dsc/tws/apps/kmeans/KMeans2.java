@@ -162,7 +162,14 @@ public class KMeans2 implements IContainer {
     @Override
     public boolean receive(int i, Object o) {
       try {
-        LOG.info(String.format("%d Broadcasting from source %s %d", id, source, ++count));
+        List<Long> times = new ArrayList<>();
+        for (PipelinedTask p : partitionSources.values()) {
+          long time = p.getEmitTimes().get(count);
+          time = System.currentTimeMillis() - time;
+          times.add(time);
+        }
+
+        LOG.info(String.format("%d Broadcasting from source %s %d %s", id, source, ++count, times));
         return broadcastOperation.send(source, o, 0);
       } catch (Throwable t) {
         LOG.log(Level.SEVERE, String.format("%d Error source %d target %d", id, source, i), t);
