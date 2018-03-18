@@ -7,11 +7,11 @@ public class PointReader {
   private static final Logger LOG = Logger.getLogger(PointReader.class.getName());
 
   public static double[][] readPoints(String fileName, int noOfPoints, int noOfProcs,
-                               int procIndex, int noOfTasks, int dimension) throws IOException {
-    int pointsPerTask = noOfPoints / (noOfProcs * noOfTasks);
+                               int procIndex, int taskPerProc, int dimension) throws IOException {
+    int pointsPerTask = noOfPoints / (taskPerProc * noOfProcs);
     int offset = pointsPerTask * procIndex;
-    double[][] doubles = new double[noOfTasks][];
-    for (int i = 0; i < noOfTasks; i++) {
+    double[][] doubles = new double[taskPerProc][];
+    for (int i = 0; i < taskPerProc; i++) {
       doubles[i] = new double[pointsPerTask * dimension];
     }
 
