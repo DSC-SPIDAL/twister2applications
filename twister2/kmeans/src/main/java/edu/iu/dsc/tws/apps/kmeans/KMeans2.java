@@ -109,8 +109,8 @@ public class KMeans2 implements IContainer {
           middle, new ReduceStreamingPartialReceiver(middle, new KMeans.IdentityFunction()),
           new ReduceStreamingFinalReceiver(new KMeans.IdentityFunction(), new FinalReduceReceiver(middle)));
 
-      broadcastOperation = (MPIDataFlowBroadcast) channel.broadCast(newCfg, MessageType.DOUBLE, middle,
-          1, dests, new BCastReceiver());
+      broadcastOperation = (MPIDataFlowBroadcast) channel.broadCast(newCfg, MessageType.DOUBLE, 1,
+          middle, dests, new BCastReceiver());
 
 
       for (int k = 0; k < sourceTasksOfExecutor.size(); k++) {
