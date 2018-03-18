@@ -163,13 +163,15 @@ public class KMeans2 implements IContainer {
     public boolean receive(int i, Object o) {
       try {
         List<Long> times = new ArrayList<>();
+        List<Long> cTimes = new ArrayList<>();
         for (PipelinedTask p : partitionSources.values()) {
           long time = p.getEmitTimes().get(count);
           time = System.currentTimeMillis() - time;
           times.add(time);
+          cTimes.add(p.getComputeTimes().get(count));
         }
 
-        LOG.info(String.format("%d Broadcasting from source %s %d %s", id, source, ++count, times));
+        LOG.info(String.format("%d Broadcasting from source %s %d %s %s", id, source, ++count, times, cTimes));
         return broadcastOperation.send(source, o, 0);
       } catch (Throwable t) {
         LOG.log(Level.SEVERE, String.format("%d Error source %d target %d", id, source, i), t);
@@ -191,7 +193,7 @@ public class KMeans2 implements IContainer {
 
     @Override
     public boolean onMessage(int source, int path, int target, int flags, Object object) {
-      LOG.info(String.format("%d Received broadcast %d %d", id, target, ++count));
+      // LOG.info(String.format("%d Received broadcast %d %d", id, target, ++count));
       Queue<Message> messageQueue = workerMessageQueue.get(target);
       return messageQueue.offer(new Message(target, 0, object));
     }

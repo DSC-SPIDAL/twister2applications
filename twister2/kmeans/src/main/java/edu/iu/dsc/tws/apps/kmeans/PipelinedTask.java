@@ -31,6 +31,8 @@ public class PipelinedTask {
 
   private List<Long> emitTimes = new ArrayList<>();
 
+  private List<Long> computeTimes = new ArrayList<>();
+
   public PipelinedTask(double[] points, double[] centers, int taskId, int dimension, int noOfIterations, int pointsForThread) {
     this.points = points;
     this.centers = centers;
@@ -52,14 +54,22 @@ public class PipelinedTask {
       return false;
     }
 
+    long start = System.nanoTime();
+
     findNearesetCenters(dimension, points, centers, centerSums, pointsForThread);
     currentIteration++;
+    long time = System.nanoTime() - start;
+    computeTimes.add(start);
 
     // now communicate
     emitTimes.add(System.currentTimeMillis());
     allReduce.send(taskId, centerSums, 0);
 
     return true;
+  }
+
+  public List<Long> getComputeTimes() {
+    return computeTimes;
   }
 
   public List<Long> getEmitTimes() {
