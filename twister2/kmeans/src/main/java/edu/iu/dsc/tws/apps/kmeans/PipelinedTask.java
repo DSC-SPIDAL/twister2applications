@@ -53,7 +53,7 @@ public class PipelinedTask {
     }
 
     long start = System.nanoTime();
-
+    LOG.info(String.format("Points per thread %d", points.length));
     findNearesetCenters(dimension, points, centers, centerSums, pointsForThread);
     currentIteration++;
     double time = (System.nanoTime() - start) / 1000000.0;
