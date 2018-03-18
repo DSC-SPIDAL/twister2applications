@@ -58,7 +58,7 @@ public class TeraSortContainer2 implements IContainer {
 
     private Config config;
     private ResourcePlan resourcePlan;
-    private static final int NO_OF_TASKS = 8;
+    private static final int NO_OF_TASKS = 320;
 
     private int noOfTasksPerExecutor = 2;
     private long startTime = 0;
@@ -84,7 +84,7 @@ public class TeraSortContainer2 implements IContainer {
         long startTimeTotal = System.currentTimeMillis();
         this.config = cfg;
         this.id = containerId;
-        workersPerNode = 4;
+        workersPerNode = 10;
         workerLocalID = containerId % workersPerNode;
         this.resourcePlan = plan;
         sampleNodes = new ArrayList<>();
@@ -194,6 +194,7 @@ public class TeraSortContainer2 implements IContainer {
             mapThread.start();
         }
 
+        LOG.info(String.format("%d After partitionOp thread memory Map", id));
 
         Thread progressPartition = new Thread(new ProgressThreadP(partitionOp));
         progressPartition.start();
@@ -459,7 +460,7 @@ public class TeraSortContainer2 implements IContainer {
         public void run() {
             String inputFile = Paths.get(inputFolder, filePrefix
                     + workerLocalID + "_" + Integer.toString(localId)).toString();
-            int block_size = 5;
+            int block_size = 25;
             Map<Integer, List<byte[]>> keyMap = new HashMap<>();
             Map<Integer, List<byte[]>> dataMap = new HashMap<>();
             Map<Integer, Integer> countsMap = new HashMap<>();
@@ -477,14 +478,15 @@ public class TeraSortContainer2 implements IContainer {
             List<byte[]> keyList = new ArrayList<>(block_size);
             List<byte[]> dataList = new ArrayList<>(block_size);
             List<Record> records = DataLoader.load(id, inputFile);
-
+            System.out.println("Done reading data");
             //sort the local records
             //Collections.sort(records);
             KeyedContent keyedContent = null;
             int partition;
             int localCount;
+            Record text;
             for (int i = 0; i < records.size(); i++) {
-                Record text = records.get(i);
+                 text = records.get(i);
                 partition = tree.getPartition(text.getKey());
                 localCount = countsMap.get(partition);
                 countsMap.put(partition, (localCount + 1) % block_size);
@@ -539,11 +541,7 @@ public class TeraSortContainer2 implements IContainer {
                 int flags = MessageFlags.FLAGS_LAST;
                 while (!partitionOp.send(task, keyedContent, flags, i)) {
                     // lets wait a litte and try again
-                    try {
-                        Thread.sleep(1);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                    partitionOp.progress();
                 }
             }
 
