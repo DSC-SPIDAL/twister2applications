@@ -494,7 +494,6 @@ public class TeraSortContainer3 implements IContainer {
                         done = true;
                         break;
                     }
-                    System.out.println("reading data loop " + loopCount + " : numRecords : " + records.size());
                     loopCount++;
                     for (int i = 0; i < records.size(); i++) {
                         text = records.get(i);
@@ -548,9 +547,8 @@ public class TeraSortContainer3 implements IContainer {
             //Send messages to all tasks to let them know that the messages are finished
             keyList = new ArrayList<>();
             dataList = new ArrayList<>();
-            Record temp = records.get(records.size() - 1);
-            keyList.add(temp.getKey().getBytes());
-            dataList.add(temp.getText().getBytes());
+            keyList.add(new byte[10]);
+            dataList.add(new byte[90]);
             keyedContent = new KeyedContent(keyList, dataList,
                     MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
             for (int i = 0; i < NO_OF_TASKS; i++) {
