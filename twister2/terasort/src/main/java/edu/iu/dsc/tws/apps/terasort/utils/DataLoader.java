@@ -64,6 +64,71 @@ public final class DataLoader {
         }
     }
 
+    public static boolean load(DataInputStream in, int limit, int rank, List<Record> records) {
+        records = new ArrayList<>();
+        byte[] buffer = new byte[Record.RECORD_LENGTH];
+        int count = 0;
+        try {
+            while (count < limit) {
+                int read = 0;
+                Text key = new Text();
+                Text value = new Text();
+                while (read < Record.RECORD_LENGTH) {
+                    long newRead = in.read(buffer, read, Record.RECORD_LENGTH - read);
+                    if (newRead == -1) {
+                        if (read == 0) {
+                            return false;
+                        } else {
+                            throw new EOFException("read past eof");
+                        }
+                    }
+                    read += newRead;
+                }
+                key.set(buffer, 0, Record.KEY_SIZE);
+                value.set(buffer, Record.KEY_SIZE, Record.DATA_SIZE);
+                records.add(new Record(key, value));
+                count++;
+            }
+        } catch (IOException e) {
+            LOG.log(Level.SEVERE, "Failed to read the file: " + rank, e);
+            throw new RuntimeException(e);
+        }
+        return true;
+    }
+
+    public static List<Record> loadFrom(int rank, String inFileName) {
+        List<Record> records = new ArrayList<>();
+        byte[] buffer = new byte[Record.RECORD_LENGTH];
+
+        try {
+            DataInputStream in = new DataInputStream(
+                    new BufferedInputStream(
+                            new FileInputStream(new File(inFileName))));
+            while (true) {
+                int read = 0;
+                Text key = new Text();
+                Text value = new Text();
+                while (read < Record.RECORD_LENGTH) {
+                    long newRead = in.read(buffer, read, Record.RECORD_LENGTH - read);
+                    if (newRead == -1) {
+                        if (read == 0) {
+                            return records;
+                        } else {
+                            throw new EOFException("read past eof");
+                        }
+                    }
+                    read += newRead;
+                }
+                key.set(buffer, 0, Record.KEY_SIZE);
+                value.set(buffer, Record.KEY_SIZE, Record.DATA_SIZE);
+                records.add(new Record(key, value));
+            }
+        } catch (IOException e) {
+            LOG.log(Level.SEVERE, "Failed to read the file: " + rank, e);
+            throw new RuntimeException(e);
+        }
+    }
+
     /**
      * load only a subset of the records
      *
