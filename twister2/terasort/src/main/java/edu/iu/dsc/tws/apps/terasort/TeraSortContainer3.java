@@ -182,7 +182,7 @@ public class TeraSortContainer3 implements IContainer {
         finalPartitionRec.setMap(expectedIds);
         LOG.info(String.format("%d Before partitionOp thread memory Map", id));
 
-        partitionOp.setMemoryMapped(true);
+        //partitionOp.setMemoryMapped(true);
         // now lets read all the datacols and distribute them to the correct tasks
 
         for (int i = 0; i < noOfTasksPerExecutor; i++) {
