@@ -89,11 +89,41 @@ public final class DataLoader {
                 records.add(new Record(key, value));
                 count++;
             }
+            return records;
         } catch (IOException e) {
             LOG.log(Level.SEVERE, "Failed to read the file: " + rank, e);
             throw new RuntimeException(e);
         }
-        return records;
+    }
+
+    public static int load(DataInputStream in, int limit, int rank, List<byte[]> recordsKeys, List<byte[]> recordsVals) {
+        int count = 0;
+        long newRead;
+        try {
+            while (count < limit) {
+                int read = 0;
+                while (read < Record.RECORD_LENGTH) {
+                    if(read < 10){
+                        newRead = in.read(recordsKeys.get(count), read, Record.KEY_SIZE - read);
+                    }else{
+                        newRead = in.read(recordsVals.get(count), read, Record.RECORD_LENGTH - read);
+                    }
+                    if (newRead == -1) {
+                        if (read == 0) {
+                            return count;
+                        } else {
+                            throw new EOFException("read past eof");
+                        }
+                    }
+                    read += newRead;
+                }
+                count++;
+            }
+            return count;
+        } catch (IOException e) {
+            LOG.log(Level.SEVERE, "Failed to read the file: " + rank, e);
+            throw new RuntimeException(e);
+        }
     }
 
     public static List<Record> loadFrom(int rank, String inFileName) {
