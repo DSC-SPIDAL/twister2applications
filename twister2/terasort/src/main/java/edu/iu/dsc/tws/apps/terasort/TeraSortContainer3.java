@@ -489,6 +489,7 @@ public class TeraSortContainer3 implements IContainer {
                                 new FileInputStream(new File(inputFile))));
                 while (!done) {
                     records = DataLoader.load(in, recordLimit, id);
+
                     if(records.size() == 0){
                         done = true;
                         break;
