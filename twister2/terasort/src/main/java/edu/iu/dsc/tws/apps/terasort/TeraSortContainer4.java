@@ -476,8 +476,8 @@ public class TeraSortContainer4 implements IContainer {
 
             List<byte[]> keyList = new ArrayList<>(block_size);
             List<byte[]> dataList = new ArrayList<>(block_size);
-            List<byte[]> recordsKeys = null;
-            List<byte[]> recordsVals = null;
+            List<byte[]> recordsKeys = new ArrayList<>();
+            List<byte[]> recordsVals = new ArrayList<>();
             int recordLimit = 312500 * 2;
 
             // Init the records set
