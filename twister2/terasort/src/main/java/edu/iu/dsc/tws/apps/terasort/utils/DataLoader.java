@@ -64,8 +64,8 @@ public final class DataLoader {
         }
     }
 
-    public static boolean load(DataInputStream in, int limit, int rank, List<Record> records) {
-        records = new ArrayList<>();
+    public static List<Record> load(DataInputStream in, int limit, int rank) {
+        List<Record> records = new ArrayList<>();
         byte[] buffer = new byte[Record.RECORD_LENGTH];
         int count = 0;
         try {
@@ -77,7 +77,7 @@ public final class DataLoader {
                     long newRead = in.read(buffer, read, Record.RECORD_LENGTH - read);
                     if (newRead == -1) {
                         if (read == 0) {
-                            return false;
+                            return records;
                         } else {
                             throw new EOFException("read past eof");
                         }
@@ -93,7 +93,7 @@ public final class DataLoader {
             LOG.log(Level.SEVERE, "Failed to read the file: " + rank, e);
             throw new RuntimeException(e);
         }
-        return true;
+        return records;
     }
 
     public static List<Record> loadFrom(int rank, String inFileName) {

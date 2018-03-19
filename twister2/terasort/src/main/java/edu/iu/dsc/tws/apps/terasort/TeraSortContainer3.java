@@ -488,7 +488,11 @@ public class TeraSortContainer3 implements IContainer {
                         new BufferedInputStream(
                                 new FileInputStream(new File(inputFile))));
                 while (!done) {
-                    done = DataLoader.load(in, recordLimit, id, records);
+                    records = DataLoader.load(in, recordLimit, id);
+                    if(records.size() == 0){
+                        done = true;
+                        break;
+                    }
                     System.out.println("reading data loop " + loopCount + " : numRecords : " + records.size());
                     loopCount++;
                     for (int i = 0; i < records.size(); i++) {
