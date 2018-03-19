@@ -102,11 +102,13 @@ public final class DataLoader {
         try {
             while (count < limit) {
                 int read = 0;
+                int readval = 0;
                 while (read < Record.RECORD_LENGTH) {
                     if(read < 10){
                         newRead = in.read(recordsKeys.get(count), read, Record.KEY_SIZE - read);
                     }else{
-                        newRead = in.read(recordsVals.get(count), read, Record.RECORD_LENGTH - read);
+                        newRead = in.read(recordsVals.get(count), readval, Record.RECORD_LENGTH - read);
+                        readval += newRead;
                     }
                     if (newRead == -1) {
                         if (read == 0) {
