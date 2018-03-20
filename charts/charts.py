@@ -15,7 +15,8 @@ xlabels_1_400 = [.125, .250, .5, 1, 2, 4]
 xlabels_1_32 = [1, 2, 4, 8, 16, 32]
 
 markers=["o", "x", "^", "v", "D", "*"]
-cls=["red", "blue", "green", "cyan", "yellow", "black", "magenta"]
+cls=["khaki", "lightblue", "gray", "cyan", "yellow", "black", "magenta"]
+patterns = [ "/" , "+" , "-" , ">" , "\\" , "|", "o", "O", ".", "*" ]
 
 def plot_line(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, legend=None, plot=None, logy=False, ylim=None, legendloc=None, ticks=None, ymin=None, ymax=None, mrks=True, y_ticks=None) :
     if not plot:
@@ -92,12 +93,13 @@ def plot_bar(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, leg
     for i in range(len(y)):
         temp = None
         if logy:
-            temp = p.bar(ind + current_width, y[i], width, color=col[i], yerr=y_std[i])
+            temp = p.bar(ind + current_width, y[i], width, edgecolor='black', color=col[i], yerr=y_std[i], hatch=patterns[i])
+            # temp = p.bar(ind + current_width, y[i], width, edgecolor='black', facecolor="none", color=col[i], yerr=y_std[i], hatch=patterns[i])
         else:
             if y_std:
-                temp = p.bar(ind + current_width, y[i], width, color=col[i], yerr=y_std[i])
+                temp = p.bar(ind + current_width, y[i], width, edgecolor='black', color=col[i], yerr=y_std[i], hatch=patterns[i])
             else:
-                temp = p.bar(ind + current_width, y[i], width, color=col[i])
+                temp = p.bar(ind + current_width, y[i], width, edgecolor='black', color=col[i], hatch=patterns[i])
         l.append(temp[0])
         current_width = current_width + width
 
@@ -117,15 +119,15 @@ def plot_bar(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, leg
 
     for l in y:
         print title, l
-    p.grid(True)
+    # p.grid(True)
     if legend:
         if legendloc:
             p.legend(legend, loc=legendloc, fancybox=True, framealpha=0.25)
         else:
             p.legend(legend, loc="upper left", fancybox=True, framealpha=0.25)
-    # p.minorticks_on()
-    # p.grid(b=True, which='major', color='k', linestyle='-')
-    # p.grid(b=True, which='minor', color='grey', linestyle='-', alpha=0.2)
+    p.minorticks_on()
+    p.grid(b=True, which='major', color='k', linestyle='-', axis='y', alpha=.5)
+    # p.grid(b=True, which='minor', color='grey', linestyle='-', alpha=0.1, axis='y')
     p.tight_layout()
     if not plot:
         p.show()
@@ -144,15 +146,15 @@ def plot_latency_heron():
                        [2.9,	3,	3.2,	3.7,	5.78,	11.06,	20.95],
                        [42,	45,	61,	103, 184,	348,	675]]
 
-    fig = plt.figure(figsize=(18, 4), dpi=100)
+    fig = plt.figure(figsize=(12, 4), dpi=100)
 
-    plt.subplot2grid((1,27), (0, 0), colspan=8)
+    plt.subplot2grid((1,15), (0, 0), colspan=4)
     plot_line(heron_partition, x=x_sizes, legend=["Heron-1Gbps", "Twister2-IB", "Twister2-GBps"], title="Latency of Partition", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="Latency (ms) Log", ymax=10000)
 
-    plt.subplot2grid((1,27), (0, 9), colspan=8)
+    plt.subplot2grid((1,15), (0, 5), colspan=4)
     plot_line(heron_reduce, x=x_sizes, legend=["Heron-1Gbps", "Twister2-IB", "Twister2-GBps"], title="Latency of Reduce", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="Latency (ms) Log", ymax=10000)
 
-    plt.subplot2grid((1,27), (0, 18), colspan=8)
+    plt.subplot2grid((1,15), (0, 9), colspan=4)
     plot_line(heron_broadcast, x=x_sizes, legend=["Twister2-IB", "Twister2-1GBps", "Heron-1Gbps"], title="Latency of Broadcast", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="Latency (ms) Log", ymax=10000)
 
     plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
@@ -183,6 +185,20 @@ def plot_latency_flink():
     fig.savefig("/home/supun/data/twister2/pics/flink_time.png")
     plt.show()
 
+def plot_bandwidth():
+    y_short_large_parallel = [[.117,	1.083,	.842],
+                              [.117, 1.092, 3.13],
+                              [.117, 1.067,	3.798]]
+
+    fig = plt.figure(figsize=(4, 4), dpi=100)
+
+    plt.subplot2grid((1,8), (0, 0), colspan=8)
+    plot_bar(y_short_large_parallel, x=[1,10,40], xlabel="Different networks", legend=["Flink", "Twister2", "MPI"], title="Bandwidth Utilization",plot=plt, ylabel="time(ms)")
+    plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
+    fig.tight_layout()
+    fig = plt.gcf()
+    fig.savefig("/home/supun/data/twister2/pics/bandwidth.png")
+    plt.show()
 
 def plot_latency_mpi():
     reduce = [[0.04,	0.08,	0.26,	0.4,	0.95,	1.6, 2.8],
@@ -432,6 +448,7 @@ def main():
     plot_latency_heron()
     plot_latency_flink()
     plot_latency_mpi()
+    plot_bandwidth()
     # plot_latency_parallel_ib()
     # plot_yahoo_percentages()
     # plot_inflight()
