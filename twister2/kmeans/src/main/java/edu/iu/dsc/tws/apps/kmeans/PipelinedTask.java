@@ -3,7 +3,9 @@ package edu.iu.dsc.tws.apps.kmeans;
 import edu.iu.dsc.tws.comms.api.DataFlowOperation;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.IntUnaryOperator;
 import java.util.logging.Logger;
 
 public class PipelinedTask {
@@ -16,6 +18,8 @@ public class PipelinedTask {
   private double[] centers;
 
   private double[] centerSums;
+
+  private int[] centerCounts;
 
   private int taskId;
 
@@ -40,6 +44,7 @@ public class PipelinedTask {
     this.pointsForThread = pointsForThread;
 
     this.centerSums = new double[centers.length];
+    this.centerCounts = new int[centers.length / dimension];
   }
 
   public void setAllReduce(DataFlowOperation allReduce) {
@@ -62,7 +67,7 @@ public class PipelinedTask {
     // now communicate
     emitTimes.add(System.currentTimeMillis());
 //    LOG.info(String.format("%d Sending centersum with length %d", taskId, centerSums.length));
-    allReduce.send(taskId, centerSums, 0);
+    allReduce.send(taskId, new Centers(centerSums, centerCounts), 0);
 
     return true;
   }
@@ -75,11 +80,12 @@ public class PipelinedTask {
     return emitTimes;
   }
 
-  public void updateCenters(double[] newCenters) {
-    if (centers.length != newCenters.length) {
-      throw new RuntimeException(String.format("%d Received new centers with length %d", taskId, newCenters.length));
+  public void updateCenters(Centers newCenters) {
+    if (centers.length != newCenters.getCenters().length) {
+      throw new RuntimeException(String.format("%d Received new centers with length %d", taskId, newCenters.getCenters().length));
     }
-    centers = newCenters;
+    Arrays.fill(centerCounts, 0);
+    centers = newCenters.getCenters();
   }
 
   public void progress() {
@@ -93,6 +99,7 @@ public class PipelinedTask {
       int centerWithMinDist = findCenterWithMinDistance(points, centers, dimension, i);
       int centerOffset = centerWithMinDist * dimension;
       accumulate(points, centerSumsAndCountsForThread, i, centerOffset, dimension);
+      centerSums[centerWithMinDist]++;
     }
   }
 

@@ -105,11 +105,11 @@ public class KMeans2 implements IContainer {
         partitionSources.put(sourceTask, source);
       }
 
-      reduceOperation = (MPIDataFlowReduce) channel.reduce(newCfg, MessageType.DOUBLE, 0, sources,
+      reduceOperation = (MPIDataFlowReduce) channel.reduce(newCfg, MessageType.OBJECT, 0, sources,
           middle, new ReduceStreamingFinalReceiver(new IdentityFunction(), new FinalReduceReceiver(middle)),
           new ReduceStreamingPartialReceiver(middle, new IdentityFunction()));
 
-      broadcastOperation = (MPIDataFlowBroadcast) channel.broadCast(newCfg, MessageType.DOUBLE, 1,
+      broadcastOperation = (MPIDataFlowBroadcast) channel.broadCast(newCfg, MessageType.OBJECT, 1,
           middle, dests, new BCastReceiver());
 
 
@@ -222,18 +222,27 @@ public class KMeans2 implements IContainer {
 
     @Override
     public Object reduce(Object t1, Object t2) {
-      double[] data1 = (double[]) t1;
-      double[] data2 = (double[]) t2;
+      Centers c1 = (Centers) t1;
+      Centers c2 = (Centers) t2;
+      double[] data1 = (double[]) ((Centers) t1).getCenters();
+      double[] data2 = (double[]) ((Centers) t2).getCenters();
+      int[] i1 = ((Centers) t1).getCenterSums();
+      int[] i2 = c2.getCenterSums();
+      int[] i3 = new int[i1.length];
       double[] data3 = new double[data1.length];
       for (int i = 0; i < data1.length; i++) {
         data3[i] = data1[i] + data2[i];
+      }
+
+      for (int i = 0; i < i1.length; i++) {
+        i3[i] = i1[i] + i2[i];
       }
 
 //      if (data3.length != 200) {
 //        LOG.log(Level.SEVERE,"Error", new RuntimeException(String.format("%d Reduce received length %d %d %d", id, data3.length, data1.length, data2.length)));
 //      }
 
-      return data3;
+      return new Centers(data3, i3);
     }
   }
 

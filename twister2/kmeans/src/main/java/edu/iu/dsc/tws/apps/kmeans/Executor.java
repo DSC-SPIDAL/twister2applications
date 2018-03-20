@@ -40,7 +40,7 @@ public class Executor implements Runnable {
           m = messages.poll();
         }
         // update the centers
-        task.updateCenters((double []) m.getMessage());
+        task.updateCenters((Centers) m.getMessage());
         communicateTime += (System.nanoTime() - communicateStart);
       } catch (Throwable e) {
         e.printStackTrace();
