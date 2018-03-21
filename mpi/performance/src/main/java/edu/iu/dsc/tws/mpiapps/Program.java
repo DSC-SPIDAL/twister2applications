@@ -3,6 +3,7 @@ package edu.iu.dsc.tws.mpiapps;
 import edu.iu.dsc.tws.mpiapps.datacols.*;
 import edu.iu.dsc.tws.mpiapps.nonblocking.NBReduce;
 import edu.iu.dsc.tws.mpiapps.nonblocking.NBSend;
+import edu.iu.dsc.tws.mpiapps.nonblocking.PingPong;
 import mpi.MPI;
 import mpi.MPIException;
 import org.apache.commons.cli.*;
@@ -84,6 +85,9 @@ public class Program {
       allGather.execute();
     } else if (collective == 11) {
       NBSend nbSend = new NBSend(dataSize, iterations);
+      nbSend.execute();
+    } else if (collective == 12) {
+      PingPong nbSend = new PingPong(dataSize, iterations);
       nbSend.execute();
     }
 
