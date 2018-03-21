@@ -169,6 +169,8 @@ public class PingPong implements IContainer {
 
     private long sum = 0;
 
+    private int sumCount = 0;
+
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
     }
@@ -179,8 +181,11 @@ public class PingPong implements IContainer {
 
       byte[] d = (byte[]) object;
       long time = getTime(d);
+      if (count > jobParameters.getIterations() / 2) {
 //      LOG.info("Received time: " + time);
-      sum += (System.nanoTime() - time);
+        sum += (System.nanoTime() - time);
+        sumCount++;
+      }
 
       if (jobParameters.getPrintInterval() > 0 && count % jobParameters.getPrintInterval() == 0) {
         LOG.info("Received: " + count + " " + ((byte [])object).length);
@@ -188,7 +193,7 @@ public class PingPong implements IContainer {
       if (count >= jobParameters.getIterations()) {
         time = System.nanoTime();
 
-        LOG.info(String.format("Finished: %d latency %d", (time - start) / 1000000, sum / count));
+        LOG.info(String.format("Finished: %d latency %d", (time - start) / 1000000, sum / sumCount));
         return true;
       }
 
