@@ -17,13 +17,15 @@ public class PingPong extends Collective {
 
     ByteBuffer sendBuffer = MPI.newByteBuffer(size);
     ByteBuffer recvBuffer = MPI.newByteBuffer(size);
+    byte[] b = new byte[size];
     long sum = 0;
     int currentItr = 0;
     while (currentItr < iterations) {
       sendBuffer.clear();
       recvBuffer.clear();
       if (rank == 0) {
-        sendBuffer.putLong(System.nanoTime());
+        sendBuffer.put(b);
+        sendBuffer.putLong(0, System.nanoTime());
         MPI.COMM_WORLD.send(sendBuffer, size, MPI.BYTE, 1, 0);
       }
       if (rank == 1) {
