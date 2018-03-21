@@ -18,6 +18,7 @@ public class PingPong extends Collective {
     ByteBuffer sendBuffer = MPI.newByteBuffer(size);
     ByteBuffer recvBuffer = MPI.newByteBuffer(size);
     byte[] b = new byte[size];
+    byte[] b1 = new byte[size];
     long sum = 0;
     int currentItr = 0;
     while (currentItr < iterations) {
@@ -30,7 +31,6 @@ public class PingPong extends Collective {
       }
       if (rank == 1) {
         MPI.COMM_WORLD.recv(recvBuffer, size, MPI.BYTE, 0, 0);
-        byte[] b1 = new byte[size];
         recvBuffer.position(size);
         recvBuffer.flip();
         recvBuffer.get(b1);
