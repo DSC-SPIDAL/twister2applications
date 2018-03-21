@@ -30,9 +30,11 @@ public class PingPong extends Collective {
       }
       if (rank == 1) {
         MPI.COMM_WORLD.recv(recvBuffer, size, MPI.BYTE, 0, 0);
+        byte[] b1 = new byte[size];
         recvBuffer.position(size);
         recvBuffer.flip();
-        long recv = recvBuffer.getLong();
+        recvBuffer.get(b1);
+        long recv = recvBuffer.getLong(0);
 
         sendBuffer.putLong(recv);
         MPI.COMM_WORLD.send(sendBuffer, 8, MPI.BYTE, 0, 0);
