@@ -177,6 +177,15 @@ public class KMeans2 implements IContainer {
 //        if (d.length != 200) {
 //          throw new RuntimeException(String.format("%d Reduce received %d length %d", id, i, d.length));
 //        }
+        Centers c = (Centers) o;
+        double[] cents = c.getCenters();
+        int[] sums = c.getCenterSums();
+        for (int j = 0; j < c.getCenters().length; j++) {
+          int sumIndex = j / jobParameters.getDimension();
+          if (sums[sumIndex] > 0) {
+            cents[j] = cents[j] / sums[sumIndex];
+          }
+        }
 //
 //        LOG.info(String.format("%d Broadcasting from source %s %d %s %s", id, source, ++count, times, cTimes));
         return broadcastOperation.send(source, o, 0);
