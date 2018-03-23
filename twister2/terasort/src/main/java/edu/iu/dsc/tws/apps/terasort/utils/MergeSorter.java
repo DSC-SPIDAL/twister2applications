@@ -2,7 +2,6 @@ package edu.iu.dsc.tws.apps.terasort.utils;
 
 import edu.iu.dsc.tws.comms.mpi.io.KeyedContent;
 import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.math3.util.Pair;
 import org.apache.hadoop.io.Text;
 
 import java.nio.ByteBuffer;

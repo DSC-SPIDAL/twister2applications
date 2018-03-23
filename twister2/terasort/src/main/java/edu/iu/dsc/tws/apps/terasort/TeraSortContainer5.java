@@ -701,6 +701,7 @@ public class TeraSortContainer5 implements IContainer {
                     DataLoader loader = new DataLoader();
                     loader.saveFast(sortedRecords, outputFile);
                 }
+                reduceDone = true;
             }
             count++;
             return true;
