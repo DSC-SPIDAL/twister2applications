@@ -22,6 +22,7 @@ import edu.iu.dsc.tws.comms.mpi.io.gather.GatherBatchFinalReceiver;
 import edu.iu.dsc.tws.comms.mpi.io.gather.GatherBatchPartialReceiver;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.hadoop.io.Text;
 
@@ -492,7 +493,7 @@ public class TeraSortContainer5 implements IContainer {
                                 new FileInputStream(new File(inputFile))));
                 while (!done) {
                     countRecords = DataLoader.load(in, recordLimit, id, recordsKeys, recordsVals);
-                    if(countRecords == 0){
+                    if (countRecords == 0) {
                         done = true;
                         break;
                     }
@@ -661,6 +662,7 @@ public class TeraSortContainer5 implements IContainer {
         MergeSorter sorter;
         KeyedContent temp;
         List<ImmutablePair<byte[], byte[]>> tempList;
+
         @Override
         public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
             finished = new ConcurrentHashMap<>();
@@ -681,15 +683,15 @@ public class TeraSortContainer5 implements IContainer {
             // add the object to the map
             if ((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) {
                 finished.get(target).put(source, true);
-            }else{
-                if(object instanceof KeyedContent){
+            } else {
+                if (object instanceof KeyedContent) {
                     System.out.println("is Keyed");
-                    temp = (KeyedContent)object;
+                    temp = (KeyedContent) object;
                     sorter.addData(temp);
 
-                }else if(object instanceof List){
+                } else if (object instanceof List) {
                     System.out.println("isList");
-                    tempList = (List<ImmutablePair<byte[],byte[]>>) object;
+                    tempList = (List<ImmutablePair<byte[], byte[]>>) object;
                     sorter.addData(tempList);
                 }
             }
@@ -697,9 +699,16 @@ public class TeraSortContainer5 implements IContainer {
             if (((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) && isAllFinished(target)) {
                 completedTasks++;
                 if (completedTasks == noOfTasksPerExecutor) {
+                    long stime = System.currentTimeMillis();
                     Record[] sortedRecords = sorter.sort();
+                    long etime = System.currentTimeMillis();
+                    System.out.println("Sort time " + id + " : " + (etime - stime));
+                    stime = System.currentTimeMillis();
                     DataLoader loader = new DataLoader();
                     loader.saveFast(sortedRecords, outputFile);
+                    etime = System.currentTimeMillis();
+                    System.out.println("Save time " + id + " : " + (etime - stime));
+
                 }
                 reduceDone = true;
             }
