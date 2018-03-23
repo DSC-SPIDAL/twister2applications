@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.IntUnaryOperator;
 import java.util.logging.Logger;
+import java.util.stream.IntStream;
 
 public class PipelinedTask {
   private static final Logger LOG = Logger.getLogger(PipelinedTask.class.getName());
@@ -85,6 +86,18 @@ public class PipelinedTask {
       throw new RuntimeException(String.format("%d Received new centers with length %d", taskId, newCenters.getCenters().length));
     }
     Arrays.fill(centerCounts, 0);
+    int numCenters = centers.length / dimension;
+    boolean converged = true;
+    for (int i = 0; i < numCenters; ++i) {
+      final int c = i;
+      double dist = getEuclideanDistance(newCenters.getCenters(), centers, dimension, (c * (dimension)), c*dimension);
+      if (dist > .00000001) {
+        // Can't break as center sums need to be divided to
+        // form new centers
+        converged = false;
+      }
+    }
+
     centers = newCenters.getCenters();
   }
 
