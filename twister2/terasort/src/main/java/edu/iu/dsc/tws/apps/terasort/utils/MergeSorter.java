@@ -1,6 +1,7 @@
 package edu.iu.dsc.tws.apps.terasort.utils;
 
 import edu.iu.dsc.tws.comms.mpi.io.KeyedContent;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.math3.util.Pair;
 import org.apache.hadoop.io.Text;
 
@@ -60,7 +61,7 @@ public class MergeSorter {
         recordsList.add(r);
     }
 
-    public void addData(List<Pair<byte[], byte[]>> data) {
+    public void addData(List<ImmutablePair<byte[], byte[]>> data) {
         //  LOG.info(String.format("Rank: %d added data of size %d: ", rank, size));
         // for now lets get the keys and sort them
         int records = data.size();

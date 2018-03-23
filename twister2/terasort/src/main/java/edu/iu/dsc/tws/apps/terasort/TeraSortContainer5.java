@@ -20,11 +20,9 @@ import edu.iu.dsc.tws.comms.core.TaskPlan;
 import edu.iu.dsc.tws.comms.mpi.io.KeyedContent;
 import edu.iu.dsc.tws.comms.mpi.io.gather.GatherBatchFinalReceiver;
 import edu.iu.dsc.tws.comms.mpi.io.gather.GatherBatchPartialReceiver;
-import edu.iu.dsc.tws.data.memory.OperationMemoryManager;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.math3.util.Pair;
 import org.apache.hadoop.io.Text;
 
 import java.io.*;
@@ -662,7 +660,7 @@ public class TeraSortContainer5 implements IContainer {
         int count = 0;
         MergeSorter sorter;
         KeyedContent temp;
-        List<Pair<byte[], byte[]>> tempList;
+        List<ImmutablePair<byte[], byte[]>> tempList;
         @Override
         public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
             finished = new ConcurrentHashMap<>();
@@ -691,7 +689,7 @@ public class TeraSortContainer5 implements IContainer {
 
                 }else if(object instanceof List){
                     System.out.println("isList");
-                    tempList = (List<Pair<byte[],byte[]>>) object;
+                    tempList = (List<ImmutablePair<byte[],byte[]>>) object;
                     sorter.addData(tempList);
                 }
             }
