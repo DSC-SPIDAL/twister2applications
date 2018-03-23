@@ -216,6 +216,15 @@ public class Program {
             .build();
         // now submit the job
         Twister2Submitter.submitContainerJob(basicJob, config);
+      } else if (col == 10) {
+        basicJob = BasicJob.newBuilder()
+            .setName("ping-pong")
+            .setContainerClass(edu.iu.dsc.tws.apps.stream.PingPong.class.getName())
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
+            .setConfig(jobConfig)
+            .build();
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
       }
     }
   }
