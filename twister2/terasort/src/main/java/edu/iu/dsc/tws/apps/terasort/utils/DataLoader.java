@@ -26,11 +26,6 @@ import java.util.logging.Logger;
  */
 public final class DataLoader {
     private static final Logger LOG = Logger.getLogger(DataLoader.class.getName());
-
-    private DataLoader() {
-
-    }
-
     public static List<Record> load(int rank, String inFileName) {
         List<Record> records = new ArrayList<>();
         byte[] buffer = new byte[Record.RECORD_LENGTH];
