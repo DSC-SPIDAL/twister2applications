@@ -13,9 +13,11 @@ x_sizes = [1, 2, 4, 8, 16, 32, 64]
 xlabels_1_64 = [1, 2, 4, 8, 16, 32, 64]
 xlabels_1_400 = [.125, .250, .5, 1, 2, 4]
 xlabels_1_32 = [1, 2, 4, 8, 16, 32]
+xlabels_1_16 = [1, 2, 4, 8, 16]
 
 markers=["o", "x", "^", "v", "D", "*"]
 cls=["khaki", "lightblue", "gray", "cyan", "yellow", "black", "magenta"]
+lcls=["navy", "black", "crimson", "green", "magenta", "black", "magenta"]
 patterns = [ "/" , "+" , "-" , ">" , "\\" , "|", "o", "O", ".", "*" ]
 
 def plot_line(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, legend=None, plot=None, logy=False, ylim=None, legendloc=None, ticks=None, ymin=None, ymax=None, mrks=True, y_ticks=None) :
@@ -24,7 +26,7 @@ def plot_line(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, le
     else:
         p = plot
     if not col:
-        col = cls
+        col = lcls
 
     for i in range(len(y)):
         if logy:
@@ -76,8 +78,10 @@ def plot_line(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, le
         p.show()
     return plt
 
-def plot_bar(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, legend=None, plot=None, logy=False, ylim=None, legendloc=None, y_std=None) :
+def plot_bar(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, legend=None, plot=None, logy=False, ylim=None, legendloc=None, y_std=None, bar_width=None, n=None, ymax=None) :
     N = 3
+    if n:
+        N = n
     width = .15
     ind = np.arange(0, .5*N, .5)
 
@@ -90,11 +94,14 @@ def plot_bar(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, leg
 
     l = []
     current_width = 0
+    if bar_width:
+        width = bar_width
+    count = len(y)
+
     for i in range(len(y)):
         temp = None
         if logy:
-            temp = p.bar(ind + current_width, y[i], width, edgecolor='black', color=col[i], yerr=y_std[i], hatch=patterns[i])
-            # temp = p.bar(ind + current_width, y[i], width, edgecolor='black', facecolor="none", color=col[i], yerr=y_std[i], hatch=patterns[i])
+            temp = p.bar(ind + current_width, y[i], width, edgecolor='black', color=col[i], hatch=patterns[i])
         else:
             if y_std:
                 temp = p.bar(ind + current_width, y[i], width, edgecolor='black', color=col[i], yerr=y_std[i], hatch=patterns[i])
@@ -103,10 +110,12 @@ def plot_bar(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, leg
         l.append(temp[0])
         current_width = current_width + width
 
-    p.xticks(ind + width / 2, x)
+    p.xticks(ind + width * count / 2, x)
 
     if ylim:
         p.ylim(ylim)
+    if ymax:
+        p.ylim(ymax=ymax)
     if not xlabel:
         xlabel = 'message size (KB)'
     p.xlabel(xlabel)
@@ -122,9 +131,9 @@ def plot_bar(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, leg
     # p.grid(True)
     if legend:
         if legendloc:
-            p.legend(legend, loc=legendloc, fancybox=True, framealpha=0.25)
+            p.legend(legend, loc=legendloc, fancybox=True, framealpha=0.25, bbox_to_anchor=(.5, 1.2), ncol=3)
         else:
-            p.legend(legend, loc="upper left", fancybox=True, framealpha=0.25)
+            p.legend(legend, loc="upper left", fancybox=True, framealpha=0.25, bbox_to_anchor=(0.5, 1.05))
     p.minorticks_on()
     p.grid(b=True, which='major', color='k', linestyle='-', axis='y', alpha=.5)
     # p.grid(b=True, which='minor', color='grey', linestyle='-', alpha=0.1, axis='y')
@@ -146,15 +155,15 @@ def plot_latency_heron():
                        [2.9,	3,	3.2,	3.7,	5.78,	11.06,	20.95],
                        [42,	45,	61,	103, 184,	348,	675]]
 
-    fig = plt.figure(figsize=(12, 4), dpi=100)
+    fig = plt.figure(figsize=(16, 4), dpi=100)
 
-    plt.subplot2grid((1,15), (0, 0), colspan=4)
-    plot_line(heron_partition, x=x_sizes, legend=["Heron-1Gbps", "Twister2-IB", "Twister2-GBps"], title="Latency of Partition", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="Latency (ms) Log", ymax=10000)
+    plt.subplot2grid((1,15), (0, 0), colspan=5)
+    plot_line(heron_partition, x=x_sizes, legend=["Heron-1Gbps", "Twister2-IB", "Twister2-GBps"], title="Latency of Partition", plot=plt, ticks=xlabels_1_64, logy=True, ylabel='Latency (ms) Log', ymax=10000)
 
-    plt.subplot2grid((1,15), (0, 5), colspan=4)
+    plt.subplot2grid((1,15), (0, 5), colspan=5)
     plot_line(heron_reduce, x=x_sizes, legend=["Heron-1Gbps", "Twister2-IB", "Twister2-GBps"], title="Latency of Reduce", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="Latency (ms) Log", ymax=10000)
 
-    plt.subplot2grid((1,15), (0, 9), colspan=4)
+    plt.subplot2grid((1,15), (0, 10), colspan=5)
     plot_line(heron_broadcast, x=x_sizes, legend=["Twister2-IB", "Twister2-1GBps", "Heron-1Gbps"], title="Latency of Broadcast", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="Latency (ms) Log", ymax=10000)
 
     plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
@@ -166,17 +175,20 @@ def plot_latency_heron():
 
 def plot_latency_flink():
     flink_reduce = [[486,	770,	1300,	2430,	5020,	10360],
-                    [0.65,	0.66,	0.64,	0.7,	0.9,	1.1]]
+                    [0.1,	0.18,	0.2,	0.28,	0.43,	0.79],
+                    [0.17,	0.2,	0.36,	0.7,	1.3,	2.6]]
 
-    flink_partition = [[615,	2600,	6000,	12600,	26800,	63400],
-                    [445,	470,	510,	592,	910,	1700]]
+    flink_partition = [[227,	450,	872,	1611,	3756,	7300],
+                    [23,	39,	45,	56,	77,	99],
+                     [1010,	1980,	3870,	7410,	14500,	29700],
+                       [32,	58,	134,	272,	505,	1004]]
 
     fig = plt.figure(figsize=(9, 4), dpi=100)
     plt.subplot2grid((1, 18), (0, 0), colspan=8)
-    plot_line(flink_partition, x=xlabels_1_32, legend=["Flink-IPoIB", "Twister2-IB"], title="Latency of Partition", plot=plt, ticks=xlabels_1_32, logy=True, ylabel="Latency (ms) Log", ymax=100000)
+    plot_line(flink_partition, x=xlabels_1_32, legend=["Flink-IPoIB", "Twister-IB", "Fink-1Gpbs", "Twister-1Gbps"], title="Latency of Partition", plot=plt, ticks=xlabels_1_32, logy=True, ylabel="Total time (s) Log", ymax=100000, legendloc="bottom right")
 
     plt.subplot2grid((1, 18), (0, 9), colspan=8)
-    plot_line(flink_reduce, x=xlabels_1_32, legend=["Flink-IPoIB", "Twister2-IB"], title="Latency of Reduce", plot=plt, ticks=xlabels_1_32, logy=True, ylabel="Latency (ms) Log", ymax=20000, legendloc="center right")
+    plot_line(flink_reduce, x=xlabels_1_32, legend=["Flink-IPoIB", "Twister-IB", "Twister-1Gbps"], title="Latency of Reduce", plot=plt, ticks=xlabels_1_32, logy=True, ylabel="Total time (s) Log", ymax=20000, legendloc="center right")
 
     plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
 
@@ -190,10 +202,10 @@ def plot_bandwidth():
                               [.117, 1.092, 3.13],
                               [.117, 1.067,	3.798]]
 
-    fig = plt.figure(figsize=(4, 4), dpi=100)
+    fig = plt.figure(figsize=(5, 4), dpi=100)
 
     plt.subplot2grid((1,8), (0, 0), colspan=8)
-    plot_bar(y_short_large_parallel, x=[1,10,40], xlabel="Different networks", legend=["Flink", "Twister2", "MPI"], title="Bandwidth Utilization",plot=plt, ylabel="time(ms)")
+    plot_bar(y_short_large_parallel, x=[1,10,40], xlabel="Different networks", legend=["Flink", "Twister2", "MPI"], title="Bandwidth Utilization",plot=plt, ylabel="GB/s")
     plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
     fig.tight_layout()
     fig = plt.gcf()
@@ -226,45 +238,53 @@ def plot_latency_mpi():
     fig.savefig("/home/supun/data/twister2/pics/mpi_latency.png")
     plt.show()
 
-def plot_latency_parallel_ib():
-    y_short_large = [[3.94,	5.46,	9.7,	19.8,	39.9,	81.8],
-                     [2.9,	3.56,	4.9,	7.8,	13.9,	38.8],
-                     [1.8,	2.0,	2.4,	3.9,	6.2,	20.2]]
-    y_short_small = [[2.4,	2.36,	2.35,	2.3,	2.3,	2.33],
-                     [2.36,	2.34,	2.33,	2.33,	2.32,	2.32],
-                     [1.02,	1.01,	1.2,	1.2,	1.2,	1.3]]
-
-    y_short_large_parallel = [[11.5,	21.5,	39.81],
-                              [5.65,	8.32,	15.54],
-                              [3.55,	4.8,	8.34]]
-    y_short_large_std = [[9.4,	15.15,	14.8],
-                         [1,	2.4,	2.7],
-                         [1.5,	2.8,	4.1]]
+def plot_benchmark_latency():
+    reduce = [[7.4,	8.4,	9.8,	11.9,	17.1,	25.9,	42.9],
+              [4.6,	5,	6.3,	8.7,	14.5,	22.04,	38.2],
+              [101,	160,	164,	164,	168,	184,	236],
+              [107,	163,	163,	163,	163,	171,	224],
+              [482,	520,	594,	672,	714,	921,	1425]]
 
 
-    y_short_small_parallel = [[3.65,	5.2,	8.8],
-                              [3.7,	5.1,	8.4],
-                              [2.5,	2.8,	4.2]]
-    y_short_small_std = [[.6,	.8,	1.8],
-                         [.5,	.8,	1.4],
-                         [0.5,	.6,	.8]]
-    fig = plt.figure(figsize=(18, 4), dpi=100)
+    fig = plt.figure(figsize=(5, 4), dpi=100)
 
-    plt.subplot2grid((1,35), (0, 0), colspan=8)
-    plot_line(y_short_large, x=x_small, legend=["TCP", "IPoIB", "IB"], title="a) Top. B Large Messages", plot=plt, ticks=xlabels_large, ylabel="Latency (ms) Log", logy=True)
+    plt.subplot2grid((1, 8), (0, 0), colspan=8)
+    plot_line(reduce, x=xlabels_1_64, legend=["Twister-IB", "MPI-IB","Twister-10Gbps", "MPI-10Gbps", "Heron-10Gbps"], title="Latency", plot=plt, ticks=xlabels_1_64, logy=True, ylabel=r"Latency ($\mu$s)", ymax=1500, legendloc="right center")
 
-    plt.subplot2grid((1,35), (0, 9), colspan=8)
-    plot_line(y_short_small, x=x_small, xlabel="Message size bytes", legend=["TCP", "IPoIB", "IB"], title="b) Top. B Small Messages", plot=plt, ticks=xlabels_small, ylabel="time(ms)", legendloc="center right")
-
-    plt.subplot2grid((1,35), (0, 18), colspan=8)
-    plot_bar(y_short_large_parallel, x=[8,16,32], xlabel="Parallelism", legend=["TCP", "IPoIB", "IB"], title="c) Top. B Large Messages", plot=plt, y_std=y_short_large_std, ylabel="time(ms)")
-
-    plt.subplot2grid((1,35), (0, 27), colspan=8)
-    plot_bar(y_short_small_parallel, x=[8,16,32], xlabel="Parallelism", legend=["TCP", "IPoIB", "IB"], title="d) Top. B Small Messages",plot=plt, y_std=y_short_small_std, ylabel="time(ms)")
     plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
+
     fig.tight_layout()
     fig = plt.gcf()
-    fig.savefig("/home/supun/data/heron/pics/ib_parallel.png")
+    fig.savefig("/home/supun/data/twister2/pics/benchmark_latency.png")
+    plt.show()
+
+def plot_kmeans():
+    y_short_large = [[4.743,	7.554,	12.721,	22.379,	41.4],
+                     [4.132,	6.876,	12.64,	23.921,	40.012],
+                     [4.466,	7.172,	13.768,	24.337,	41.17],
+                     [4.132,	6.876,	12.64,	23.921,	40.012],
+                     [107.61,	140.298,	166.284,	203.07,	349.801]]
+
+    y_short_large_parallel = [[142.128,	73.119,	40.012],
+                              [150.813,	76.626,	42.904],
+                              [138.395,	74.645,	39.596],
+                              [141.75,	75.092,	41.4],
+                              [251.652,	327.399,	352.31]]
+
+    fig = plt.figure(figsize=(12, 6), dpi=100)
+
+    plt.subplot2grid((10,16), (0, 0), colspan=8, rowspan=8)
+    plot_bar(y_short_large, x=[1,2,4,8,16], xlabel="Parallelism", title="c) Top. B Large Messages", plot=plt, logy=True, ylabel="time(ms)", bar_width=.075, col=cls, n=5, ymax=400)
+
+
+    plt.subplot2grid((10,16), (0, 8), colspan=8, rowspan=8)
+    plot_bar(y_short_large_parallel, x=[4,8,16], xlabel="Parallelism", title="c) Top. B Large Messages", plot=plt, ylabel="time(ms)", bar_width=.075, col=cls, ymax=400)
+
+    plt.subplots_adjust(left=0.06, right=0.98, top=5, bottom=0.2)
+    fig.tight_layout()
+    fig = plt.gcf()
+    fig.savefig("/home/supun/data/twister2/pics/kmeans.png")
+    plt.legend(["Twister:Net IB", "Twister:Net 10Gbps", "MPI - IB", "MPI - 10Gbps", "Spark - 10Gbps"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(0, -.3), ncol=3)
     plt.show()
 
 def plot_yahoo_percentages():
@@ -336,119 +356,13 @@ def plot_throughput():
     fig.savefig("/home/supun/data/heron/pics/throughput.png")
     plt.show()
 
-def plot_omni():
-    long = [[29.5,	36.01,	50.7,	74.2,	120.1,	297],
-            [27.3,	32.4,	41.8,	57.8,	89.1,	248.1],
-            [16.2,	17.7,	22.5,	31.2,	46.9,	137.1]]
-
-    long_parallel = [[74,	116,	213],
-                     [57.8,	96.4,	184],
-                     [31.2,	51.1,	100.3]]
-    long_parallel_std = [[8.1,	22.5,	65.7],
-                         [6.2,	14.4,	38],
-                         [4.4,	11.1,	22.4]
-                         ]
-
-    long_short = [[40,	40.58,	39.25,	40.7,	41.22,	42.5],
-                  [38.3,	38.58,	39.1,	39.4,	40.6,	40.6],
-                  [25.5,	25.9,	25.6,	25.4,	25.8,	26.5]]
-
-    long_short_parallel = [[40.7,	79.6,	151],
-                           [39.4,	79.5,	151],
-                           [26.4,	49.8,	98.12]]
-    long_short_parallel_std = [[5.5,	13.5,	25],
-                               [5.1,	11.8,	25.2],
-                               [5.1,	11.5,	18.4]]
-
-    fig = plt.figure(figsize=(18, 4), dpi=100)
-
-    plt.subplot2grid((1,35), (0, 0), colspan=8)
-    plot_line(long, x=x_small, legend=["TCP", "IPoFabric", "Omni-path"], title="a) Top. A Large Messages", plot=plt, ticks=xlabels_large, ylabel="Latency (ms) Log", logy=True)
-
-    plt.subplot2grid((1,35), (0, 9), colspan=8)
-    plot_line(long_short, x=x_small, legend=["TCP", "IPoFabric", "Omni-path"], title="b) Top. A Small Messages", plot=plt, ticks=xlabels_large, logy=False, ymin=20, ymax=55, xlabel="Message size in bytes", ylabel="time(ms)")
-
-    plt.subplot2grid((1,35), (0, 18), colspan=8)
-    plot_bar(long_parallel, x=[2,4,8], xlabel="Parallelism", legend=["TCP", "IPoFabric", "Omni-path"], title="c) Top. A Large Messages", plot=plt, y_std=long_parallel_std, ylabel="time(ms)")
-    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-
-    plt.subplot2grid((1,35), (0, 27), colspan=8)
-    plot_bar(long_short_parallel, x=[2,4,8], xlabel="Parallelism", legend=["TCP", "IPoFabric", "Omni-path"], title="d) Top. A Small Messages", plot=plt, y_std=long_short_parallel_std, ylabel="time(ms)")
-    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-    plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
-    fig.tight_layout()
-    fig.tight_layout()
-    fig = plt.gcf()
-    fig.savefig("/home/supun/data/heron/pics/omni_path.png")
-    plt.show()
-
-def plot_omni2():
-    long = [[29.5,	36.01,	50.7,	74.2,	120.1,	297],
-            [27.3,	32.4,	41.8,	57.8,	89.1,	248.1],
-            [16.2,	17.7,	22.5,	31.2,	46.9,	137.1]]
-
-    long_parallel = [[74,	116,	213],
-                     [57.8,	96.4,	184],
-                     [31.2,	51.1,	100.3]]
-    long_parallel_std = [[8.1,	22.5,	65.7],
-                         [6.2,	14.4,	38],
-                         [4.4,	11.1,	22.4]
-                         ]
-
-    long_short = [[40,	40.58,	39.25,	40.7,	41.22,	42.5],
-                  [38.3,	38.58,	39.1,	39.4,	40.6,	40.6],
-                  [25.5,	25.9,	25.6,	25.4,	25.8,	26.5]]
-
-    long_short_parallel = [[40.7,	79.6,	151],
-                           [39.4,	79.5,	151],
-                           [26.4,	49.8,	98.12]]
-    long_short_parallel_std = [[5.5,	13.5,	25],
-                               [5.1,	11.8,	25.2],
-                               [5.1,	11.5,	18.4]]
-
-    fig = plt.figure(figsize=(18, 4), dpi=100)
-
-    plt.subplot2grid((1,35), (0, 0), colspan=8)
-    plot_line(long, x=x_small, legend=["TCP", "IPoFabric", "Omni-path"], title="a) Top. A Large Messages", plot=plt, ticks=xlabels_large, ylabel="Latency (ms) Log", logy=True)
-
-    plt.subplot2grid((1,35), (0, 9), colspan=8)
-    plot_line(long_short, x=x_small, legend=["TCP", "IPoFabric", "Omni-path"], title="c) Top. A Small Messages", plot=plt, ticks=xlabels_large, logy=False, ymin=20, ymax=55, xlabel="Message size in bytes")
-
-    plt.subplot2grid((1,35), (0, 18), colspan=8)
-    plot_bar(long_parallel, x=[2,4,8], xlabel="Parallelism", legend=["TCP", "IPoFabric", "Omni-path"], title="b) Top. A Large Messages", plot=plt, ylabel="Latency (ms)", y_std=long_parallel_std)
-    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-
-    plt.subplot2grid((1,35), (0, 27), colspan=8)
-    plot_bar(long_short_parallel, x=[2,4,8], xlabel="Parallelism", legend=["TCP", "IPoFabric", "Omni-path"], title="d) Top. A Short Messages", plot=plt, y_std=long_short_parallel_std)
-    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-    plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
-    fig.tight_layout()
-    plt.show()
-
-def proto_buf():
-    y_large = [[664, 1052, 2082, 3487, 5994, 11838], [1193, 1492, 2400, 4090, 7084, 22624], [2597, 4954, 9893, 20034, 43722, 92636]]
-    y_small = [[984, 1020, 1040, 1076, 1030, 1055], [2881,2848,2901,2915,2956,2959], [7288,7446,7556,7348,7647,7881]]
-
-    fig = plt.figure(figsize=(4, 6), dpi=100)
-    plt.subplot2grid((9,8), (0, 0), colspan=8, rowspan=4)
-    plot_line(y_large, x=x_small, legend=["Proto-Serialize", "IB", "TCP"], title="a) Large Messages", plot=plt, ticks=xlabels_large, ylabel="Total time (ms) Log", logy=True, legendloc="lower bottom")
-
-    plt.subplot2grid((9,8), (5, 0), colspan=8, rowspan=4)
-    plot_line(y_small, x=x_small, legend=["Proto-Serialize", "IB", "TCP"], title="b) Small Messages", plot=plt, ticks=xlabels_large, logy=False, xlabel="Message size in bytes", legendloc="center right", ylabel="Total time (ms)", ymax=9000)
-    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-
-    plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
-    fig.tight_layout()
-    fig = plt.gcf()
-    fig.savefig("/home/supun/data/heron/pics/serialization_2.png")
-    plt.show()
-
-
 def main():
-    plot_latency_heron()
-    plot_latency_flink()
-    plot_latency_mpi()
-    plot_bandwidth()
+    # plot_latency_heron()
+    # plot_latency_flink()
+    # plot_latency_mpi()
+    # plot_bandwidth()
+    # plot_benchmark_latency()
+    plot_kmeans()
     # plot_latency_parallel_ib()
     # plot_yahoo_percentages()
     # plot_inflight()
