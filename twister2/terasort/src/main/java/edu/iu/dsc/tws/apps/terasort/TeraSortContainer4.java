@@ -57,9 +57,11 @@ public class TeraSortContainer4 implements IContainer {
 
     private Config config;
     private ResourcePlan resourcePlan;
-    private static final int NO_OF_TASKS = 320;
+    private static int NO_OF_TASKS = 4;
 
-    private int noOfTasksPerExecutor = 2;
+    private int noOfTasksPerExecutor = 1;
+    private int block_size = 25;
+    private int recordLimit = 312500 * 2;
     private long startTime = 0;
     private long startTimePartition = 0;
     private long endTimePartition = 0;
@@ -83,7 +85,11 @@ public class TeraSortContainer4 implements IContainer {
         long startTimeTotal = System.currentTimeMillis();
         this.config = cfg;
         this.id = containerId;
-        workersPerNode = 10;
+        workersPerNode = cfg.getIntegerValue("tasksPerNode", 20);
+        NO_OF_TASKS = cfg.getIntegerValue("totalTasks", 320);
+        noOfTasksPerExecutor = cfg.getIntegerValue("taskPerProc", 1);
+        block_size = cfg.getIntegerValue("bsize", 1);
+        recordLimit = cfg.getIntegerValue("recordLimit", 312500 * 2);
         workerLocalID = containerId % workersPerNode;
         this.resourcePlan = plan;
         sampleNodes = new ArrayList<>();
@@ -459,7 +465,6 @@ public class TeraSortContainer4 implements IContainer {
         public void run() {
             String inputFile = Paths.get(inputFolder, filePrefix
                     + workerLocalID + "_" + Integer.toString(localId)).toString();
-            int block_size = 25;
             Map<Integer, List<byte[]>> keyMap = new HashMap<>();
             Map<Integer, List<byte[]>> dataMap = new HashMap<>();
             Map<Integer, Integer> countsMap = new HashMap<>();
@@ -478,8 +483,6 @@ public class TeraSortContainer4 implements IContainer {
             List<byte[]> dataList = new ArrayList<>(block_size);
             List<byte[]> recordsKeys = new ArrayList<>();
             List<byte[]> recordsVals = new ArrayList<>();
-            int recordLimit = 312500 * 2;
-
             // Init the records set
             for (int i = 0; i < recordLimit; i++) {
                 recordsKeys.add(new byte[10]);

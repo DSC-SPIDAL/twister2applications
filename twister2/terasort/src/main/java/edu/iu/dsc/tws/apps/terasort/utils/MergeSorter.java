@@ -17,7 +17,9 @@ public class MergeSorter {
     private Record[][] records;
 
     private List<Record[]> recordsList = new ArrayList<>();
-
+    private int listLimit = 10000;
+    private int currentCount = 0;
+    Record[] r = new Record[listLimit];
     byte[] key = new byte[Record.KEY_SIZE];
     byte[] text = new byte[Record.DATA_SIZE];
     List<byte[]> keys;
@@ -61,28 +63,31 @@ public class MergeSorter {
     }
 
     public void addData(List<ImmutablePair<byte[], byte[]>> data) {
-        //  LOG.info(String.format("Rank: %d added data of size %d: ", rank, size));
-        // for now lets get the keys and sort them
         int records = data.size();
-        Record[] r = new Record[records];
         for (int i = 0; i < records; i++) {
-            r[i] = new Record(new Text(data.get(i).getKey()), new Text(data.get(i).getValue()));
+            r[currentCount] = new Record(new Text(data.get(i).getKey()), new Text(data.get(i).getValue()));
+            currentCount++;
+            if(currentCount == listLimit){
+                recordsList.add(r);
+                currentCount = 0;
+                r = new Record[listLimit];
+            }
         }
-        recordsList.add(r);
     }
 
     public void addData(KeyedContent data) {
-        //  LOG.info(String.format("Rank: %d added data of size %d: ", rank, size));
-        // for now lets get the keys and sort them
         keys = (List) data.getSource();
         values = (List) data.getObject();
         int records = keys.size();
-
-        Record[] r = new Record[records];
         for (int i = 0; i < records; i++) {
-            r[i] = new Record(new Text(keys.get(i)), new Text(values.get(i)));
+            r[currentCount] = new Record(new Text(keys.get(i)), new Text(values.get(i)));
+            currentCount++;
+            if(currentCount == listLimit){
+                recordsList.add(r);
+                currentCount = 0;
+                r = new Record[listLimit];
+            }
         }
-        recordsList.add(r);
     }
 
     public Record[] sort() {

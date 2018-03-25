@@ -53,9 +53,11 @@ public class TeraSortContainer5 implements IContainer {
 
     private Config config;
     private ResourcePlan resourcePlan;
-    private static final int NO_OF_TASKS = 320;
+    private static int NO_OF_TASKS = 320;
 
     private int noOfTasksPerExecutor = 2;
+    private int block_size = 25;
+    private int recordLimit = 312500 * 2;
     private long startTime = 0;
     private long startTimePartition = 0;
     private long endTimePartition = 0;
@@ -79,7 +81,11 @@ public class TeraSortContainer5 implements IContainer {
         long startTimeTotal = System.currentTimeMillis();
         this.config = cfg;
         this.id = containerId;
-        workersPerNode = 10;
+        workersPerNode = cfg.getIntegerValue("tasksPerNode", 20);
+        NO_OF_TASKS = cfg.getIntegerValue("totalTasks", 320);
+        noOfTasksPerExecutor = cfg.getIntegerValue("taskPerProc", 1);
+        block_size = cfg.getIntegerValue("bsize", 1);
+        recordLimit = cfg.getIntegerValue("recordLimit", 312500 * 2);
         workerLocalID = containerId % workersPerNode;
         this.resourcePlan = plan;
         sampleNodes = new ArrayList<>();
@@ -452,7 +458,6 @@ public class TeraSortContainer5 implements IContainer {
         public void run() {
             String inputFile = Paths.get(inputFolder, filePrefix
                     + workerLocalID + "_" + Integer.toString(localId)).toString();
-            int block_size = 25;
             Map<Integer, List<byte[]>> keyMap = new HashMap<>();
             Map<Integer, List<byte[]>> dataMap = new HashMap<>();
             Map<Integer, Integer> countsMap = new HashMap<>();
@@ -471,7 +476,7 @@ public class TeraSortContainer5 implements IContainer {
             List<byte[]> dataList = new ArrayList<>(block_size);
             List<byte[]> recordsKeys = new ArrayList<>();
             List<byte[]> recordsVals = new ArrayList<>();
-            int recordLimit = 312500 * 2;
+
 
             // Init the records set
             for (int i = 0; i < recordLimit; i++) {
@@ -501,6 +506,9 @@ public class TeraSortContainer5 implements IContainer {
                     for (int i = 0; i < countRecords; i++) {
                         tempText = new Text(recordsKeys.get(i));
                         partition = tree.getPartition(tempText);
+//                        if(task == 0 && (i % 10000 == 0)){
+//                            System.out.println("partition " + partition + " text " + tempText.toString());
+//                        }
                         localCount = countsMap.get(partition);
                         countsMap.put(partition, (localCount + 1) % block_size);
 
@@ -519,23 +527,23 @@ public class TeraSortContainer5 implements IContainer {
                             }
                         }
 
-                        if (i == recordsKeys.size() - 1) {
-                            for (int j = 0; j < NO_OF_TASKS; j++) {
-                                int tempCount = countsMap.get(j);
-                                if (tempCount > 0) {
-                                    keyedContent = new KeyedContent(keyMap.get(j), dataMap.get(j),
-                                            MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
-                                    while (!partitionOp.send(task, keyedContent, 0, partition)) {
-                                        // lets wait a litte and try again
-                                        try {
-                                            Thread.sleep(1);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                    }
-                                }
-                            }
-                        }
+//                        if (i == countRecords - 1) {
+//                            for (int j = 0; j < NO_OF_TASKS; j++) {
+//                                int tempCount = countsMap.get(j);
+//                                if (tempCount > 0) {
+//                                    keyedContent = new KeyedContent(keyMap.get(j), dataMap.get(j),
+//                                            MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
+//                                    while (!partitionOp.send(task, keyedContent, 0, j)) {
+//                                        // lets wait a litte and try again
+//                                        try {
+//                                            Thread.sleep(1);
+//                                        } catch (InterruptedException e) {
+//                                            e.printStackTrace();
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
 
 
                     }
@@ -642,6 +650,9 @@ public class TeraSortContainer5 implements IContainer {
 //
 //                partitions[i] = t;
 //            }
+            if(target == 200){
+                System.out.println("Selected Keys " + Arrays.toString(selectedKeys));
+            }
 
             PartitionTree.TrieNode root = PartitionTree.buildTrie(selectedKeys, 0, selectedKeys.length, new Text(), 2);
             tree = new PartitionTree(root);
@@ -685,12 +696,10 @@ public class TeraSortContainer5 implements IContainer {
                 finished.get(target).put(source, true);
             } else {
                 if (object instanceof KeyedContent) {
-                    System.out.println("is Keyed");
                     temp = (KeyedContent) object;
                     sorter.addData(temp);
 
                 } else if (object instanceof List) {
-                    System.out.println("isList");
                     tempList = (List<ImmutablePair<byte[], byte[]>>) object;
                     sorter.addData(tempList);
                 }
@@ -702,7 +711,7 @@ public class TeraSortContainer5 implements IContainer {
                     long stime = System.currentTimeMillis();
                     Record[] sortedRecords = sorter.sort();
                     long etime = System.currentTimeMillis();
-                    System.out.println("Sort time " + id + " : " + (etime - stime));
+                    System.out.println("Sort time " + id + " : " + (etime - stime) + " count : " + sortedRecords.length);
                     stime = System.currentTimeMillis();
                     DataLoader loader = new DataLoader();
                     loader.saveFast(sortedRecords, outputFile);
