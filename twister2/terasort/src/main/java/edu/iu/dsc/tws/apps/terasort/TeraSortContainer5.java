@@ -564,7 +564,7 @@ public class TeraSortContainer5 implements IContainer {
                     continue;
                 }
                 int tempCount = countsMap.get(i);
-                if (tempCount == 0) {
+                if (tempCount == 0 || tempCount == (block_size - 1)) {
                     keyList = new ArrayList<>();
                     dataList = new ArrayList<>();
                     keyList.add(new byte[10]);
@@ -578,7 +578,6 @@ public class TeraSortContainer5 implements IContainer {
                 } else {
                     keyList = keyMap.get(i).subList(0,tempCount);
                     dataList = dataMap.get(i).subList(0, tempCount);
-
                     keyedContent = new KeyedContent(keyList, dataList,
                             MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
                     while (!partitionOp.send(task, keyedContent, flags, i)) {
