@@ -177,12 +177,15 @@ public class NonAckPartitionStream implements IContainer {
     private int count = 0;
 
     private long startTime = 0;
+
+    private Map<Integer, Integer> counts = new HashMap<>();
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
       LOG.log(Level.FINE, String.format("%d Initialize worker: %s", id, expectedIds));
       for (Map.Entry<Integer, List<Integer>> e : expectedIds.entrySet()) {
         Queue<Message> queue = new ArrayBlockingQueue<>(2);
         workerMessageQueue.put(e.getKey(), queue);
+        counts.put(e.getKey(), 0);
       }
     }
 
@@ -192,11 +195,14 @@ public class NonAckPartitionStream implements IContainer {
         startTime = System.nanoTime();
       }
 //      LOG.log(Level.INFO, String.format("%d Received: source %d target %d %d", id, source, target, count));
+      int current = counts.get(target);
+      current++;
+      counts.put(target, current);
       count++;
 
-      if (count >= jobParameters.getIterations()) {
+      if (current >= jobParameters.getIterations()) {
         long time = (System.nanoTime() - startTime) / 1000000;
-        LOG.info(String.format("%d %d Final time: %d %d", id, target, time, count));
+        LOG.info(String.format("%d %d Final time: %d %d %d", id, target, time, count, current));
       }
       return true;
     }
