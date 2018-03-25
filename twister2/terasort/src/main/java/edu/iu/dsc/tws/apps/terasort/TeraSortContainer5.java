@@ -556,21 +556,38 @@ public class TeraSortContainer5 implements IContainer {
 //            System.out.println("Done reading data");
 
             //Send messages to all tasks to let them know that the messages are finished
-            keyList = new ArrayList<>();
-            dataList = new ArrayList<>();
-            keyList.add(new byte[10]);
-            dataList.add(new byte[90]);
-            keyedContent = new KeyedContent(keyList, dataList,
-                    MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
+
+
+            int flags = MessageFlags.FLAGS_LAST;
             for (int i = 0; i < NO_OF_TASKS; i++) {
                 if (i == task) {
                     continue;
                 }
-                int flags = MessageFlags.FLAGS_LAST;
-                while (!partitionOp.send(task, keyedContent, flags, i)) {
-                    // lets wait a litte and try again
-                    partitionOp.progress();
+                int tempCount = countsMap.get(i);
+                if (tempCount == 0) {
+                    keyList = new ArrayList<>();
+                    dataList = new ArrayList<>();
+                    keyList.add(new byte[10]);
+                    dataList.add(new byte[90]);
+                    keyedContent = new KeyedContent(keyList, dataList,
+                            MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
+                    while (!partitionOp.send(task, keyedContent, flags, i)) {
+                        // lets wait a litte and try again
+                        partitionOp.progress();
+                    }
+                } else {
+                    keyList = keyMap.get(i).subList(0,tempCount);
+                    dataList = dataMap.get(i).subList(0, tempCount);
+
+                    keyedContent = new KeyedContent(keyList, dataList,
+                            MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
+                    while (!partitionOp.send(task, keyedContent, flags, i)) {
+                        // lets wait a litte and try again
+                        partitionOp.progress();
+                    }
                 }
+
+
             }
 
 
@@ -650,7 +667,7 @@ public class TeraSortContainer5 implements IContainer {
 //
 //                partitions[i] = t;
 //            }
-            if(target == 200){
+            if (target == 200) {
                 System.out.println("Selected Keys " + Arrays.toString(selectedKeys));
             }
 
@@ -693,6 +710,14 @@ public class TeraSortContainer5 implements IContainer {
         public boolean onMessage(int source, int path, int target, int flags, Object object) {
             // add the object to the map
             if ((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) {
+                if (object instanceof KeyedContent) {
+                    temp = (KeyedContent) object;
+                    sorter.addData(temp);
+
+                } else if (object instanceof List) {
+                    tempList = (List<ImmutablePair<byte[], byte[]>>) object;
+                    sorter.addData(tempList);
+                }
                 finished.get(target).put(source, true);
             } else {
                 if (object instanceof KeyedContent) {

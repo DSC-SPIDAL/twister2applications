@@ -529,23 +529,23 @@ public class TeraSortContainer4 implements IContainer {
                             }
                         }
 
-                        if (i == recordsKeys.size() - 1) {
-                            for (int j = 0; j < NO_OF_TASKS; j++) {
-                                int tempCount = countsMap.get(j);
-                                if (tempCount > 0) {
-                                    keyedContent = new KeyedContent(keyMap.get(j), dataMap.get(j),
-                                            MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
-                                    while (!partitionOp.send(task, keyedContent, 0, partition)) {
-                                        // lets wait a litte and try again
-                                        try {
-                                            Thread.sleep(1);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                    }
-                                }
-                            }
-                        }
+//                        if (i == recordsKeys.size() - 1) {
+//                            for (int j = 0; j < NO_OF_TASKS; j++) {
+//                                int tempCount = countsMap.get(j);
+//                                if (tempCount > 0) {
+//                                    keyedContent = new KeyedContent(keyMap.get(j), dataMap.get(j),
+//                                            MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
+//                                    while (!partitionOp.send(task, keyedContent, 0, partition)) {
+//                                        // lets wait a litte and try again
+//                                        try {
+//                                            Thread.sleep(1);
+//                                        } catch (InterruptedException e) {
+//                                            e.printStackTrace();
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
 
 
                     }
@@ -558,21 +558,36 @@ public class TeraSortContainer4 implements IContainer {
 //            System.out.println("Done reading data");
 
             //Send messages to all tasks to let them know that the messages are finished
-            keyList = new ArrayList<>();
-            dataList = new ArrayList<>();
-            keyList.add(new byte[10]);
-            dataList.add(new byte[90]);
-            keyedContent = new KeyedContent(keyList, dataList,
-                    MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
+            int flags = MessageFlags.FLAGS_LAST;
             for (int i = 0; i < NO_OF_TASKS; i++) {
                 if (i == task) {
                     continue;
                 }
-                int flags = MessageFlags.FLAGS_LAST;
-                while (!partitionOp.send(task, keyedContent, flags, i)) {
-                    // lets wait a litte and try again
-                    partitionOp.progress();
+                int tempCount = countsMap.get(i);
+                if (tempCount == 0) {
+                    keyList = new ArrayList<>();
+                    dataList = new ArrayList<>();
+                    keyList.add(new byte[10]);
+                    dataList.add(new byte[90]);
+                    keyedContent = new KeyedContent(keyList, dataList,
+                            MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
+                    while (!partitionOp.send(task, keyedContent, flags, i)) {
+                        // lets wait a litte and try again
+                        partitionOp.progress();
+                    }
+                } else {
+                    keyList = keyMap.get(i).subList(0,tempCount);
+                    dataList = dataMap.get(i).subList(0, tempCount);
+
+                    keyedContent = new KeyedContent(keyList, dataList,
+                            MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
+                    while (!partitionOp.send(task, keyedContent, flags, i)) {
+                        // lets wait a litte and try again
+                        partitionOp.progress();
+                    }
                 }
+
+
             }
 
 
