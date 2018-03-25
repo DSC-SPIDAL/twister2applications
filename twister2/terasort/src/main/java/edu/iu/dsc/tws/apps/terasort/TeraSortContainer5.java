@@ -696,12 +696,10 @@ public class TeraSortContainer5 implements IContainer {
                 finished.get(target).put(source, true);
             } else {
                 if (object instanceof KeyedContent) {
-                    System.out.println("is Keyed");
                     temp = (KeyedContent) object;
                     sorter.addData(temp);
 
                 } else if (object instanceof List) {
-                    System.out.println("isList");
                     tempList = (List<ImmutablePair<byte[], byte[]>>) object;
                     sorter.addData(tempList);
                 }
