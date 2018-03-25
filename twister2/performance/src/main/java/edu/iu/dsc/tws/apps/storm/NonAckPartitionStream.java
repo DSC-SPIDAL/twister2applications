@@ -200,7 +200,7 @@ public class NonAckPartitionStream implements IContainer {
       counts.put(target, current);
       count++;
 
-      if (current >= jobParameters.getIterations()) {
+      if (current == jobParameters.getIterations()) {
         long time = (System.nanoTime() - startTime) / 1000000;
         LOG.info(String.format("%d %d Final time: %d %d %d", id, target, time, count, current));
       }
