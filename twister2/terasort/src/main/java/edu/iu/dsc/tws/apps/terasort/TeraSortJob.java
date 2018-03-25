@@ -44,6 +44,11 @@ public final class TeraSortJob {
     public static void main(String[] args) {
         Options options = new Options();
         options.addOption("input", true, "Input directory");
+        options.addOption("bsize", true, "Block Size");
+        options.addOption("totalTasks", true, "Total Tasks");
+        options.addOption("taskPerProc", true, "Tasks per container");
+        options.addOption("tasksPerNode", true, "Tasks per Node");
+        options.addOption("recordLimit", true, "recordLimit");
         options.addOption("output", true, "Output directory");
         options.addOption("partitionSampleNodes", true, "Number of nodes to choose partition samples");
         options.addOption("partitionSamplesPerNode",
@@ -60,9 +65,15 @@ public final class TeraSortJob {
             throw new RuntimeException(e);
         }
 
+
         JobConfig jobConfig = new JobConfig();
         jobConfig.put("input", cmd.getOptionValue("input"));
         jobConfig.put("output", cmd.getOptionValue("output"));
+        jobConfig.put("bsize", cmd.getOptionValue("bsize"));
+        jobConfig.put("totalTasks", cmd.getOptionValue("totalTasks"));
+        jobConfig.put("taskPerProc", cmd.getOptionValue("taskPerProc"));
+        jobConfig.put("tasksPerNode", cmd.getOptionValue("tasksPerNode"));
+        jobConfig.put("recordLimit", cmd.getOptionValue("recordLimit"));
         jobConfig.put("partitionSampleNodes",
                 cmd.getOptionValue("partitionSampleNodes"));
         jobConfig.put("partitionSamplesPerNode",
@@ -74,8 +85,8 @@ public final class TeraSortJob {
         // build JobConfig
         BasicJob.BasicJobBuilder jobBuilder = BasicJob.newBuilder();
         jobBuilder.setName("terasort");
-        jobBuilder.setContainerClass(TeraSortContainer.class.getName());
-        jobBuilder.setRequestResource(new ResourceContainer(4, 1024), 96);
+        jobBuilder.setContainerClass(TeraSortContainer2.class.getName());
+        jobBuilder.setRequestResource(new ResourceContainer(1, 1024), Integer.valueOf(cmd.getOptionValue("totalTasks")));
         jobBuilder.setConfig(jobConfig);
 
         // now submit the job
