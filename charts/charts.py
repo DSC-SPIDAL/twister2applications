@@ -293,11 +293,11 @@ def plot_kmeans():
     fig = plt.figure(figsize=(10, 5), dpi=100)
 
     plt.subplot2grid((10,16), (0, 0), colspan=8, rowspan=8)
-    plot_bar(y_short_large, x=[1,2,4,8,16], xlabel="Parallelism", title="c) Top. B Large Messages", plot=plt, logy=True, ylabel="time(ms)", bar_width=.075, col=cls, n=5, ymax=400)
+    plot_bar(y_short_large, x=[1,2,4,8,16], xlabel="Centers x 1000", title="K-Means", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.075, col=cls, n=5, ymax=400)
 
 
     plt.subplot2grid((10,16), (0, 8), colspan=8, rowspan=8)
-    plot_bar(y_short_large_parallel, x=[4,8,16], xlabel="Parallelism", title="c) Top. B Large Messages", plot=plt, logy=True, ylabel="time(ms)", bar_width=.075, col=cls, ymax=400)
+    plot_bar(y_short_large_parallel, x=[4,8,16], xlabel="Nodes", title="K-Means", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.075, col=cls, ymax=400)
 
     plt.subplots_adjust(left=0.06, right=0.98, top=5, bottom=0.2)
     fig.tight_layout()
