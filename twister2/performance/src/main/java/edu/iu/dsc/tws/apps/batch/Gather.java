@@ -88,7 +88,7 @@ public class Gather implements IContainer {
 
     @Override
     public void receive(int i, Iterator<Object> iterator) {
-      long time = (System.nanoTime() - startSendingTime) / 1000000;
+      long time = (System.currentTimeMillis() - startSendingTime);
       LOG.info(String.format("%d Finished ", time));
       done = true;
     }
