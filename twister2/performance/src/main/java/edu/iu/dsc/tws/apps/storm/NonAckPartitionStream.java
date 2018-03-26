@@ -191,7 +191,7 @@ public class NonAckPartitionStream implements IContainer {
 
     @Override
     public boolean onMessage(int source, int path, int target, int flags, Object object) {
-      if (count == 0) {
+      if (count == jobParameters.getInitIterations()) {
         startTime = System.nanoTime();
       }
 //      LOG.log(Level.INFO, String.format("%d Received: source %d target %d %d", id, source, target, count));

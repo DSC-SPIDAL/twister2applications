@@ -37,6 +37,7 @@ public class Program {
     options.addOption(Utils.createOption(Constants.ARGS_THREADS, true, "Threads", false));
     options.addOption(Utils.createOption(Constants.ARGS_PRINT_INTERVAL, true, "Threads", false));
     options.addOption(Utils.createOption(Constants.ARGS_DATA_TYPE, true, "Data", false));
+    options.addOption(Utils.createOption(Constants.ARGS_INIT_ITERATIONS, true, "Data", false));
 
     CommandLineParser commandLineParser = new BasicParser();
     CommandLine cmd = commandLineParser.parse(options, args);
@@ -70,6 +71,10 @@ public class Program {
     if (cmd.hasOption(Constants.ARGS_DATA_TYPE)) {
       dataType = cmd.getOptionValue(Constants.ARGS_DATA_TYPE);
     }
+    String intItr = "0";
+    if (cmd.hasOption(Constants.ARGS_INIT_ITERATIONS)) {
+      intItr = cmd.getOptionValue(Constants.ARGS_INIT_ITERATIONS);
+    }
 
     // build JobConfig
     JobConfig jobConfig = new JobConfig();
@@ -84,6 +89,7 @@ public class Program {
     jobConfig.put(Constants.ARGS_THREADS, threads);
     jobConfig.put(Constants.ARGS_PRINT_INTERVAL, printInt);
     jobConfig.put(Constants.ARGS_DATA_TYPE, dataType);
+    jobConfig.put(Constants.ARGS_INIT_ITERATIONS, intItr);
 
     // build the job
     BasicJob basicJob = null;

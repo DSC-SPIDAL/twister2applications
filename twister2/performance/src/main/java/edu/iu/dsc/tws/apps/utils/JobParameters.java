@@ -32,6 +32,8 @@ public class JobParameters {
 
   private String dataType;
 
+  private int initIterations = 0;
+
   public JobParameters(int size, int iterations, int col,
                        int containers, List<Integer> taskStages, int gap) {
     this.size = size;
@@ -98,6 +100,10 @@ public class JobParameters {
     return dataType;
   }
 
+  public int getInitIterations() {
+    return initIterations;
+  }
+
   public static JobParameters build(Config cfg) {
     int iterations = Integer.parseInt(cfg.getStringValue(Constants.ARGS_ITR));
     int size = Integer.parseInt(cfg.getStringValue(Constants.ARGS_SIZE));
@@ -110,6 +116,7 @@ public class JobParameters {
     Boolean threads = Boolean.parseBoolean(cfg.getStringValue(Constants.ARGS_THREADS));
     int pi = Integer.parseInt(cfg.getStringValue(Constants.ARGS_PRINT_INTERVAL));
     String type = cfg.getStringValue(Constants.ARGS_DATA_TYPE);
+    int intItr = Integer.parseInt(cfg.getStringValue(Constants.ARGS_INIT_ITERATIONS));
 
     String[] stages = taskStages.split(",");
     List<Integer> taskList = new ArrayList<>();
@@ -126,6 +133,7 @@ public class JobParameters {
     jobParameters.threads = threads;
     jobParameters.printInterval = pi;
     jobParameters.dataType = type;
+    jobParameters.initIterations = intItr;
     return jobParameters;
   }
 
