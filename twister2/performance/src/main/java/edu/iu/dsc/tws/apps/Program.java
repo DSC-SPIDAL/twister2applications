@@ -3,10 +3,7 @@ package edu.iu.dsc.tws.apps;
 import edu.iu.dsc.tws.api.JobConfig;
 import edu.iu.dsc.tws.api.Twister2Submitter;
 import edu.iu.dsc.tws.api.basic.job.BasicJob;
-import edu.iu.dsc.tws.apps.batch.AllReduce;
-import edu.iu.dsc.tws.apps.batch.MultiGather;
-import edu.iu.dsc.tws.apps.batch.MultiReduce;
-import edu.iu.dsc.tws.apps.batch.Reduce;
+import edu.iu.dsc.tws.apps.batch.*;
 import edu.iu.dsc.tws.apps.storm.PartitionStream;
 import edu.iu.dsc.tws.apps.stream.*;
 import edu.iu.dsc.tws.apps.utils.Utils;
@@ -37,6 +34,7 @@ public class Program {
     options.addOption(Utils.createOption(Constants.ARGS_THREADS, true, "Threads", false));
     options.addOption(Utils.createOption(Constants.ARGS_PRINT_INTERVAL, true, "Threads", false));
     options.addOption(Utils.createOption(Constants.ARGS_DATA_TYPE, true, "Data", false));
+    options.addOption(Utils.createOption(Constants.ARGS_INIT_ITERATIONS, true, "Data", false));
 
     CommandLineParser commandLineParser = new BasicParser();
     CommandLine cmd = commandLineParser.parse(options, args);
@@ -70,6 +68,10 @@ public class Program {
     if (cmd.hasOption(Constants.ARGS_DATA_TYPE)) {
       dataType = cmd.getOptionValue(Constants.ARGS_DATA_TYPE);
     }
+    String intItr = "0";
+    if (cmd.hasOption(Constants.ARGS_INIT_ITERATIONS)) {
+      intItr = cmd.getOptionValue(Constants.ARGS_INIT_ITERATIONS);
+    }
 
     // build JobConfig
     JobConfig jobConfig = new JobConfig();
@@ -84,6 +86,7 @@ public class Program {
     jobConfig.put(Constants.ARGS_THREADS, threads);
     jobConfig.put(Constants.ARGS_PRINT_INTERVAL, printInt);
     jobConfig.put(Constants.ARGS_DATA_TYPE, dataType);
+    jobConfig.put(Constants.ARGS_INIT_ITERATIONS, intItr);
 
     // build the job
     BasicJob basicJob = null;
@@ -119,6 +122,15 @@ public class Program {
         basicJob = BasicJob.newBuilder()
             .setName("multi-gather-bench")
             .setContainerClass(MultiGather.class.getName())
+            .setRequestResource(new ResourceContainer(2, 1024), containers)
+            .setConfig(jobConfig)
+            .build();
+        // now submit the job
+        Twister2Submitter.submitContainerJob(basicJob, config);
+      } else if (col == 5) {
+        basicJob = BasicJob.newBuilder()
+            .setName("gather-bench")
+            .setContainerClass(Gather.class.getName())
             .setRequestResource(new ResourceContainer(2, 1024), containers)
             .setConfig(jobConfig)
             .build();

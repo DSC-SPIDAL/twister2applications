@@ -16,7 +16,7 @@ xlabels_1_32 = [1, 2, 4, 8, 16, 32]
 xlabels_1_16 = [1, 2, 4, 8, 16]
 
 markers=["o", "x", "^", "v", "D", "*"]
-cls=["khaki", "lightblue", "gray", "cyan", "yellow", "black", "magenta"]
+cls=["khaki", "lightblue", "gray", "chocolate", "darksalmon", "black", "magenta"]
 lcls=["navy", "black", "crimson", "green", "magenta", "black", "magenta"]
 patterns = [ "/" , "+" , "-" , ">" , "\\" , "|", "o", "O", ".", "*" ]
 
@@ -101,12 +101,12 @@ def plot_bar(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, leg
     for i in range(len(y)):
         temp = None
         if logy:
-            temp = p.bar(ind + current_width, y[i], width, edgecolor='black', color=col[i], hatch=patterns[i])
+            temp = p.bar(ind + current_width, y[i], width, edgecolor='black', color=col[i], hatch=patterns[i], log=logy,bottom=0)
         else:
             if y_std:
-                temp = p.bar(ind + current_width, y[i], width, edgecolor='black', color=col[i], yerr=y_std[i], hatch=patterns[i])
+                temp = p.bar(ind + current_width, y[i], width, edgecolor='black', color=col[i], yerr=y_std[i], hatch=patterns[i], log=logy, bottom=0)
             else:
-                temp = p.bar(ind + current_width, y[i], width, edgecolor='black', color=col[i], hatch=patterns[i])
+                temp = p.bar(ind + current_width, y[i], width, edgecolor='black', color=col[i], hatch=patterns[i], log=logy, bottom=0)
         l.append(temp[0])
         current_width = current_width + width
 
@@ -151,25 +151,27 @@ def plot_latency_heron():
                     [0.5,	0.52,	0.56,	0.61,	0.66,	0.776,	0.826],
                     [0.66,	0.95,	1.3,	1.47,	1.88,	2.76,	4.5]]
 
-    heron_broadcast = [[1.3,	1.29,	1.31,	1.3,	1.36,	1.7,	2.1],
+    heron_broadcast = [[42,	45,	61,	103, 184,	348,	675],
+                       [1.3,	1.29,	1.31,	1.3,	1.36,	1.7,	2.1],
                        [2.9,	3,	3.2,	3.7,	5.78,	11.06,	20.95],
-                       [42,	45,	61,	103, 184,	348,	675]]
+                       ]
 
-    fig = plt.figure(figsize=(16, 4), dpi=100)
+    fig = plt.figure(figsize=(15, 5), dpi=100)
 
-    plt.subplot2grid((1,15), (0, 0), colspan=5)
-    plot_line(heron_partition, x=x_sizes, legend=["Heron-1Gbps", "Twister2-IB", "Twister2-GBps"], title="Latency of Partition", plot=plt, ticks=xlabels_1_64, logy=True, ylabel='Latency (ms) Log', ymax=10000)
+    plt.subplot2grid((10,15), (0, 0), colspan=5, rowspan=8)
+    plot_line(heron_partition, x=x_sizes, title="Latency of Partition", plot=plt, ticks=xlabels_1_64, logy=True, ylabel='Latency (ms) Log', ymax=100)
 
-    plt.subplot2grid((1,15), (0, 5), colspan=5)
-    plot_line(heron_reduce, x=x_sizes, legend=["Heron-1Gbps", "Twister2-IB", "Twister2-GBps"], title="Latency of Reduce", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="Latency (ms) Log", ymax=10000)
+    plt.subplot2grid((10,15), (0, 5), colspan=5, rowspan=8)
+    plot_line(heron_reduce, x=x_sizes, title="Latency of Reduce", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="Latency (ms) Log", ymax=2000)
 
-    plt.subplot2grid((1,15), (0, 10), colspan=5)
-    plot_line(heron_broadcast, x=x_sizes, legend=["Twister2-IB", "Twister2-1GBps", "Heron-1Gbps"], title="Latency of Broadcast", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="Latency (ms) Log", ymax=10000)
+    plt.subplot2grid((10,15), (0, 10), colspan=5, rowspan=8)
+    plot_line(heron_broadcast, x=x_sizes, title="Latency of Broadcast", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="Latency (ms) Log", ymax=1000)
 
     plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
 
     fig.tight_layout()
     fig = plt.gcf()
+    plt.legend(["Heron-1Gbps", "Twister2-IB", "Twister2-1GBps"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(-.7, -.3), ncol=3)
     fig.savefig("/home/supun/data/twister2/pics/heron_latency.png")
     plt.show()
 
@@ -178,22 +180,24 @@ def plot_latency_flink():
                     [0.1,	0.18,	0.2,	0.28,	0.43,	0.79],
                     [0.17,	0.2,	0.36,	0.7,	1.3,	2.6]]
 
-    flink_partition = [[227,	450,	872,	1611,	3756,	7300],
-                    [23,	39,	45,	56,	77,	99],
-                     [1010,	1980,	3870,	7410,	14500,	29700],
-                       [32,	58,	134,	272,	505,	1004]]
+    flink_partition = [[45.19,	89.4,	171.9,	362.8,	725.02,	1443],
+                    [25.1,	52.5,	109,	205,	342,	522],
+                     [223,	445,	820,	1555,	3046,	6102],
+                       [210,	405,	779,	1565,	3067,	5870]]
 
     fig = plt.figure(figsize=(9, 4), dpi=100)
-    plt.subplot2grid((1, 18), (0, 0), colspan=8)
-    plot_line(flink_partition, x=xlabels_1_32, legend=["Flink-IPoIB", "Twister-IB", "Fink-1Gpbs", "Twister-1Gbps"], title="Latency of Partition", plot=plt, ticks=xlabels_1_32, logy=True, ylabel="Total time (s) Log", ymax=100000, legendloc="bottom right")
+    plt.subplot2grid((10, 16), (0, 0), colspan=8, rowspan=8)
+    plot_line(flink_reduce, x=xlabels_1_32, title="Total time Reduce", plot=plt, ticks=xlabels_1_32, logy=True, ylabel="Total time (s) Log", ymax=20000, legendloc="center right")
 
-    plt.subplot2grid((1, 18), (0, 9), colspan=8)
-    plot_line(flink_reduce, x=xlabels_1_32, legend=["Flink-IPoIB", "Twister-IB", "Twister-1Gbps"], title="Latency of Reduce", plot=plt, ticks=xlabels_1_32, logy=True, ylabel="Total time (s) Log", ymax=20000, legendloc="center right")
+    plt.subplot2grid((10, 16), (0, 8), colspan=8, rowspan=8)
+    # plot_line(flink_partition, x=xlabels_1_32, title="Latency of Partition", plot=plt, ticks=xlabels_1_32, logy=True, ylabel="Total time (s) Log", ymax=10000, legendloc="bottom right")
+    plot_bar(flink_partition, x=[1,2,4,8,16,32], xlabel="Parallelism", title="Total time Partition", plot=plt, logy=True, ylabel="time(ms)", bar_width=.075, col=cls, ymax=10000,n=6)
 
     plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
 
     fig.tight_layout()
     fig = plt.gcf()
+    plt.legend(["Flink-IPoIB", "Twister-IB", "Fink-1Gpbs", "Twister-1Gbps"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(-.1, -.35), ncol=4)
     fig.savefig("/home/supun/data/twister2/pics/flink_time.png")
     plt.show()
 
@@ -222,21 +226,36 @@ def plot_latency_mpi():
               [1.2,	1.5,	1.9,	2.2,	2.6,	3.1],
               [1.3,	1.43,	1.64,	2.03,	3.6,	7.2],
               [1.6,	1.8,	2.1,	2.82,	5.08,	7.9]]
-
     fig = plt.figure(figsize=(9, 4), dpi=100)
+    plt.subplot2grid((10, 16), (0, 0), colspan=8, rowspan=8)
+    plot_line(reduce, x=xlabels_1_64, title="Latency of Reduce", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="Total time (s) Log", ymax=20, legendloc="center right")
 
-    plt.subplot2grid((1, 19), (0, 0), colspan=8)
-    plot_line(reduce, x=xlabels_1_64, legend=["MPI-INT", "MPI-OBJECT","TWS-INT", "TWS-OBJECT"], title="Latency of Reduce", plot=plt, ticks=xlabels_1_64, logy=False, ylabel="Latency (ms)", ymax=20)
-
-    plt.subplot2grid((1, 19), (0, 9), colspan=8)
-    plot_line(gather, x=xlabels_1_400, legend=["MPI-INT", "MPI-OBJECT","TWS-INT", "TWS-OBJECT"], title="Latency of Gather", plot=plt, ticks=xlabels_1_400, logy=False, ylabel="Latency (ms)", ymax=10)
+    plt.subplot2grid((10, 16), (0, 8), colspan=8, rowspan=8)
+    plot_line(gather, x=xlabels_1_400, title="Latency of Gather", plot=plt, ticks=xlabels_1_400, logy=True, ylabel="Total time (s) Log", ymax=10, legendloc="bottom right")
 
     plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
 
     fig.tight_layout()
     fig = plt.gcf()
+    plt.legend(["MPI-INT", "MPI-OBJECT", "TWS-INT", "TWS-OBJECT"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(-.1, -.35), ncol=4)
     fig.savefig("/home/supun/data/twister2/pics/mpi_latency.png")
     plt.show()
+
+    # fig = plt.figure(figsize=(9, 4), dpi=100)
+    #
+    # plt.subplot2grid((10, 16), (0, 0), colspan=8, rowspan=8)
+    # plot_line(reduce, x=xlabels_1_64, title="Latency of Reduce", plot=plt, ticks=xlabels_1_64, logy=True, ylabel="Latency (ms)", ymax=20)
+    #
+    # plt.subplot2grid((10, 16), (0, 8), colspan=8, rowspan=8)
+    # plot_line(gather, x=xlabels_1_400, title="Latency of Gather", plot=plt, ticks=xlabels_1_400, logy=True, ylabel="Latency (ms)", ymax=10)
+    #
+    # plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
+    #
+    # fig.tight_layout()
+    # fig = plt.gcf()
+    # plt.legend(legend=["MPI-INT", "MPI-OBJECT", "TWS-INT", "TWS-OBJECT"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(-.1, -.35), ncol=4)
+    # fig.savefig("/home/supun/data/twister2/pics/mpi_latency.png")
+    # plt.show()
 
 def plot_benchmark_latency():
     reduce = [[7.4,	8.4,	9.8,	11.9,	17.1,	25.9,	42.9],
@@ -271,51 +290,49 @@ def plot_kmeans():
                               [141.75,	75.092,	41.4],
                               [251.652,	327.399,	352.31]]
 
-    fig = plt.figure(figsize=(12, 6), dpi=100)
+    fig = plt.figure(figsize=(10, 5), dpi=100)
 
     plt.subplot2grid((10,16), (0, 0), colspan=8, rowspan=8)
-    plot_bar(y_short_large, x=[1,2,4,8,16], xlabel="Parallelism", title="c) Top. B Large Messages", plot=plt, logy=True, ylabel="time(ms)", bar_width=.075, col=cls, n=5, ymax=400)
+    plot_bar(y_short_large, x=[1,2,4,8,16], xlabel="Centers x 1000", title="K-Means", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.075, col=cls, n=5, ymax=400)
 
 
     plt.subplot2grid((10,16), (0, 8), colspan=8, rowspan=8)
-    plot_bar(y_short_large_parallel, x=[4,8,16], xlabel="Parallelism", title="c) Top. B Large Messages", plot=plt, ylabel="time(ms)", bar_width=.075, col=cls, ymax=400)
+    plot_bar(y_short_large_parallel, x=[4,8,16], xlabel="Nodes", title="K-Means", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.075, col=cls, ymax=400)
 
     plt.subplots_adjust(left=0.06, right=0.98, top=5, bottom=0.2)
     fig.tight_layout()
     fig = plt.gcf()
+    plt.legend(["DFW IB", "DFW 10Gbps", "BSP - IB", "BSP - 10Gbps", "Spark - 10Gbps"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(0, -.35), ncol=3)
     fig.savefig("/home/supun/data/twister2/pics/kmeans.png")
-    plt.legend(["Twister:Net IB", "Twister:Net 10Gbps", "MPI - IB", "MPI - 10Gbps", "Spark - 10Gbps"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(0, -.3), ncol=3)
     plt.show()
 
-def plot_yahoo_percentages():
-    y = [[7.039797,10.117806,10.589877,10.873941,11.098632,11.28215,11.440547,11.579306,11.709781,11.824966,11.930828,12.03175,12.123004,12.209889,12.294789,12.375119,12.450744,12.523882,12.596281,12.666217,12.734619,12.798721,12.862758,12.923179,12.982774,13.041543,13.101455,13.159196,13.21688,13.270119,13.327192,13.382509,13.436452,13.487521,13.543312,13.596373,13.648969,13.701298,13.75451,13.809505,13.863191,13.915876,13.967294,14.018828,14.072233,14.124837,14.177013,14.230307,14.281666,14.333721,14.385401,14.437565,14.490591,14.54423,14.597051,14.652034,14.70735,14.759708,14.816276,14.873087,14.928759,14.985485,15.04317,15.098029,15.158724,15.218162,15.275214,15.337752,15.398731,15.461727,15.526041,15.592246,15.656146,15.725281,15.793151,15.864217,15.936833,16.011342,16.087012,16.169644,16.253351,16.340396,16.432418,16.525694,16.623472,16.729063,16.839053,16.95421,17.078758,17.211549,17.36127,17.511954,17.6956,17.911305,18.136767,18.40708,18.730862,19.15332,19.72492,20.759459,30.210159],
-         [3.767712,5.856978,6.209369,6.447664,6.62835,6.77462,6.900314,7.012553,7.105544,7.187125,7.266193,7.340336,7.412796,7.483377,7.549925,7.613854,7.674134,7.730904,7.78501,7.836628,7.889687,7.941473,7.991609,8.04007,8.086344,8.131632,8.17257,8.213329,8.25371,8.294707,8.33526,8.377199,8.419833,8.463186,8.504432,8.545016,8.585796,8.625832,8.665502,8.704376,8.746594,8.784539,8.822784,8.86197,8.901284,8.939165,8.977604,9.016605,9.055745,9.095199,9.134379,9.172984,9.210105,9.244291,9.279829,9.318483,9.355261,9.393737,9.432999,9.474873,9.516201,9.554545,9.596222,9.639099,9.681407,9.722926,9.764344,9.810381,9.854142,9.899422,9.947953,9.996063,10.041337,10.089357,10.136615,10.184712,10.229935,10.276499,10.324289,10.375508,10.426951,10.481439,10.539428,10.601025,10.663702,10.728453,10.792754,10.864732,10.938187,11.017464,11.101996,11.18635,11.284065,11.39123,11.51097,11.661572,11.835572,12.049211,12.34516,12.809641,22.144451]
-         ]
-    print len(y[0]),len(y[1])
-    x = np.arange(0,101)
-    print len(x)
-    print x
-    fig = plt.figure(figsize=(4, 2.5), dpi=100)
-    plot_line(y, x, mrks=False, ylabel="Time (ms)", xlabel="Percentage of tuples completed", ymax=35, ymin=3, legend=["TCP", "IB"], y_ticks=np.arange(3, 35, 5),plot=plt)
-    plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
+def plot_terasort():
+    y_short_large = [[31.355,	38.047,	50.246,	76.622],
+                     [30.845,	39.584,	52.096,	85.581],
+                     [20.067,	23.349,	28.796,	37.460],
+                     [23.445,	27.836,	37.562,	52.031]]
+
+    y_short_large_parallel = [[142.128,	73.119,	40.012],
+                              [150.813,	76.626,	42.904],
+                              [138.395,	74.645,	39.596],
+                              [141.75,	75.092,	41.4],
+                              [251.652,	327.399,	352.31]]
+
+    fig = plt.figure(figsize=(10, 5), dpi=100)
+
+    plt.subplot2grid((10,16), (0, 0), colspan=8, rowspan=8)
+    plot_bar(y_short_large, x=[1,2,4,8,16], xlabel="Centers x 1000", title="Terasort", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.075, col=cls, n=4, ymax=100)
+
+    plt.subplot2grid((10,16), (0, 8), colspan=8, rowspan=8)
+    plot_bar(y_short_large_parallel, x=[4,8,16], xlabel="Nodes", title="Terasort", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.075, col=cls, ymax=400)
+
+    plt.subplots_adjust(left=0.06, right=0.98, top=5, bottom=0.2)
     fig.tight_layout()
     fig = plt.gcf()
-    fig.savefig("/home/supun/data/heron/pics/yahoo_bench.png")
+    # plt.legend(["DFW IB", "DFW 10Gbps", "BSP - IB", "BSP - 10Gbps", "Spark - 10Gbps"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(0, -.35), ncol=3)
+    fig.savefig("/home/supun/data/twister2/pics/terasort.png")
     plt.show()
 
-def plot_inflight():
-    y = [[1.42101, 3.60705, 3.813832, 3.933011, 4.023179, 4.095205, 4.15655, 4.209329, 4.2566, 4.301016, 4.342025, 4.37923, 4.412292, 4.44276, 4.473364, 4.503146, 4.532399, 4.559991, 4.587979, 4.613407, 4.638966, 4.662814, 4.686593, 4.709747, 4.733901, 4.756786, 4.779891, 4.802737, 4.823655, 4.845085, 4.865043, 4.885786, 4.905827, 4.927124, 4.946818, 4.966208, 4.985165, 5.003705, 5.024038, 5.043677, 5.062876, 5.082477, 5.101185, 5.119973, 5.138943, 5.15781, 5.1757, 5.193931, 5.212969, 5.231507, 5.250376, 5.26945, 5.288028, 5.307215, 5.326097, 5.345766, 5.364811, 5.386208, 5.407344, 5.426513, 5.447425, 5.468658, 5.48972, 5.51176, 5.533626, 5.554512, 5.575964, 5.600311, 5.623405, 5.646698, 5.669447, 5.692433, 5.717984, 5.742075, 5.767634, 5.792966, 5.819404, 5.847649, 5.875698, 5.904232, 5.93473, 5.96635, 5.999086, 6.033166, 6.068303, 6.106348, 6.146038, 6.186266, 6.229559, 6.276005, 6.328205, 6.386348, 6.449637, 6.518388, 6.595407, 6.690602, 6.806691, 6.953255, 7.183104, 7.600129, 54.972619],
-         [11.976518, 29.466279, 30.49349, 31.109085, 31.533489, 31.874956, 32.171226, 32.456275, 32.6907, 32.916648, 33.118456, 33.302603, 33.472665, 33.633971, 33.782356, 33.934413, 34.076852, 34.211436, 34.338917, 34.475597, 34.602774, 34.718712, 34.834569, 34.951833, 35.069556, 35.185393, 35.298518, 35.410891, 35.517523, 35.621287, 35.722793, 35.824183, 35.924959, 36.025787, 36.120164, 36.215372, 36.311719, 36.404702, 36.505337, 36.60156, 36.699315, 36.798821, 36.896604, 36.994028, 37.091663, 37.192291, 37.288684, 37.39041, 37.490724, 37.585785, 37.68475, 37.78826, 37.891769, 37.98533, 38.081683, 38.176749, 38.278689, 38.382079, 38.48452, 38.590694, 38.694635, 38.797786, 38.901793, 39.0042, 39.103973, 39.213535, 39.323803, 39.433503, 39.545538, 39.666622, 39.793974, 39.919287, 40.046157, 40.176584, 40.310414, 40.439685, 40.569528, 40.702407, 40.844166, 40.993165, 41.144577, 41.306924, 41.468885, 41.627109, 41.794284, 41.962257, 42.152335, 42.35847, 42.569367, 42.816585, 43.089992, 43.352146, 43.641445, 43.977966, 44.356965, 44.794428, 45.359317, 46.050456, 47.020314, 48.775548, 116.765934],
-         [3.134631, 5.915425, 6.410083, 6.707619, 6.934826, 7.122226, 7.265602, 7.391323, 7.508649, 7.613073, 7.7086, 7.799823, 7.883417, 7.958909, 8.032628, 8.09694, 8.162044, 8.224155, 8.282828, 8.338101, 8.395541, 8.452571, 8.505496, 8.557782, 8.608309, 8.660984, 8.710606, 8.756745, 8.803388, 8.849271, 8.895774, 8.941261, 8.987582, 9.033737, 9.076778, 9.117837, 9.158835, 9.199528, 9.242739, 9.283156, 9.32325, 9.364882, 9.405904, 9.446883, 9.486836, 9.527139, 9.566083, 9.6067, 9.645527, 9.685113, 9.726688, 9.766846, 9.807648, 9.847022, 9.885054, 9.925453, 9.966326, 10.007049, 10.046186, 10.084595, 10.125674, 10.167157, 10.209679, 10.251607, 10.295066, 10.340051, 10.382469, 10.427272, 10.472653, 10.519181, 10.565548, 10.614288, 10.663682, 10.713675, 10.766313, 10.817401, 10.871647, 10.930874, 10.990647, 11.049431, 11.108467, 11.173446, 11.244167, 11.315316, 11.387415, 11.4657, 11.548366, 11.634323, 11.731646, 11.834974, 11.945507, 12.072061, 12.208974, 12.369375, 12.554796, 12.787809, 13.080593, 13.4797, 14.159219, 15.420684, 61.139004],
-         [9.281035, 42.544482, 46.645591, 48.519592, 49.856988, 50.826242, 51.627169, 52.276195, 52.846869, 53.378431, 53.839345, 54.3055, 54.702785, 55.069547, 55.423703, 55.769167, 56.088709, 56.384136, 56.67929, 56.958726, 57.222392, 57.486047, 57.741963, 57.981937, 58.228324, 58.460525, 58.680105, 58.892042, 59.101097, 59.322651, 59.538175, 59.748115, 59.949714, 60.146533, 60.352932, 60.538655, 60.719714, 60.903826, 61.075162, 61.251679, 61.435267, 61.607536, 61.782616, 61.953901, 62.120784, 62.30078, 62.477107, 62.647067, 62.81718, 62.986416, 63.148689, 63.3161, 63.473625, 63.639601, 63.804122, 63.974262, 64.12974, 64.296367, 64.459862, 64.623329, 64.788922, 64.965316, 65.135665, 65.308395, 65.47622, 65.651501, 65.817609, 65.988506, 66.155798, 66.327087, 66.507314, 66.688482, 66.869148, 67.054083, 67.251086, 67.451987, 67.657047, 67.852045, 68.046262, 68.250517, 68.455237, 68.66863, 68.900649, 69.140919, 69.383308, 69.638484, 69.902481, 70.173667, 70.438342, 70.743959, 71.067971, 71.418696, 71.786213, 72.196597, 72.643109, 73.140155, 73.729139, 74.5043, 75.480061, 77.065279, 144.001862]]
-    x = np.arange(0,101)
-    fig = plt.figure(figsize=(4, 2.5), dpi=100)
-    plt.subplots_adjust(left=0.15, right=0.98, top=0.9, bottom=0.15)
-    plot_line(y, x, mrks=False, ylabel="Time (ms)", xlabel="Percentage of tuples completed", ymax=150, ymin=0, legend=["IB-10", "IB-100", "TCP-10", "TCP-100"], y_ticks=np.arange(0, 150, 20), plot=plt)
-    fig.tight_layout()
-    fig = plt.gcf()
-    fig.savefig("/home/supun/data/heron/pics/percent_complete_ib_tcp.png")
-    plt.show()
 
 def plot_throughput():
     large = [[122176,	60608,	30048,	14896,	7408,	3408],
@@ -358,11 +375,12 @@ def plot_throughput():
 
 def main():
     # plot_latency_heron()
-    # plot_latency_flink()
-    # plot_latency_mpi()
+    plot_latency_flink()
+    plot_latency_mpi()
     # plot_bandwidth()
     # plot_benchmark_latency()
     plot_kmeans()
+    plot_terasort()
     # plot_latency_parallel_ib()
     # plot_yahoo_percentages()
     # plot_inflight()

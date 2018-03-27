@@ -1,5 +1,6 @@
 package edu.iu.dsc.tws.flinkapps.stream;
 
+import edu.iu.dsc.tws.flinkapps.data.ByteData;
 import edu.iu.dsc.tws.flinkapps.data.CollectiveData;
 import org.apache.flink.api.common.functions.Partitioner;
 import org.apache.flink.api.common.functions.RichMapFunction;
@@ -27,7 +28,7 @@ public class StreamPartitioning {
   }
 
   public void execute() {
-    DataStream<Tuple2<Integer, CollectiveData>> stringStream = env.addSource(new RichParallelSourceFunction<CollectiveData>() {
+    DataStream<Tuple2<Integer, ByteData>> stringStream = env.addSource(new RichParallelSourceFunction<ByteData>() {
       int i = 1;
       int count = 0;
       int size = 0;
@@ -44,9 +45,9 @@ public class StreamPartitioning {
       }
 
       @Override
-      public void run(SourceContext<CollectiveData> sourceContext) throws Exception {
+      public void run(SourceContext<ByteData> sourceContext) throws Exception {
         while (count < iterations) {
-          CollectiveData i = new CollectiveData(size);
+          ByteData i = new ByteData(size);
           sourceContext.collect(i);
           count++;
         }
@@ -55,7 +56,7 @@ public class StreamPartitioning {
       @Override
       public void cancel() {
       }
-    }).map(new RichMapFunction<CollectiveData, Tuple2<Integer, CollectiveData>>() {
+    }).map(new RichMapFunction<ByteData, Tuple2<Integer, ByteData>>() {
       Random random;
 
       @Override
@@ -65,14 +66,14 @@ public class StreamPartitioning {
       }
 
       @Override
-      public Tuple2<Integer, CollectiveData> map(CollectiveData s) throws Exception {
+      public Tuple2<Integer, ByteData> map(ByteData s) throws Exception {
         return new Tuple2<>(random.nextInt(640 * 2), s);
       }
     }).partitionCustom(new MyPartitioner(), 0);
 
-    stringStream.addSink(new RichSinkFunction<Tuple2<Integer, CollectiveData>>() {
+    stringStream.addSink(new RichSinkFunction<Tuple2<Integer, ByteData>>() {
       @Override
-      public void invoke(Tuple2<Integer, CollectiveData> integerCollectiveDataTuple2) throws Exception {
+      public void invoke(Tuple2<Integer, ByteData> integerCollectiveDataTuple2) throws Exception {
         if (count == 0) {
           start = System.nanoTime();
         }
