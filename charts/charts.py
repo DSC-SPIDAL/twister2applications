@@ -306,6 +306,33 @@ def plot_kmeans():
     fig.savefig("/home/supun/data/twister2/pics/kmeans.png")
     plt.show()
 
+def plot_terasort():
+    y_short_large = [[31.355,	38.047,	50.246,	76.622],
+                     [30.845,	39.584,	52.096,	85.581],
+                     [20.067,	23.349,	28.796,	37.460],
+                     [23.445,	27.836,	37.562,	52.031]]
+
+    y_short_large_parallel = [[142.128,	73.119,	40.012],
+                              [150.813,	76.626,	42.904],
+                              [138.395,	74.645,	39.596],
+                              [141.75,	75.092,	41.4],
+                              [251.652,	327.399,	352.31]]
+
+    fig = plt.figure(figsize=(10, 5), dpi=100)
+
+    plt.subplot2grid((10,16), (0, 0), colspan=8, rowspan=8)
+    plot_bar(y_short_large, x=[1,2,4,8,16], xlabel="Centers x 1000", title="Terasort", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.075, col=cls, n=4, ymax=100)
+
+    plt.subplot2grid((10,16), (0, 8), colspan=8, rowspan=8)
+    plot_bar(y_short_large_parallel, x=[4,8,16], xlabel="Nodes", title="Terasort", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.075, col=cls, ymax=400)
+
+    plt.subplots_adjust(left=0.06, right=0.98, top=5, bottom=0.2)
+    fig.tight_layout()
+    fig = plt.gcf()
+    # plt.legend(["DFW IB", "DFW 10Gbps", "BSP - IB", "BSP - 10Gbps", "Spark - 10Gbps"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(0, -.35), ncol=3)
+    fig.savefig("/home/supun/data/twister2/pics/terasort.png")
+    plt.show()
+
 
 def plot_throughput():
     large = [[122176,	60608,	30048,	14896,	7408,	3408],
@@ -353,6 +380,7 @@ def main():
     # plot_bandwidth()
     # plot_benchmark_latency()
     plot_kmeans()
+    plot_terasort()
     # plot_latency_parallel_ib()
     # plot_yahoo_percentages()
     # plot_inflight()
