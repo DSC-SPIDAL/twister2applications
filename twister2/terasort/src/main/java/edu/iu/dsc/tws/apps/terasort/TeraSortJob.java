@@ -49,6 +49,8 @@ public final class TeraSortJob {
         options.addOption("taskPerProc", true, "Tasks per container");
         options.addOption("tasksPerNode", true, "Tasks per Node");
         options.addOption("recordLimit", true, "recordLimit");
+        options.addOption("maxRecordsInMemory", true, "maxRecordsInMemory");
+        options.addOption("tmpFolder", true, "tmpFolder");
         options.addOption("output", true, "Output directory");
         options.addOption("partitionSampleNodes", true, "Number of nodes to choose partition samples");
         options.addOption("partitionSamplesPerNode",
@@ -74,6 +76,8 @@ public final class TeraSortJob {
         jobConfig.put("taskPerProc", cmd.getOptionValue("taskPerProc"));
         jobConfig.put("tasksPerNode", cmd.getOptionValue("tasksPerNode"));
         jobConfig.put("recordLimit", cmd.getOptionValue("recordLimit"));
+        jobConfig.put("maxRecordsInMemory", cmd.getOptionValue("maxRecordsInMemory"));
+        jobConfig.put("tmpFolder", cmd.getOptionValue("tmpFolder"));
         jobConfig.put("partitionSampleNodes",
                 cmd.getOptionValue("partitionSampleNodes"));
         jobConfig.put("partitionSamplesPerNode",
@@ -85,7 +89,7 @@ public final class TeraSortJob {
         // build JobConfig
         BasicJob.BasicJobBuilder jobBuilder = BasicJob.newBuilder();
         jobBuilder.setName("terasort");
-        jobBuilder.setContainerClass(TeraSortContainer2.class.getName());
+        jobBuilder.setContainerClass(TeraSortContainer5.class.getName());
         jobBuilder.setRequestResource(new ResourceContainer(1, 1024), Integer.valueOf(cmd.getOptionValue("totalTasks")));
         jobBuilder.setConfig(jobConfig);
 
