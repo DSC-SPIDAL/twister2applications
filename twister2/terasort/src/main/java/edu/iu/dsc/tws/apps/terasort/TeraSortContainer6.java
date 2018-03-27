@@ -137,14 +137,17 @@ public class TeraSortContainer6 implements IContainer {
         //progressChannel.start();
 
         Text[] selected = new Text[0];
-        while (!samplingDone) {
-            channel.progress();
+        if (id == 0) {
+            while (!samplingDone) {
+                channel.progress();
+            }
         }
 //            System.out.println("Got to results at : " + id );
 //            LOG.info("Gather results (only the first int of each array)"
 //                    + sampleData.size());
-        selected = getSelectedKeys(sampleData);
-
+        if (id == 0) {
+            selected = getSelectedKeys(sampleData);
+        }
 
         //Not lets start the threads to get the records from the previous step
         edgeCount++;
