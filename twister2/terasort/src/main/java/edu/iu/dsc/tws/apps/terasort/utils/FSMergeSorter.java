@@ -23,9 +23,9 @@ public class FSMergeSorter {
   private int maxRecordsInMemory;
   // number of records to read from file
   private int readSize = 100000;
-//  private int listLimit = 10000;
-  //Record[] r = new Record[listLimit];
-//  private int currentCount = 0;
+  private int listLimit = 20000;
+  Record[] r = new Record[listLimit];
+  private int currentCount = 0;
   private String outFolder;
   private byte[] key = new byte[Record.KEY_SIZE];
   private byte[] text = new byte[Record.DATA_SIZE];
@@ -92,19 +92,24 @@ public class FSMergeSorter {
 
   public void addData(List<ImmutablePair<byte[], byte[]>> data) {
     int records = data.size();
-    Record[] r = new Record[records];
     for (int i = 0; i < records; i++) {
-      r[i] = new Record(new Text(data.get(i).getKey()), new Text(data.get(i).getValue()));
+      r[currentCount] = new Record(new Text(data.get(i).getKey()), new Text(data.get(i).getValue()));
+      currentCount++;
+      if(currentCount == listLimit){
+        lock.lock();
+        try {
+          recordsList.add(r);
+          currentRecordsInMemory += r.length;
+          // LOG.info(String.format("Rank %d add records %d", rank, currentRecordsInMemory));
+          notFull.signal();
+        } finally {
+          lock.unlock();
+        }
+        currentCount = 0;
+        r = new Record[listLimit];
+      }
     }
-    lock.lock();
-    try {
-      recordsList.add(r);
-      currentRecordsInMemory += r.length;
-      // LOG.info(String.format("Rank %d add records %d", rank, currentRecordsInMemory));
-      notFull.signal();
-    } finally {
-      lock.unlock();
-    }
+
   }
 
   public void addData(KeyedContent data) {
@@ -114,15 +119,20 @@ public class FSMergeSorter {
     Record[] r = new Record[records];
     for (int i = 0; i < records; i++) {
       r[i] = new Record(new Text(keys.get(i)), new Text(values.get(i)));
-    }
-    lock.lock();
-    try {
-      recordsList.add(r);
-      currentRecordsInMemory += r.length;
-      // LOG.info(String.format("Rank %d add records %d", rank, currentRecordsInMemory));
-      notFull.signal();
-    } finally {
-      lock.unlock();
+      currentCount++;
+      if(currentCount == listLimit){
+        lock.lock();
+        try {
+          recordsList.add(r);
+          currentRecordsInMemory += r.length;
+          // LOG.info(String.format("Rank %d add records %d", rank, currentRecordsInMemory));
+          notFull.signal();
+        } finally {
+          lock.unlock();
+        }
+        currentCount = 0;
+        r = new Record[listLimit];
+      }
     }
   }
 
