@@ -22,6 +22,8 @@ import edu.iu.dsc.tws.comms.mpi.io.gather.GatherBatchFinalReceiver;
 import edu.iu.dsc.tws.comms.mpi.io.gather.GatherBatchPartialReceiver;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
+import mpi.MPI;
+import mpi.MPIException;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.hadoop.io.Text;
@@ -112,6 +114,8 @@ public class TeraSortContainer5 implements IContainer {
         }
         int dest = NO_OF_TASKS;
         Map<String, Object> newCfg = new HashMap<>();
+        newCfg.put("network.mpi.receiveBuffer.count", 32);
+        newCfg.put("network.mpi.send.pending.max", 32);
         int edgeCount = 0;
         samplesGather = channel.gather(newCfg, MessageType.OBJECT, edgeCount, sources,
                 dest, new GatherBatchFinalReceiver(new SamplesCollectionReceiver()),
@@ -124,23 +128,21 @@ public class TeraSortContainer5 implements IContainer {
             mapThread.start();
         }
 
-        Thread progressChannel = new Thread(new ProgressThreadC(channel));
+//        Thread progressChannel = new Thread(new ProgressThreadC(channel));
         Thread progressSample = new Thread(new ProgressThreadSG(samplesGather));
         progressSample.start();
-        progressChannel.start();
+//        progressChannel.start();
 
         Text[] selected = new Text[0];
         if (id == 0) {
             while (!samplingDone) {
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                channel.progress();
             }
+        }
 //            System.out.println("Got to results at : " + id );
 //            LOG.info("Gather results (only the first int of each array)"
 //                    + sampleData.size());
+        if (id == 0) {
             selected = getSelectedKeys(sampleData);
         }
 
@@ -159,11 +161,7 @@ public class TeraSortContainer5 implements IContainer {
         progressBroadcast.start();
 
         while (!broadcastDone) {
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            channel.progress();
         }
         LOG.info(String.format("%d Completed Boardcast thread", id));
         //Completed broadbast
@@ -178,6 +176,7 @@ public class TeraSortContainer5 implements IContainer {
                 }
             }
         }
+        newCfg = new HashMap<>();
         startTimePartition = System.currentTimeMillis();
         FinalPartitionReceiver finalPartitionRec = new FinalPartitionReceiver();
         partitionOp = channel.partition(newCfg, MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE, edgeCount,
@@ -198,11 +197,7 @@ public class TeraSortContainer5 implements IContainer {
         progressPartition.start();
 
         while (!reduceDone) {
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            channel.progress();
         }
         endTimePartition = System.currentTimeMillis();
         long endTimeTotal = System.currentTimeMillis();
@@ -210,7 +205,7 @@ public class TeraSortContainer5 implements IContainer {
         System.out.println("====================== Total Time taken : " + (endTimeTotal - startTimeTotal));
         while (true) {
             //Waiting to make sure this thread does not die
-            Thread.yield();
+            channel.progress();
         }
     }
 
@@ -666,9 +661,6 @@ public class TeraSortContainer5 implements IContainer {
 //
 //                partitions[i] = t;
 //            }
-            if (target == 200) {
-                System.out.println("Selected Keys " + Arrays.toString(selectedKeys));
-            }
 
             PartitionTree.TrieNode root = PartitionTree.buildTrie(selectedKeys, 0, selectedKeys.length, new Text(), 2);
             tree = new PartitionTree(root);
