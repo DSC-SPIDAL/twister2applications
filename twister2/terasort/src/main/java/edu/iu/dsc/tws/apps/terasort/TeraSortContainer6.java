@@ -750,7 +750,7 @@ public class TeraSortContainer6 implements IContainer {
                             long stime = System.currentTimeMillis();
                             long sortTime = sorter.merge();
                             long etime = System.currentTimeMillis();
-                            System.out.println("Sort time " + id + " : " + sortTime + (etime - stime));
+                            System.out.println("Sort time " + id + " : " + (sortTime + (etime - stime)));
                             System.out.println("Add Data time " + id + " : " + adddatatime);        
                             reduceDone = true;
                         }
