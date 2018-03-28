@@ -327,7 +327,6 @@ public class FSMergeSorter {
         // check weather we have enough records
 //        LOG.info(String.format("rank %d max records %d current records %d", rank, maxRecordsInMemory, currentRecordsInMemory));
         if  (currentRecordsInMemory >= maxRecordsInMemory) {
-          System.out.println(currentRecordsInMemory +" ::: "+ maxRecordsInMemory + " :;::" + recordsList.size());
           // now save to disk
           List<Record[]> list;
           lock.lock();
