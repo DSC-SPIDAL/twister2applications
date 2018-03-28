@@ -731,7 +731,7 @@ public class TeraSortContainer6 implements IContainer {
                     sorter.addData(tempList);
                 }
             }
-	    adddatatime += System.currentTimeMillis() - stime1;
+	        adddatatime += System.currentTimeMillis() - stime1;
 
             if (((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) && isAllFinished(target)) {
                 completedTasks++;
@@ -748,9 +748,9 @@ public class TeraSortContainer6 implements IContainer {
                         public void run() {
                             sorter.doneReceive();
                             long stime = System.currentTimeMillis();
-                            sorter.merge();
+                            long sortTime = sorter.merge();
                             long etime = System.currentTimeMillis();
-                            System.out.println("Sort time " + id + " : " + (etime - stime));
+                            System.out.println("Sort time " + id + " : " + sortTime + (etime - stime));
                             System.out.println("Add Data time " + id + " : " + adddatatime);        
                             reduceDone = true;
                         }
@@ -760,7 +760,7 @@ public class TeraSortContainer6 implements IContainer {
             }
             count++;
 
-if (count % 1000 == 0) {
+            if (count % 1000 == 0) {
                 LOG.info(String.format("%d received %d", id, count));
             }
             return true;
