@@ -116,7 +116,6 @@ public class FSMergeSorter {
     keys = (List) data.getSource();
     values = (List) data.getObject();
     int records = keys.size();
-    Record[] r = new Record[records];
     for (int i = 0; i < records; i++) {
       r[currentCount] = new Record(new Text(keys.get(i)), new Text(values.get(i)));
       currentCount++;
