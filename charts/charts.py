@@ -142,6 +142,70 @@ def plot_bar(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, leg
         p.show()
     return plt
 
+def plot_bar_stacked(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, legend=None, plot=None, logy=False, ylim=None, legendloc=None, y_std=None, bar_width=None, n=None, ymax=None) :
+    N = 3
+    if n:
+        N = n
+    width = .15
+    ind = np.arange(0, .5*N, .5)
+
+    if not plot:
+        p = plt
+    else:
+        p = plot
+    if not col:
+        col = cls
+
+    l = []
+    current_width = 0
+    if bar_width:
+        width = bar_width
+    count = len(y)
+
+    for i in range(len(y)):
+        temp = None
+        if logy:
+            temp = p.bar(ind + current_width, y[i], width, edgecolor='black', color=col[i], hatch=patterns[i], log=logy,bottom=0)
+        else:
+            if y_std:
+                temp = p.bar(ind + current_width, y[i], width, edgecolor='black', color=col[i], yerr=y_std[i], hatch=patterns[i], log=logy, bottom=0)
+            else:
+                temp = p.bar(ind + current_width, y[i], width, edgecolor='black', color=col[i], hatch=patterns[i], log=logy, bottom=0)
+        l.append(temp[0])
+        current_width = current_width + width
+
+    p.xticks(ind + width * count / 2, x)
+
+    if ylim:
+        p.ylim(ylim)
+    if ymax:
+        p.ylim(ymax=ymax)
+    if not xlabel:
+        xlabel = 'message size (KB)'
+    p.xlabel(xlabel)
+    if ylabel:
+        # ylabel = 'time (ms)'
+        p.ylabel(ylabel)
+
+    if title:
+        p.title(title)
+
+    for l in y:
+        print title, l
+    # p.grid(True)
+    if legend:
+        if legendloc:
+            p.legend(legend, loc=legendloc, fancybox=True, framealpha=0.25, bbox_to_anchor=(.5, 1.2), ncol=3)
+        else:
+            p.legend(legend, loc="upper left", fancybox=True, framealpha=0.25, bbox_to_anchor=(0.5, 1.05))
+    p.minorticks_on()
+    p.grid(b=True, which='major', color='k', linestyle='-', axis='y', alpha=.5)
+    # p.grid(b=True, which='minor', color='grey', linestyle='-', alpha=0.1, axis='y')
+    p.tight_layout()
+    if not plot:
+        p.show()
+    return plt
+
 def plot_latency_heron():
     heron_partition = [[13,	15,	25,	41,	52,	59,	77],
                        [0.33,	0.36,	0.39,	0.42,	0.56,	0.65,	0.95],
@@ -217,9 +281,9 @@ def plot_bandwidth():
     plt.show()
 
 def plot_latency_mpi():
-    reduce = [[0.04,	0.08,	0.26,	0.4,	0.95,	1.6, 2.8],
-              [0.36,	0.55,	0.87,	1.8,	3.2,	8.5, 16],
-              [0.06,	0.13,	0.22,	0.31,	0.57,	1.04,	1.94],
+    reduce = [[0.03,	0.05,	0.14,	0.284,	0.55,	0.95,	1.8],
+              [0.36,	0.55,	0.87,	1.8,	3.2,	6.6, 12.6],
+              [0.07,	0.09,	0.22,	0.35,	0.59,	1.12,	2.13],
               [0.14,	0.17,	0.28,	0.49,	1.06,	1.94,	4.1]]
 
     gather = [[0.2,	0.25,	0.3,	0.7,	1.7,	2.5],
