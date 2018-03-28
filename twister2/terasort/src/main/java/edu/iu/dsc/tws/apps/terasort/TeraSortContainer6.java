@@ -205,11 +205,6 @@ public class TeraSortContainer6 implements IContainer {
         endTimePartition = System.currentTimeMillis();
         long endTimeTotal = System.currentTimeMillis();
         System.out.println("Time taken for partition Operation : " + (endTimePartition - startTimePartition));
-        try {
-            MPI.COMM_WORLD.barrier();
-        } catch (MPIException e) {
-            e.printStackTrace();
-        }
         System.out.println("====================== Total Time taken : " + (endTimeTotal - startTimeTotal));
         while (true) {
             //Waiting to make sure this thread does not die
@@ -685,6 +680,7 @@ public class TeraSortContainer6 implements IContainer {
         private String outputFile;
         private long start = System.nanoTime();
         int count = 0;
+        long adddatatime = 0;
         FSMergeSorter sorter;
         KeyedContent temp;
         List<ImmutablePair<byte[], byte[]>> tempList;
@@ -708,6 +704,7 @@ public class TeraSortContainer6 implements IContainer {
         @Override
         public boolean onMessage(int source, int path, int target, int flags, Object object) {
             // add the object to the map
+            long stime1 = System.currentTimeMillis();
             if ((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) {
                 if (object instanceof KeyedContent) {
                     temp = (KeyedContent) object;
@@ -726,6 +723,7 @@ public class TeraSortContainer6 implements IContainer {
                     tempList = (List<ImmutablePair<byte[], byte[]>>) object;
                     sorter.addData(tempList);
                 }
+                adddatatime = System.currentTimeMillis() - stime1;
             }
 
             if (((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) && isAllFinished(target)) {
@@ -736,10 +734,13 @@ public class TeraSortContainer6 implements IContainer {
                     sorter.merge();
                     long etime = System.currentTimeMillis();
                     System.out.println("Sort time " + id + " : " + (etime - stime));
+                    System.out.println("Add Data time " + id + " : " + adddatatime);
+
                 }
                 reduceDone = true;
             }
             count++;
+
             return true;
         }
 

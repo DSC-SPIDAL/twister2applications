@@ -118,7 +118,7 @@ public class FSMergeSorter {
     int records = keys.size();
     Record[] r = new Record[records];
     for (int i = 0; i < records; i++) {
-      r[i] = new Record(new Text(keys.get(i)), new Text(values.get(i)));
+      r[currentCount] = new Record(new Text(keys.get(i)), new Text(values.get(i)));
       currentCount++;
       if(currentCount == listLimit){
         lock.lock();
@@ -328,6 +328,7 @@ public class FSMergeSorter {
         // check weather we have enough records
 //        LOG.info(String.format("rank %d max records %d current records %d", rank, maxRecordsInMemory, currentRecordsInMemory));
         if  (currentRecordsInMemory >= maxRecordsInMemory) {
+          System.out.println(currentRecordsInMemory +" ::: "+ maxRecordsInMemory + " :;::" + recordsList.size());
           // now save to disk
           List<Record[]> list;
           lock.lock();
