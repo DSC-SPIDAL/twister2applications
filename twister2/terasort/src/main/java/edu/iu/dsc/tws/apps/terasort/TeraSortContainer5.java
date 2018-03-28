@@ -514,11 +514,13 @@ public class TeraSortContainer5 implements IContainer {
                                     MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
                             while (!partitionOp.send(task, keyedContent, 0, partition)) {
                                 // lets wait a litte and try again
-                                try {
+                                partitionOp.progress();
+                                /*try {
                                     Thread.sleep(1);
                                 } catch (InterruptedException e) {
                                     e.printStackTrace();
                                 }
+                                */
                             }
                         }
 
@@ -554,7 +556,13 @@ public class TeraSortContainer5 implements IContainer {
 
 
             int flags = MessageFlags.FLAGS_LAST;
-            for (int i = 0; i < NO_OF_TASKS; i++) {
+//            for (int i = 0; i < NO_OF_TASKS; i++) {
+                        int sendCount = 0;
+            int start = id;
+            while (sendCount < NO_OF_TASKS) {
+                int i = start % NO_OF_TASKS;
+                start++;
+                sendCount++;
                 if (i == task) {
                     continue;
                 }
@@ -723,7 +731,7 @@ public class TeraSortContainer5 implements IContainer {
 
             if (((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) && isAllFinished(target)) {
                 completedTasks++;
-                if (completedTasks == noOfTasksPerExecutor) {
+                /** if (completedTasks == noOfTasksPerExecutor) {
                     long stime = System.currentTimeMillis();
                     Record[] sortedRecords = sorter.sort();
                     long etime = System.currentTimeMillis();
@@ -736,6 +744,24 @@ public class TeraSortContainer5 implements IContainer {
 
                 }
                 reduceDone = true;
+                */
+               if (completedTasks == noOfTasksPerExecutor) {
+                  new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                      long stime = System.currentTimeMillis();
+                      Record[] sortedRecords = sorter.sort();
+                      long etime = System.currentTimeMillis();
+                      System.out.println("Sort11 time " + id + " : " + (etime - stime) + " count : " + sortedRecords.length);
+                      stime = System.currentTimeMillis();
+                      DataLoader loader = new DataLoader();
+                      loader.saveFast(sortedRecords, outputFile);
+                      etime = System.currentTimeMillis();
+                      System.out.println("Save time " + id + " : " + (etime - stime));
+                      reduceDone = true;
+                    }
+                  }).start();
+                }
             }
             count++;
             return true;

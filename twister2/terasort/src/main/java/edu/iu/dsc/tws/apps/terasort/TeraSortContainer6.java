@@ -557,7 +557,13 @@ public class TeraSortContainer6 implements IContainer {
 
 
             int flags = MessageFlags.FLAGS_LAST;
-            for (int i = 0; i < NO_OF_TASKS; i++) {
+            // for (int i = 0; i < NO_OF_TASKS; i++) {
+            int sendCount = 0;
+            int start = id;
+            while (sendCount < NO_OF_TASKS) {
+                int i = start % NO_OF_TASKS;
+                start++;
+                sendCount++;
                 if (i == task) {
                     continue;
                 }
@@ -704,6 +710,7 @@ public class TeraSortContainer6 implements IContainer {
         @Override
         public boolean onMessage(int source, int path, int target, int flags, Object object) {
             // add the object to the map
+            //LOG.info("On message");
             long stime1 = System.currentTimeMillis();
             if ((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) {
                 if (object instanceof KeyedContent) {
@@ -723,24 +730,39 @@ public class TeraSortContainer6 implements IContainer {
                     tempList = (List<ImmutablePair<byte[], byte[]>>) object;
                     sorter.addData(tempList);
                 }
-                adddatatime = System.currentTimeMillis() - stime1;
             }
+		            adddatatime += System.currentTimeMillis() - stime1;
 
             if (((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) && isAllFinished(target)) {
                 completedTasks++;
                 if (completedTasks == noOfTasksPerExecutor) {
-                    sorter.doneReceive();
+                    /* sorter.doneReceive();
                     long stime = System.currentTimeMillis();
                     sorter.merge();
                     long etime = System.currentTimeMillis();
                     System.out.println("Sort time " + id + " : " + (etime - stime));
                     System.out.println("Add Data time " + id + " : " + adddatatime);
+                    */
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            sorter.doneReceive();
+                            long stime = System.currentTimeMillis();
+                            sorter.merge();
+                            long etime = System.currentTimeMillis();
+                            System.out.println("Sort time " + id + " : " + (etime - stime));
+                            System.out.println("Add Data time " + id + " : " + adddatatime);        
+                            reduceDone = true;
+                        }
+                    }).start();
 
                 }
-                reduceDone = true;
             }
             count++;
 
+if (count % 1000 == 0) {
+                LOG.info(String.format("%d received %d", id, count));
+            }
             return true;
         }
 
