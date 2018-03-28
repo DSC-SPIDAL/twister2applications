@@ -723,7 +723,7 @@ public class TeraSortContainer6 implements IContainer {
                     tempList = (List<ImmutablePair<byte[], byte[]>>) object;
                     sorter.addData(tempList);
                 }
-                adddatatime = System.currentTimeMillis() - stime1;
+                adddatatime += System.currentTimeMillis() - stime1;
             }
 
             if (((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) && isAllFinished(target)) {
