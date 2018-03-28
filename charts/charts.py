@@ -131,9 +131,9 @@ def plot_bar(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, leg
     # p.grid(True)
     if legend:
         if legendloc:
-            p.legend(legend, loc=legendloc, fancybox=True, framealpha=0.25, bbox_to_anchor=(.5, 1.2), ncol=3)
+            p.legend(legend, loc=legendloc, fancybox=True, framealpha=0.25)
         else:
-            p.legend(legend, loc="upper left", fancybox=True, framealpha=0.25, bbox_to_anchor=(0.5, 1.05))
+            p.legend(legend, loc="upper left", fancybox=True, framealpha=0.25)
     p.minorticks_on()
     p.grid(b=True, which='major', color='k', linestyle='-', axis='y', alpha=.5)
     # p.grid(b=True, which='minor', color='grey', linestyle='-', alpha=0.1, axis='y')
@@ -251,7 +251,7 @@ def plot_latency_flink():
 
     fig = plt.figure(figsize=(9, 4), dpi=100)
     plt.subplot2grid((10, 16), (0, 0), colspan=8, rowspan=8)
-    plot_line(flink_reduce, x=xlabels_1_32, title="Total time Reduce", plot=plt, ticks=xlabels_1_32, logy=True, ylabel="Total time (s) Log", ymax=20000, legendloc="center right")
+    plot_line(flink_reduce, x=xlabels_1_32, title="Total time Reduce", plot=plt, ticks=xlabels_1_32, logy=True, ylabel="Total time (s) Log", ymax=20000, legendloc="center right", legend=["Flink-IPoIB", "TWS-1Gbps", "TWS-IB"])
 
     plt.subplot2grid((10, 16), (0, 8), colspan=8, rowspan=8)
     # plot_line(flink_partition, x=xlabels_1_32, title="Latency of Partition", plot=plt, ticks=xlabels_1_32, logy=True, ylabel="Total time (s) Log", ymax=10000, legendloc="bottom right")
@@ -261,7 +261,7 @@ def plot_latency_flink():
 
     fig.tight_layout()
     fig = plt.gcf()
-    plt.legend(["Flink-IPoIB", "Twister-IB", "Fink-1Gpbs", "Twister-1Gbps"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(-.1, -.35), ncol=4)
+    plt.legend(["Flink-IPoIB", "Twister-IB", "Fink-1Gpbs", "Twister-1Gbps"], fancybox=True, framealpha=0.0, loc="lower center", bbox_to_anchor=(.5, -.45), ncol=2)
     fig.savefig("/home/supun/data/twister2/pics/flink_time.png")
     plt.show()
 
@@ -374,7 +374,7 @@ def plot_terasort():
     y_short_large = [[31.355,	38.047,	50.246,	76.622],
                      [30.845,	39.584,	52.096,	85.581],
                      [20.067,	23.349,	28.796,	37.460],
-                     [23.445,	27.836,	37.562,	52.031]]
+                     [26.713,	28.048,	32.217,	42.285]]
 
     y_short_large_parallel = [[142.128,	73.119,	40.012],
                               [150.813,	76.626,	42.904],
@@ -384,16 +384,16 @@ def plot_terasort():
 
     fig = plt.figure(figsize=(10, 5), dpi=100)
 
-    plt.subplot2grid((10,16), (0, 0), colspan=8, rowspan=8)
-    plot_bar(y_short_large, x=[1,2,4,8,16], xlabel="Centers x 1000", title="Terasort", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.075, col=cls, n=4, ymax=100)
+    plt.subplot2grid((10,16), (0, 0), colspan=8, rowspan=10)
+    plot_bar(y_short_large, x=[32,64,128,256], xlabel="Data - Gigabytes", title="Terasort", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.1, col=cls, n=4, ymax=100, legend=["Flink-IPoIB", "Flink-10Gbps", "BSP-IB", "DFW-IB"], legendloc="upper left")
 
-    plt.subplot2grid((10,16), (0, 8), colspan=8, rowspan=8)
+    plt.subplot2grid((10,16), (0, 8), colspan=8, rowspan=10)
     plot_bar(y_short_large_parallel, x=[4,8,16], xlabel="Nodes", title="Terasort", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.075, col=cls, ymax=400)
 
     plt.subplots_adjust(left=0.06, right=0.98, top=5, bottom=0.2)
     fig.tight_layout()
     fig = plt.gcf()
-    # plt.legend(["DFW IB", "DFW 10Gbps", "BSP - IB", "BSP - 10Gbps", "Spark - 10Gbps"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(0, -.35), ncol=3)
+    plt.legend(["DFW IB", "DFW 10Gbps", "BSP - IB", "BSP - 10Gbps", "Spark - 10Gbps"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(0, -.35), ncol=3)
     fig.savefig("/home/supun/data/twister2/pics/terasort.png")
     plt.show()
 
