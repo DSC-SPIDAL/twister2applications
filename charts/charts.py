@@ -17,6 +17,7 @@ xlabels_1_16 = [1, 2, 4, 8, 16]
 
 markers=["o", "x", "^", "v", "D", "*"]
 cls=["khaki", "lightblue", "gray", "chocolate", "darksalmon", "black", "magenta"]
+cls2=["y", "y", "y", "y", "y", "y", "y"]
 lcls=["navy", "black", "crimson", "green", "magenta", "black", "magenta"]
 patterns = [ "/" , "+" , "-" , ">" , "\\" , "|", "o", "O", ".", "*" ]
 
@@ -142,7 +143,7 @@ def plot_bar(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, leg
         p.show()
     return plt
 
-def plot_bar_stacked(y=None, x=None, xlabel=None, ylabel=None, title=None, col=None, legend=None, plot=None, logy=False, ylim=None, legendloc=None, y_std=None, bar_width=None, n=None, ymax=None) :
+def plot_bar_stacked(y=None, y2=None, x=None, xlabel=None, ylabel=None, title=None, col=None, legend=None, plot=None, logy=False, ylim=None, legendloc=None, y_std=None, bar_width=None, n=None, ymax=None) :
     N = 3
     if n:
         N = n
@@ -172,6 +173,20 @@ def plot_bar_stacked(y=None, x=None, xlabel=None, ylabel=None, title=None, col=N
             else:
                 temp = p.bar(ind + current_width, y[i], width, edgecolor='black', color=col[i], hatch=patterns[i], log=logy, bottom=0)
         l.append(temp[0])
+        current_width = current_width + width
+
+    col=cls2
+    current_width = 0
+    for i in range(len(y2)):
+        temp = None
+        if logy:
+            temp = p.bar(ind + current_width, y2[i], width, bottom=y[i], edgecolor='black', color=col[i], hatch=patterns[i], log=logy)
+        else:
+            if y_std:
+                temp = p.bar(ind + current_width, y2[i], width, bottom=y[i], edgecolor='black', color=col[i], yerr=y_std[i], hatch=patterns[i], log=logy)
+            else:
+                temp = p.bar(ind + current_width, y2[i], width, bottom=y[i], edgecolor='black', color=col[i], hatch=patterns[i], log=logy)
+            l.append(temp[0])
         current_width = current_width + width
 
     p.xticks(ind + width * count / 2, x)
@@ -235,7 +250,7 @@ def plot_latency_heron():
 
     fig.tight_layout()
     fig = plt.gcf()
-    plt.legend(["Heron-1Gbps", "Twister2-IB", "Twister2-1GBps"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(-.7, -.3), ncol=3)
+    plt.legend(["Heron-1Gbps", "DFW-IB", "DFW-1GBps"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(-.7, -.3), ncol=3)
     fig.savefig("/home/supun/data/twister2/pics/heron_latency.png")
     plt.show()
 
@@ -261,7 +276,7 @@ def plot_latency_flink():
 
     fig.tight_layout()
     fig = plt.gcf()
-    plt.legend(["Flink-IPoIB", "Twister-IB", "Fink-1Gpbs", "Twister-1Gbps"], fancybox=True, framealpha=0.0, loc="lower center", bbox_to_anchor=(.5, -.45), ncol=2)
+    plt.legend(["Flink-IPoIB", "DWF-IB", "Fink-1Gpbs", "DWF-1Gbps"], fancybox=True, framealpha=0.0, loc="lower center", bbox_to_anchor=(.5, -.45), ncol=2)
     fig.savefig("/home/supun/data/twister2/pics/flink_time.png")
     plt.show()
 
@@ -301,7 +316,7 @@ def plot_latency_mpi():
 
     fig.tight_layout()
     fig = plt.gcf()
-    plt.legend(["MPI-INT", "MPI-OBJECT", "TWS-INT", "TWS-OBJECT"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(-.1, -.35), ncol=4)
+    plt.legend(["BSP-INT", "BSP-OBJECT", "DFW-INT", "DFW-OBJECT"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(-.1, -.35), ncol=4)
     fig.savefig("/home/supun/data/twister2/pics/mpi_latency.png")
     plt.show()
 
@@ -332,7 +347,7 @@ def plot_benchmark_latency():
     fig = plt.figure(figsize=(5, 4), dpi=100)
 
     plt.subplot2grid((1, 8), (0, 0), colspan=8)
-    plot_line(reduce, x=xlabels_1_64, legend=["Twister-IB", "MPI-IB","Twister-10Gbps", "MPI-10Gbps", "Heron-10Gbps"], title="Latency", plot=plt, ticks=xlabels_1_64, logy=True, ylabel=r"Latency ($\mu$s)", ymax=1500, legendloc="right center")
+    plot_line(reduce, x=xlabels_1_64, legend=["DFW-IB", "BSP-IB","DFW-10Gbps", "BSP-10Gbps", "Heron-10Gbps"], title="Latency", plot=plt, ticks=xlabels_1_64, logy=True, ylabel=r"Latency ($\mu$s)", ymax=1500, legendloc="right center")
 
     plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
 
@@ -371,29 +386,40 @@ def plot_kmeans():
     plt.show()
 
 def plot_terasort():
-    y_short_large = [[31.355,	38.047,	50.246,	76.622],
-                     [30.845,	39.584,	52.096,	85.581],
-                     [20.067,	23.349,	28.796,	37.460],
-                     [26.713,	28.048,	32.217,	42.285]]
+    y_short_large = [[14.12,	17.41,	19.7,	28.8],
+                     [19.34,	21.2,	25.68,	32.4],
+                     [31.355,	38.047,	50.246,	76.622],
+                     [30.845,	39.584,	52.096,	85.581]]
 
-    y_short_large_parallel = [[142.128,	73.119,	40.012],
-                              [150.813,	76.626,	42.904],
-                              [138.395,	74.645,	39.596],
-                              [141.75,	75.092,	41.4],
-                              [251.652,	327.399,	352.31]]
+    y_short_large_2 = [
+                       [4.78,	3.65,	5.22,	11.65],
+                       [4.06,	4,	5.62,	9.5],
+                        [0,0,0,0],
+                        [0,0,0,0]]
 
+    tb = [[73.682,	256], [67.315,	225.529]]
+    # other = [[35.230,	117.945],
+    #                           [55.596,	0]]
+    #
+    # comm = [[32.085,	107.584],
+    #                       [20.365,	0]]
     fig = plt.figure(figsize=(10, 5), dpi=100)
 
-    plt.subplot2grid((10,16), (0, 0), colspan=8, rowspan=10)
-    plot_bar(y_short_large, x=[32,64,128,256], xlabel="Data - Gigabytes", title="Terasort", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.1, col=cls, n=4, ymax=100, legend=["Flink-IPoIB", "Flink-10Gbps", "BSP-IB", "DFW-IB"], legendloc="upper left")
-
-    plt.subplot2grid((10,16), (0, 8), colspan=8, rowspan=10)
-    plot_bar(y_short_large_parallel, x=[4,8,16], xlabel="Nodes", title="Terasort", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.075, col=cls, ymax=400)
+    plt.subplot2grid((10,16), (0, 0), colspan=12, rowspan=8)
+    plot_bar_stacked(y_short_large, y2=y_short_large_2, x=[32,64,128,256], xlabel="Data - Gigabytes", title="Terasort", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.1, col=cls, n=4, ymax=100, legendloc="upper left")
+    legend=["BSP-IB-Com", "DFW-IB-Com", "Flink-IPoIB", "Flink-10Gbps", "Rest of time"]
+    plt.legend(legend, fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(.5, -.35), ncol=3)
+    plt.grid(b=True, which='minor', color='grey', linestyle='-', alpha=0.5, axis='y')
+    plt.subplot2grid((10,16), (0, 12), colspan=4, rowspan=8)
+    plot_bar(tb, x=[.5, 1], xlabel="Data - Terabytes", title="Terasort", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.125, col=cls, ymax=400, n=2)
+    legend=["BSP-IB", "DFW-IB"]
+    plt.legend(legend, fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(.5, -.35), ncol=1)
+    plt.grid(b=True, which='minor', color='grey', linestyle='-', alpha=0.5, axis='y')
 
     plt.subplots_adjust(left=0.06, right=0.98, top=5, bottom=0.2)
     fig.tight_layout()
     fig = plt.gcf()
-    plt.legend(["DFW IB", "DFW 10Gbps", "BSP - IB", "BSP - 10Gbps", "Spark - 10Gbps"], fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(0, -.35), ncol=3)
+
     fig.savefig("/home/supun/data/twister2/pics/terasort.png")
     plt.show()
 
@@ -438,11 +464,11 @@ def plot_throughput():
     plt.show()
 
 def main():
-    # plot_latency_heron()
+    plot_latency_heron()
     plot_latency_flink()
     plot_latency_mpi()
-    # plot_bandwidth()
-    # plot_benchmark_latency()
+    plot_bandwidth()
+    plot_benchmark_latency()
     plot_kmeans()
     plot_terasort()
     # plot_latency_parallel_ib()
