@@ -16,17 +16,6 @@
 
 package edu.iu.ccd;
 
-import edu.iu.dymoro.RotationUtil;
-import edu.iu.dymoro.Rotator;
-import edu.iu.harp.example.DoubleArrPlus;
-import edu.iu.harp.example.IntArrPlus;
-import edu.iu.harp.partition.Partition;
-import edu.iu.harp.partition.PartitionStatus;
-import edu.iu.harp.partition.Partitioner;
-import edu.iu.harp.partition.Table;
-import edu.iu.harp.resource.DoubleArray;
-import edu.iu.harp.resource.IntArray;
-import edu.iu.harp.schdynamic.DynamicScheduler;
 import edu.iu.sgd.SGDUtil;
 import edu.iu.sgd.VRowCol;
 import edu.iu.sgd.VSet;
@@ -38,8 +27,6 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapred.CollectiveMapper;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -70,7 +57,6 @@ public class CCDMPCollectiveMapper {
   /**
    * Mapper configuration.
    */
-  @Override
   protected void setup(Context context) {
     LOG.info("start setup: "
       + new SimpleDateFormat("yyyyMMdd_HHmmss")
