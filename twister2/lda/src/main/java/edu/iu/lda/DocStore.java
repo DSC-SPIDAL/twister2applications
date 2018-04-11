@@ -31,6 +31,7 @@ import java.io.InputStreamReader;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Logger;
 
 class DocWord {
   // A doc with id1 and words with id2
@@ -43,8 +44,7 @@ class DocWord {
 }
 
 public class DocStore {
-  protected static final Log LOG =
-    LogFactory.getLog(DocStore.class);
+  protected static final Logger LOG = Logger.getLogger(DocStore.class.getName());
 
   private final List<String> inputFiles;
   private final int numThreads;
@@ -100,8 +100,8 @@ public class DocStore {
 }
 
 class VLoadTask implements Task<String, Object> {
-  protected static final Log LOG =
-    LogFactory.getLog(VLoadTask.class);
+  protected static final Logger LOG =
+    Logger.getLogger(VLoadTask.class);
 
   private final Configuration conf;
   private final Int2ObjectOpenHashMap<DocWord> vDocMap;
