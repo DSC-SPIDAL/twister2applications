@@ -5,9 +5,7 @@ import edu.iu.dsc.tws.comms.api.DataFlowOperation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.IntUnaryOperator;
 import java.util.logging.Logger;
-import java.util.stream.IntStream;
 
 public class PipelinedTask {
   private static final Logger LOG = Logger.getLogger(PipelinedTask.class.getName());

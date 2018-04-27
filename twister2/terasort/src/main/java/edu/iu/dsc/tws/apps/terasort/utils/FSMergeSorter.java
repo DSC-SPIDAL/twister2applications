@@ -45,6 +45,7 @@ public class FSMergeSorter {
 
   private Lock lock = new ReentrantLock();
   private Condition notFull = lock.newCondition();
+  private long mergeTime = 0;
 
   private class OpenFile {
     FileChannel rwChannel;
