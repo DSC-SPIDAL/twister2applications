@@ -355,7 +355,7 @@ public class FSMergeSorter {
           saveFile(save, save.length, outFileName);
           savedFileSizes.put(saveIndex, save.length);
           saveIndex++;
-          sortTime += System.currentTimeMillis() - startTime;
+          sortTime += (System.currentTimeMillis() - startTime);
         } else {
           lock.lock();
           try {

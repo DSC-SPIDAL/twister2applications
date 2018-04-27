@@ -55,7 +55,7 @@ public class TeraSortContainer5 implements IContainer {
 
     private Config config;
     private ResourcePlan resourcePlan;
-    private static int NO_OF_TASKS = 320;
+    private static int NO_OF_TASKS = 8;
 
     private int noOfTasksPerExecutor = 2;
     private int block_size = 25;
