@@ -36,8 +36,6 @@ public class ReSamplingBolt {
     /** This is the reading message we will get */
     private RangeReading reading;
 
-    private String url = "amqp://localhost:5672";
-
     private Kryo kryo;
 
     private int receivedParticles = 0;
@@ -60,7 +58,6 @@ public class ReSamplingBolt {
         init(conf);
         // todo
         int totalTasks = 0;
-        this.url = null;
         try {
             for (int i = 0; i < totalTasks; i++) {
                 Kryo k = new Kryo();

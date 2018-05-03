@@ -8,6 +8,11 @@ public class Tuple {
 
   private String sourceStreamId;
 
+  public Tuple(Map<String, Object> values, String sourceStreamId) {
+    this.values = values;
+    this.sourceStreamId = sourceStreamId;
+  }
+
   public Object getValueByField(String field) {
     return values.get(field);
   }

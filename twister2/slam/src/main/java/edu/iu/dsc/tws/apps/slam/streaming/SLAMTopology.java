@@ -1,19 +1,5 @@
 package edu.iu.dsc.tws.apps.slam.streaming;
 
-import edu.iu.dsc.tws.apps.slam.core.app.LaserScan;
-import edu.iu.dsc.tws.apps.slam.core.app.Position;
-import edu.iu.dsc.tws.apps.slam.core.grid.Array2D;
-import edu.iu.dsc.tws.apps.slam.core.grid.GMap;
-import edu.iu.dsc.tws.apps.slam.core.grid.HierarchicalArray2D;
-import edu.iu.dsc.tws.apps.slam.core.gridfastsalm.Particle;
-import edu.iu.dsc.tws.apps.slam.core.gridfastsalm.TNode;
-import edu.iu.dsc.tws.apps.slam.core.scanmatcher.PointAccumulator;
-import edu.iu.dsc.tws.apps.slam.core.sensor.RangeReading;
-import edu.iu.dsc.tws.apps.slam.core.sensor.RangeSensor;
-import edu.iu.dsc.tws.apps.slam.core.utils.DoubleOrientedPoint;
-import edu.iu.dsc.tws.apps.slam.core.utils.DoublePoint;
-import edu.iu.dsc.tws.apps.slam.core.utils.IntPoint;
-import edu.iu.dsc.tws.apps.slam.streaming.msgs.*;
 import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;

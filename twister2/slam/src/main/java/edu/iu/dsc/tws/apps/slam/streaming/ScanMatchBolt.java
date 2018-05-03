@@ -495,8 +495,6 @@ public class ScanMatchBolt {
             // now go through the assignments and send them to the bolts directly
             computeExpectedParticles(assignments);
             distributeAssignments(assignments);
-            // LOG.info("taskId {}: Clearing active particles", taskId);
-            // gfsp.clearActiveParticles();
 
             // we are going to keep the assignemtns so that we can check the receiving particles
             this.assignments = assignments;
@@ -575,8 +573,6 @@ public class ScanMatchBolt {
                         ParticleMaps particleMaps = new ParticleMaps(tempMaps.get(previousIndex),
                                 assignment.getNewIndex(), assignment.getNewTask(), Utils.createNodeListFromNodeTree(p.getNode()));
 
-//                        ParticleMaps particleMaps = tempMaps.get(previousIndex);
-
                         ParticleMapsList list;
                         if (values.containsKey(assignment.getNewTask())) {
                             list = values.get(assignment.getNewTask());
@@ -596,9 +592,6 @@ public class ScanMatchBolt {
                         p.setNode(pOld.getNode());
 
                         tempActiveParticles.add(newIndex);
-                        // gfsp.getActiveParticles().add(newIndex);
-                        // add the new particle index
-                        // gfsp.addActiveParticle(newIndex);
                     }
                 } else {
                     LOG.error("taskId {}: The particle {} is not in this bolt's active list, something is wrong", taskId,
