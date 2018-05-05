@@ -10,6 +10,9 @@ import edu.iu.dsc.tws.apps.slam.core.sensor.Sensor;
 import edu.iu.dsc.tws.apps.slam.core.utils.DoubleOrientedPoint;
 import edu.iu.dsc.tws.apps.slam.streaming.msgs.*;
 import com.esotericsoftware.kryo.Kryo;
+import mpi.Intracomm;
+import mpi.MPI;
+import mpi.MPIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +48,8 @@ public class ReSamplingBolt {
 
     private ExecutorService executor;
     private List<Kryo> kryoValueWriters = new ArrayList<Kryo>();
+
+    private Intracomm intracomm;
 
     private Lock lock = new ReentrantLock();
 
@@ -198,6 +203,7 @@ public class ReSamplingBolt {
                             Message message = new Message(b);
                             LOG.info("Sending particle value to: {}", e.getKey());
                             // todo
+                            intracomm.scatter(b, 0, MPI.BYTE, 0);
 //                            valueSender.send(message, Constants.Messages.PARTICLE_VALUE_ROUTING_KEY + "_" + e.getKey());
                         } catch (Exception e1) {
                             LOG.error("Failed to send the message", e1);
@@ -257,6 +263,11 @@ public class ReSamplingBolt {
         List<Object> emit = new ArrayList<Object>();
         emit.add(b);
         // todo
+        try {
+            intracomm.bcast(b, 0, MPI.BYTE, 0);
+        } catch (MPIException e) {
+            e.printStackTrace();
+        }
 //        outputCollector.emit(Constants.Fields.ASSIGNMENT_STREAM, emit);
     }
 
