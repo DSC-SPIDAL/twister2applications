@@ -11,7 +11,7 @@ import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GatherOperation {
+public class BCastOperation {
   private Intracomm comm;
 
   private KryoMemorySerializer kryoMemorySerializer;
@@ -26,14 +26,14 @@ public class GatherOperation {
 
   private int thisTask;
 
-  public GatherOperation(Intracomm comm, KryoMemorySerializer kryoMemorySerializer, int worldSize, int thisTask) {
+  public BCastOperation(Intracomm comm, KryoMemorySerializer kryoMemorySerializer, int worldSize, int thisTask) {
     this.comm = comm;
     this.kryoMemorySerializer = kryoMemorySerializer;
     this.worldSize = worldSize;
     this.thisTask = thisTask;
   }
 
-  public List<Object> gather(Object data, int receiveTask, int noOfTasks, MessageType type) {
+  public Object bcast(Object data, int bcastTask, int noOfTasks, MessageType type) {
     try {
       byte[] bytes = kryoMemorySerializer.serialize(data);
 
@@ -41,13 +41,13 @@ public class GatherOperation {
       IntBuffer countReceive = MPI.newIntBuffer(noOfTasks);
 
       int size = bytes.length;
-      ByteBuffer sendBuffer = MPI.newByteBuffer(size * 2);
+      ByteBuffer sendBuffer = MPI.newByteBuffer(size * 2 * worldSize);
       ByteBuffer receiveBuffer = MPI.newByteBuffer(size * 2 * worldSize);
 
       // now calculate the total number of characters
       long start = System.nanoTime();
       countSend.put(bytes.length);
-      MPI.COMM_WORLD.allGather(countSend, 1, MPI.INT, countReceive, 1, MPI.INT);
+      MPI.COMM_WORLD.bcast(countSend, worldSize, MPI.INT, bcastTask);
       allGatherTime += (System.nanoTime() - start);
 
       int[] receiveSizes = new int[worldSize];
@@ -62,11 +62,10 @@ public class GatherOperation {
 
       start = System.nanoTime();
       // now lets receive the process names of each rank
-      MPI.COMM_WORLD.gatherv(sendBuffer, bytes.length, MPI.BYTE, receiveBuffer,
-          receiveSizes, displacements, MPI.BYTE, 0);
+      MPI.COMM_WORLD.scatterv(sendBuffer, receiveSizes, displacements, MPI.BYTE, bcastTask);
       gatherTIme += (System.nanoTime() - start);
       List<Object> gather = new ArrayList<>();
-      if (thisTask == receiveTask) {
+      if (thisTask == bcastTask) {
         for (int i = 0; i < receiveSizes.length; i++) {
           byte[] c = new byte[receiveSizes[i]];
           receiveBuffer.get(c);

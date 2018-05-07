@@ -10,6 +10,7 @@ import edu.iu.dsc.tws.apps.slam.core.sensor.Sensor;
 import edu.iu.dsc.tws.apps.slam.core.utils.DoubleOrientedPoint;
 import edu.iu.dsc.tws.apps.slam.streaming.msgs.*;
 import com.esotericsoftware.kryo.Kryo;
+import edu.iu.dsc.tws.comms.api.MessageType;
 import mpi.Intracomm;
 import mpi.MPI;
 import mpi.MPIException;
@@ -53,6 +54,14 @@ public class ReSamplingBolt {
 
     private Lock lock = new ReentrantLock();
 
+    private ScatterOperation scatterOperation;
+
+    private BCastOperation bCastOperation;
+
+    private int rank;
+
+    private int totalTasks;
+
     public void prepare(Map map) {
         this.conf = map;
         this.executor = Executors.newScheduledThreadPool(8);
@@ -61,9 +70,9 @@ public class ReSamplingBolt {
         // read the configuration of the scanmatcher from topology.xml
         // use the configuration to create the resampler
         init(conf);
-        // todo
-        int totalTasks = 0;
         try {
+            totalTasks = intracomm.getSize();
+            rank = intracomm.getRank();
             for (int i = 0; i < totalTasks; i++) {
                 Kryo k = new Kryo();
                 Utils.registerClasses(k);
@@ -263,12 +272,8 @@ public class ReSamplingBolt {
         List<Object> emit = new ArrayList<Object>();
         emit.add(b);
         // todo
-        try {
-            intracomm.bcast(b, 0, MPI.BYTE, 0);
-        } catch (MPIException e) {
-            e.printStackTrace();
-        }
-//        outputCollector.emit(Constants.Fields.ASSIGNMENT_STREAM, emit);
+        bCastOperation.bcast(b, rank, totalTasks, MessageType.BYTE);
+        // now call the
     }
 
     /**
