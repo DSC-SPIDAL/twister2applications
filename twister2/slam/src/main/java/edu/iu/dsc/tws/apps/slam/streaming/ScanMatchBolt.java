@@ -297,51 +297,47 @@ public class ScanMatchBolt {
     /** We are going to keep the particles maps until we get an assignment */
     private List<ParticleMaps> particleMapses = new ArrayList<ParticleMaps>();
 
-    private class MapHandler {
-        public void onMessage(Message message) {
-            byte []body = message.getBody();
-//            LOG.debug("taskId {}: Received particle map", taskId);
-            LOG.info("taskId {}: Received maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
-            ParticleMapsList pm = (ParticleMapsList) Utils.deSerialize(kryoMapReading, body, ParticleMapsList.class);
-            lock.lock();
-            try {
-                if (state == MatchState.WAITING_FOR_NEW_PARTICLES) {
-                    try {
-                        // first we need to determine the expected new maps for this particle
-                        // first check weather particleMapses not empty. If not empty handle those first
-                        processReceivedMaps("map");
-                        processReceivedValues("map");
-                        // now go through the assignments and send them to the bolts directly
-                        List<ParticleMaps> list = pm.getParticleMapsArrayList();
-                        for (ParticleMaps p : list) {
-                            if (p.getSerializedMap() != null) {
-                                TransferMap map = (TransferMap) Utils.deSerialize(kryoMapReading, p.getSerializedMap(), TransferMap.class);
-                                p.setMap(map);
-                            }
-                            addMaps(p, "map");
-                        }
-
-                        // we have received all the particles we need to do the processing after resampling
-                        postProcessingAfterReceiveAll(taskId, "map", true, assignments.getBestParticle());
-                    } catch (Exception e) {
-                        LOG.error("taskId {}: Failed to deserialize map", taskId, e);
-                    }
-                } else if (state == MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
-                    // because we haven't received the assignments yet, we will keep the values temporaly in this list
-                    LOG.debug("taskId {}: Adding map state {}", taskId, state);
+    public void onMap(byte []body) {
+        LOG.info("taskId {}: Received maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
+        ParticleMapsList pm = (ParticleMapsList) Utils.deSerialize(kryoMapReading, body, ParticleMapsList.class);
+        lock.lock();
+        try {
+            if (state == MatchState.WAITING_FOR_NEW_PARTICLES) {
+                try {
+                    // first we need to determine the expected new maps for this particle
+                    // first check weather particleMapses not empty. If not empty handle those first
+                    processReceivedMaps("map");
+                    processReceivedValues("map");
+                    // now go through the assignments and send them to the bolts directly
                     List<ParticleMaps> list = pm.getParticleMapsArrayList();
                     for (ParticleMaps p : list) {
-                        particleMapses.add(p);
+                        if (p.getSerializedMap() != null) {
+                            TransferMap map = (TransferMap) Utils.deSerialize(kryoMapReading, p.getSerializedMap(), TransferMap.class);
+                            p.setMap(map);
+                        }
+                        addMaps(p, "map");
                     }
-                    if (state != MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
-                        postProcessingAfterReceiveAll(taskId, "adding map", true, assignments.getBestParticle());
-                    }
-                } else {
-                    LOG.error("taskId {}: Received message when we are in an unexpected state {}", taskId, state);
+
+                    // we have received all the particles we need to do the processing after resampling
+                    postProcessingAfterReceiveAll(taskId, "map", true, assignments.getBestParticle());
+                } catch (Exception e) {
+                    LOG.error("taskId {}: Failed to deserialize map", taskId, e);
                 }
-            } finally {
-                lock.unlock();
+            } else if (state == MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
+                // because we haven't received the assignments yet, we will keep the values temporaly in this list
+                LOG.debug("taskId {}: Adding map state {}", taskId, state);
+                List<ParticleMaps> list = pm.getParticleMapsArrayList();
+                for (ParticleMaps p : list) {
+                    particleMapses.add(p);
+                }
+                if (state != MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
+                    postProcessingAfterReceiveAll(taskId, "adding map", true, assignments.getBestParticle());
+                }
+            } else {
+                LOG.error("taskId {}: Received message when we are in an unexpected state {}", taskId, state);
             }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -464,25 +460,23 @@ public class ScanMatchBolt {
         return true;
     }
 
-    private class ParticleAssignmentHandler {
-        public void onMessage(Message message) {
-            byte []body = message.getBody();
-            lock.lock();
-            try {
-                if (state == MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
-                    try {
-                        LOG.debug("taskId {}: Received particle assignment", taskId);
-                        ParticleAssignments assignments = (ParticleAssignments) Utils.deSerialize(kryoAssignReading, body, ParticleAssignments.class);
-                        handleAssignment(taskId, assignments);
-                    } catch (Exception e) {
-                        LOG.error("taskId {}: Failed to deserialize assignment", taskId, e);
-                    }
-                } else {
-                    LOG.error("Received message when we are in an unexpected state {}", state);
+
+    public void onParticleAssignment(byte []body) {
+        lock.lock();
+        try {
+            if (state == MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
+                try {
+                    LOG.debug("taskId {}: Received particle assignment", taskId);
+                    ParticleAssignments assignments = (ParticleAssignments) Utils.deSerialize(kryoAssignReading, body, ParticleAssignments.class);
+                    handleAssignment(taskId, assignments);
+                } catch (Exception e) {
+                    LOG.error("taskId {}: Failed to deserialize assignment", taskId, e);
                 }
-            } finally {
-                lock.unlock();
+            } else {
+                LOG.error("Received message when we are in an unexpected state {}", state);
             }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -639,45 +633,42 @@ public class ScanMatchBolt {
 
     private List<ParticleValue> particleValues = new ArrayList<ParticleValue>();
 
-    private class ParticleValueHandler {
-        public void onMessage(Message message) {
-            byte []body = message.getBody();
-            LOG.info("taskId {}: Received values: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
-            ParticleValues pvs = (ParticleValues) Utils.deSerialize(kryoPVReading, body, ParticleValues.class);
-            LOG.debug("taskId {}: Received particle value", taskId);
-            lock.lock();
-            try {
-                if (state == MatchState.WAITING_FOR_NEW_PARTICLES) {
-                    try {
-                        // first we need to determine the expected new maps for this particle
-                        // first check weather particleMapses not empty. If not empty handle those first
-                        processReceivedValues("value");
-                        processReceivedMaps("value");
-                        // now go through the assignments and send them to the bolts directly
-                        for (ParticleValue pv : pvs.getParticleValues()) {
-                            addParticle(pv, "value");
-                        }
-
-                        // we have received all the particles we need to do the processing after resampling
-                        postProcessingAfterReceiveAll(taskId, "assign", true, assignments.getBestParticle());
-                    } catch (Exception e) {
-                        LOG.error("taskId {}: Failed to deserialize assignment", taskId, e);
-                    }
-                } else if (state == MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
+    public void onParticleValue(byte []body) {
+        LOG.info("taskId {}: Received values: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
+        ParticleValues pvs = (ParticleValues) Utils.deSerialize(kryoPVReading, body, ParticleValues.class);
+        LOG.debug("taskId {}: Received particle value", taskId);
+        lock.lock();
+        try {
+            if (state == MatchState.WAITING_FOR_NEW_PARTICLES) {
+                try {
                     // first we need to determine the expected new maps for this particle
-                    // because we haven't received the assignments yet, we will keep the values temporaly in this list
+                    // first check weather particleMapses not empty. If not empty handle those first
+                    processReceivedValues("value");
+                    processReceivedMaps("value");
+                    // now go through the assignments and send them to the bolts directly
                     for (ParticleValue pv : pvs.getParticleValues()) {
-                        particleValues.add(pv);
+                        addParticle(pv, "value");
                     }
-                    if (state != MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
-                        postProcessingAfterReceiveAll(taskId, "adding values", true, assignments.getBestParticle());
-                    }
-                } else {
-                    LOG.error("taskId {}: Received message when we are in an unexpected state {}", taskId, state);
+
+                    // we have received all the particles we need to do the processing after resampling
+                    postProcessingAfterReceiveAll(taskId, "assign", true, assignments.getBestParticle());
+                } catch (Exception e) {
+                    LOG.error("taskId {}: Failed to deserialize assignment", taskId, e);
                 }
-            } finally {
-                lock.unlock();
+            } else if (state == MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
+                // first we need to determine the expected new maps for this particle
+                // because we haven't received the assignments yet, we will keep the values temporaly in this list
+                for (ParticleValue pv : pvs.getParticleValues()) {
+                    particleValues.add(pv);
+                }
+                if (state != MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
+                    postProcessingAfterReceiveAll(taskId, "adding values", true, assignments.getBestParticle());
+                }
+            } else {
+                LOG.error("taskId {}: Received message when we are in an unexpected state {}", taskId, state);
             }
+        } finally {
+            lock.unlock();
         }
     }
 

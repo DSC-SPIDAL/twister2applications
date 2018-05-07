@@ -3,6 +3,7 @@ package edu.iu.dsc.tws.apps.slam.streaming;
 import edu.iu.dsc.tws.apps.slam.streaming.msgs.Ready;
 import edu.iu.dsc.tws.apps.slam.streaming.msgs.Trace;
 import com.esotericsoftware.kryo.Kryo;
+import mpi.Intracomm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +27,8 @@ public class DispatcherBolt {
 
     private Lock lock = new ReentrantLock();
 
+    private Intracomm intracomm;
+
     private enum State {
         WAITING_FOR_READING,
         WAITING_FOR_READY,
@@ -34,8 +37,9 @@ public class DispatcherBolt {
 
     private State state = State.WAITING_FOR_READING;
 
-    public void prepare(Map stormConf) {
+    public void prepare(Map stormConf, Intracomm intracomm) {
         this.conf = stormConf;
+        this.intracomm = intracomm;
 
         // todo: set this value
         this.noOfParallelTasks = 0;
@@ -78,6 +82,7 @@ public class DispatcherBolt {
                 t.setPd(previousTime);
                 // todo
 //                outputCollector.emit(Constants.Fields.SCAN_STREAM, createTuple(input, t));
+//                intracomm.bcast();
                 this.currentTuple = null;
                 this.state = State.WAITING_ANY;
                 LOG.info("Changing state from READING to ANY");
