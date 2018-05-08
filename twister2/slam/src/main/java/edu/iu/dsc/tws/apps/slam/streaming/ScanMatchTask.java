@@ -275,11 +275,6 @@ public class ScanMatchTask {
       pvs.add(particleValue);
 
     }
-    List<Object> emit = new ArrayList<Object>();
-    emit.add(pvs);
-    emit.add(scan);
-    emit.add(sensorId);
-    emit.add(time);
     lastEmitTime = System.currentTimeMillis();
     long gcTime = gcCounter.getFullGCTime() + gcCounter.getYoungGCTime();
     long timeSpent = lastEmitTime - lastComputationBeginTime;
@@ -289,14 +284,25 @@ public class ScanMatchTask {
       trace.getGcTimes().put(taskId, gcTime);
       GCInformation.getInstance().removeCounter(gcCounter);
       LOG.debug("taskId {}: emitting to resample ", taskId);
-      emit.add(trace);
+
+      Tuple particleTuple = createParticleTuple(pvs, scan, trace);
       // lets gather
-      Object obj = gatherOperation.gather(emit, 0, totalTasks, MessageType.OBJECT);
+      List<Object> objs = gatherOperation.gather(particles, 0, totalTasks, MessageType.OBJECT);
       // todo
 //            outputCollector.emit(Constants.Fields.PARTICLE_STREAM, emit);
     } finally {
       lock.unlock();
     }
+  }
+
+  private Tuple createParticleTuple(List<ParticleValue> pvs, LaserScan scan, Trace trace) {
+    Map<String, Object> map = new HashMap<>();
+    map.put(Constants.Fields.PARTICLE_VALUE_FIELD, pvs);
+    map.put(Constants.Fields.LASER_SCAN_FIELD, scan);
+    map.put(Constants.Fields.SENSOR_ID_FIELD, "");
+    map.put(Constants.Fields.TIME_FIELD, System.currentTimeMillis());
+    map.put(Constants.Fields.TRACE_FIELD, trace);
+    return new Tuple(map, Constants.Fields.PARTICLE_STREAM);
   }
 
   /**

@@ -107,22 +107,20 @@ public class ReSamplingTask {
     particleValueses = new ParticleValue[reSampler.getNoOfParticles()];
   }
 
-  public void execute(Tuple tuple) {
-    String stream = tuple.getSourceStreamId();
-    // if we receive a control message init and return
-    if (stream.equals(Constants.Fields.CONTROL_STREAM)) {
-      init(conf);
-      return;
-    }
+  public void execute(List<Object> tupleList) {
+    for (Object object : tupleList) {
+      Tuple tuple = (Tuple) object;
+      String stream = tuple.getSourceStreamId();
+      // if we receive a control message init and return
+      if (stream.equals(Constants.Fields.CONTROL_STREAM)) {
+        init(conf);
+        return;
+      }
 
+      if (firstReadingTime == -1) {
+        firstReadingTime = System.currentTimeMillis();
+      }
 
-
-    if (firstReadingTime == -1) {
-      firstReadingTime = System.currentTimeMillis();
-    }
-
-    lock.lock();
-    try {
       Trace trace = (Trace) tuple.getValueByField(Constants.Fields.TRACE_FIELD);
       Object val = tuple.getValueByField(Constants.Fields.PARTICLE_VALUE_FIELD);
       List<ParticleValue> pvs;
@@ -144,7 +142,6 @@ public class ReSamplingTask {
 
       LaserScan scan = (LaserScan) val;
 
-
       Double[] ranges_double = edu.iu.dsc.tws.apps.slam.core.utils.Utils.getRanges(scan, scan.getAngleIncrement());
       RangeSensor sensor = new RangeSensor("ROBOTLASER1",
           scan.getRanges().size(),
@@ -159,15 +156,14 @@ public class ReSamplingTask {
       reading.setPose(scan.getPose());
       Map<String, Sensor> smap = new HashMap<String, Sensor>();
       smap.put(sensor.getName(), sensor);
-
-      LOG.debug("receivedParticles: {}, expecting particles:{}", receivedParticles, reSampler.getParticles().size());
-      // this bolt will wait until all the particle values are obtained
-      if (receivedParticles < reSampler.getNoOfParticles() || reading == null) {
-        return;
-      }
-    } finally {
-      lock.unlock();
     }
+
+    LOG.debug("receivedParticles: {}, expecting particles:{}", receivedParticles, reSampler.getParticles().size());
+    // this bolt will wait until all the particle values are obtained
+    if (receivedParticles < reSampler.getNoOfParticles() || reading == null) {
+      return;
+    }
+
     // reset the counter
     receivedParticles = 0;
     long resamplingStartTime = System.currentTimeMillis();

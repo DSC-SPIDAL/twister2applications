@@ -47,7 +47,7 @@ public class GatherOperation {
       // now calculate the total number of characters
       long start = System.nanoTime();
       countSend.put(bytes.length);
-      MPI.COMM_WORLD.allGather(countSend, 1, MPI.INT, countReceive, 1, MPI.INT);
+      comm.allGather(countSend, 1, MPI.INT, countReceive, 1, MPI.INT);
       allGatherTime += (System.nanoTime() - start);
 
       int[] receiveSizes = new int[worldSize];
@@ -62,7 +62,7 @@ public class GatherOperation {
 
       start = System.nanoTime();
       // now lets receive the process names of each rank
-      MPI.COMM_WORLD.gatherv(sendBuffer, bytes.length, MPI.BYTE, receiveBuffer,
+      comm.gatherv(sendBuffer, bytes.length, MPI.BYTE, receiveBuffer,
           receiveSizes, displacements, MPI.BYTE, 0);
       gatherTIme += (System.nanoTime() - start);
       List<Object> gather = new ArrayList<>();
