@@ -7,10 +7,15 @@ import edu.iu.dsc.tws.apps.slam.core.sensor.RangeReading;
 import edu.iu.dsc.tws.apps.slam.core.utils.DoubleOrientedPoint;
 import edu.iu.dsc.tws.apps.slam.streaming.msgs.*;
 import edu.iu.dsc.tws.apps.slam.streaming.ops.GatherOperation;
+import edu.iu.dsc.tws.apps.slam.streaming.ops.ScatterOperation;
 import edu.iu.dsc.tws.apps.slam.streaming.stats.GCCounter;
 import edu.iu.dsc.tws.apps.slam.streaming.stats.GCInformation;
 import com.esotericsoftware.kryo.Kryo;
 import edu.iu.dsc.tws.comms.api.MessageType;
+import edu.iu.dsc.tws.comms.mpi.MPIDataFlowPartition;
+import edu.iu.dsc.tws.data.utils.KryoMemorySerializer;
+import mpi.Intracomm;
+import mpi.MPIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +73,8 @@ public class ScanMatchTask {
   private int totalTasks;
 
   private GatherOperation gatherOperation;
+  private ScatterOperation scatterOperation;
+
   private ReSamplingTask reSamplingTask;
 
   private double[] plainReading;
@@ -82,6 +89,9 @@ public class ScanMatchTask {
   private Trace currentTrace;
   private long assignmentReceiveTime;
 
+  private MPIDataFlowPartition partition;
+  private Intracomm intracomm;
+
   private enum MatchState {
     INIT,
     WAITING_FOR_READING,
@@ -91,7 +101,11 @@ public class ScanMatchTask {
     COMPUTING_NEW_PARTICLES,
   }
 
-  public void prepare(Map map) {
+  public void prepare(Map map, Intracomm comm, int taskId, int totalTasks) throws MPIException {
+    this.taskId = taskId;
+    this.totalTasks = totalTasks;
+    this.intracomm = comm;
+
     executor = Executors.newScheduledThreadPool(8);
     this.conf = map;
     this.kryoAssignReading = new Kryo();
@@ -110,8 +124,10 @@ public class ScanMatchTask {
     Utils.registerClasses(kryoReady);
     Utils.registerClasses(kryoMapWriter);
 
+    gatherOperation = new GatherOperation(intracomm, new KryoMemorySerializer());
+    scatterOperation = new ScatterOperation(intracomm, new KryoMemorySerializer());
+
     // read the configuration of the scanmatcher from topology.xml
-    int totalTasks = 0;
     try {
       for (int i = 0; i < totalTasks; i++) {
         Kryo k = new Kryo();
@@ -125,6 +141,10 @@ public class ScanMatchTask {
 
     // init the bolt
     init(map);
+  }
+
+  public void setPartition(MPIDataFlowPartition partition) {
+    this.partition = partition;
   }
 
   private void init(Map conf) {
@@ -287,7 +307,7 @@ public class ScanMatchTask {
 
       Tuple particleTuple = createParticleTuple(pvs, scan, trace);
       // lets gather
-      List<Object> objs = gatherOperation.gather(particles, 0, totalTasks, MessageType.OBJECT);
+      List<Object> objs = gatherOperation.gather(particleTuple, 0, MessageType.OBJECT);
       // todo
 //            outputCollector.emit(Constants.Fields.PARTICLE_STREAM, emit);
     } finally {
@@ -611,29 +631,23 @@ public class ScanMatchTask {
     final Semaphore semaphore = new Semaphore(0);
     int noOfSend = values.size();
     for (final Map.Entry<Integer, ParticleMapsList> listEntry : values.entrySet()) {
-      executor.submit(new Runnable() {
-        @Override
-        public void run() {
-          LOG.info("taskId {}: Serializing maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
-          Kryo k = kryoMapWriters.get(listEntry.getKey());
-          byte[] b = Utils.serialize(k, listEntry.getValue());
-          Message message = new Message(b);
-          LOG.debug("Sending particle map to {}", listEntry.getKey());
-          LOG.info("taskId {}: Sending maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
-          // RabbitMQSender particleSender = particleSenders.get(listEntry.getKey());
-          LOG.info("taskId {}: Sent maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
-          lock.lock();
-          try {
-            // todo
-            // particleSender.send(message, Constants.Messages.PARTICLE_MAP_ROUTING_KEY + "_" + listEntry.getKey());
-          } catch (Exception e) {
-            LOG.error("taskId {}: Failed to send the new particle map", taskId, e);
-          } finally {
-            lock.unlock();
-          }
-          semaphore.release();
-        }
-      });
+      LOG.info("taskId {}: Serializing maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
+      Kryo k = kryoMapWriters.get(listEntry.getKey());
+      byte[] b = Utils.serialize(k, listEntry.getValue());
+      LOG.debug("Sending particle map to {}", listEntry.getKey());
+      LOG.info("taskId {}: Sending maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
+      // RabbitMQSender particleSender = particleSenders.get(listEntry.getKey());
+      LOG.info("taskId {}: Sent maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
+      lock.lock();
+      try {
+        // todo
+         partition.send(taskId, b, 0, listEntry.getKey());
+      } catch (Exception e) {
+        LOG.error("taskId {}: Failed to send the new particle map", taskId, e);
+      } finally {
+        lock.unlock();
+      }
+      semaphore.release();
     }
 
     for (int i = 0; i < noOfSend; i++) {

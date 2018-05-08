@@ -9,6 +9,7 @@ import edu.iu.dsc.tws.comms.core.TWSCommunication;
 import edu.iu.dsc.tws.comms.core.TWSNetwork;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
 import edu.iu.dsc.tws.comms.mpi.MPIDataFlowBroadcast;
+import edu.iu.dsc.tws.comms.mpi.MPIDataFlowPartition;
 import edu.iu.dsc.tws.rsched.spi.container.IContainer;
 import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 import mpi.Intracomm;
@@ -19,6 +20,7 @@ import java.util.*;
 
 public class SlamWorker implements IContainer {
   private MPIDataFlowBroadcast broadcast;
+  private MPIDataFlowPartition partition;
 
   @Override
   public void init(Config config, int containerId, ResourcePlan resourcePlan) {
@@ -52,8 +54,10 @@ public class SlamWorker implements IContainer {
       ScanMatchTask scanMatchTask = null;
       DispatcherTask dispatcherBolt = null;
       if (resourcePlan.getThisId() != resourcePlan.noOfContainers() - 1) {
+        int thisTask = resourcePlan.getThisId();
         // lets create scanmatcher
         scanMatchTask = new ScanMatchTask();
+        scanMatchTask.prepare(slamConf, scanMatchComm, thisTask, parallel);
       } else {
         // lets use the dispatch bolt here
         dispatcherBolt = new DispatcherTask();
@@ -65,6 +69,12 @@ public class SlamWorker implements IContainer {
           scanMatcherTasks, new BCastMessageReceiver(scanMatchTask));
       if (dispatcherBolt != null) {
         dispatcherBolt.setBroadcast(broadcast);
+      }
+
+      partition = (MPIDataFlowPartition) channel.partition(new HashMap<>(), MessageType.OBJECT, 200,
+          scanMatcherTasks, partitionTasks, new MapReceiver(scanMatchTask));
+      if (scanMatchTask != null) {
+        scanMatchTask.setPartition(partition);
       }
 
       while (true) {
@@ -80,6 +90,7 @@ public class SlamWorker implements IContainer {
           }
         }
         broadcast.progress();
+        partition.progress();
         channel.progress();
       }
     } catch (MPIException e) {
@@ -105,6 +116,33 @@ public class SlamWorker implements IContainer {
         throw new RuntimeException("Un-expected object");
       }
       scanMatchTask.execute((Tuple) o);
+      return true;
+    }
+
+    @Override
+    public void progress() {
+
+    }
+  }
+
+  private static class MapReceiver implements MessageReceiver {
+    private ScanMatchTask scanMatchTask;
+
+    public MapReceiver(ScanMatchTask scanMatchTask) {
+      this.scanMatchTask = scanMatchTask;
+    }
+
+    @Override
+    public void init(Config config, DataFlowOperation dataFlowOperation, Map<Integer, List<Integer>> map) {
+
+    }
+
+    @Override
+    public boolean onMessage(int i, int i1, int i2, int i3, Object o) {
+      if (!(o instanceof byte[])) {
+        throw new RuntimeException("Un-expected object");
+      }
+      scanMatchTask.onMap((byte[]) o);
       return true;
     }
 

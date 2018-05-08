@@ -26,19 +26,19 @@ public class GatherOperation {
 
   private int thisTask;
 
-  public GatherOperation(Intracomm comm, KryoMemorySerializer kryoMemorySerializer, int worldSize, int thisTask) {
+  public GatherOperation(Intracomm comm, KryoMemorySerializer kryoMemorySerializer) throws MPIException {
     this.comm = comm;
     this.kryoMemorySerializer = kryoMemorySerializer;
-    this.worldSize = worldSize;
-    this.thisTask = thisTask;
+    this.worldSize = comm.getSize();
+    this.thisTask = comm.getRank();
   }
 
-  public List<Object> gather(Object data, int receiveTask, int noOfTasks, MessageType type) {
+  public List<Object> gather(Object data, int receiveTask, MessageType type) {
     try {
       byte[] bytes = kryoMemorySerializer.serialize(data);
 
-      IntBuffer countSend = MPI.newIntBuffer(noOfTasks);
-      IntBuffer countReceive = MPI.newIntBuffer(noOfTasks);
+      IntBuffer countSend = MPI.newIntBuffer(worldSize);
+      IntBuffer countReceive = MPI.newIntBuffer(worldSize);
 
       int size = bytes.length;
       ByteBuffer sendBuffer = MPI.newByteBuffer(size * 2);
@@ -77,6 +77,46 @@ public class GatherOperation {
       return gather;
     } catch (MPIException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  public static void main(String[] args) throws MPIException {
+    MPI.Init(args);
+    int size = MPI.COMM_WORLD.getSize();
+    int rank = MPI.COMM_WORLD.getRank();
+    List<Simple> list = new ArrayList<>();
+
+    for (int i = 0; i < size; i++) {
+      list.add(new Simple("Hello: " + i));
+    }
+
+    GatherOperation scatterOperation = new GatherOperation(MPI.COMM_WORLD, new KryoMemorySerializer());
+    List<Object> l = scatterOperation.gather(list.get(rank), 0, MessageType.OBJECT);
+    System.out.println(String.format("%d Received list %d", rank, l.size()));
+    for (int i = 0; i < l.size(); i++) {
+      Simple value = (Simple) l.get(i);
+      System.out.println(String.format("%d value: %s", rank, value.getVal()));
+    }
+
+    MPI.Finalize();
+  }
+
+  private static class Simple {
+    private String val;
+
+    public Simple(String val) {
+      this.val = val;
+    }
+
+    public Simple() {
+    }
+
+    public String getVal() {
+      return val;
+    }
+
+    public void setVal(String val) {
+      this.val = val;
     }
   }
 }

@@ -218,7 +218,7 @@ public class ReSamplingTask {
         scatterValues.add(b);
       }
       // todo
-      Object particleValue = scatterOperation.scatter(scatterValues, rank, totalTasks, MessageType.BYTE);
+      Object particleValue = scatterOperation.scatter(scatterValues, 0, MessageType.BYTE);
     } else {
       LOG.info("NOT ReSampled, distributing assignments");
       ParticleAssignments assignments = new ParticleAssignments();

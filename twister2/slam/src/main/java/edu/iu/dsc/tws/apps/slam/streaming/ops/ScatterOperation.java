@@ -26,56 +26,102 @@ public class ScatterOperation {
 
   private int thisTask;
 
-  public ScatterOperation(Intracomm comm, KryoMemorySerializer kryoMemorySerializer, int worldSize, int thisTask) {
+  public ScatterOperation(Intracomm comm, KryoMemorySerializer kryoMemorySerializer) throws MPIException {
     this.comm = comm;
     this.kryoMemorySerializer = kryoMemorySerializer;
-    this.worldSize = worldSize;
-    this.thisTask = thisTask;
+    this.worldSize = comm.getSize();
+    this.thisTask = comm.getRank();
   }
 
-  public Object scatter(List data, int scatterTask, int noOfTasks, MessageType type) {
+  public Object scatter(List data, int scatterTask, MessageType type) {
     try {
-      byte[] bytes = kryoMemorySerializer.serialize(data);
+      IntBuffer countSend = MPI.newIntBuffer(worldSize);
+      int total = 0;
+      List<byte []> dataList = new ArrayList<>();
+      if (thisTask == scatterTask) {
+        for (Object o : data) {
+          byte[] bytes = kryoMemorySerializer.serialize(o);
+          countSend.put(bytes.length);
+          total += bytes.length;
+          dataList.add(bytes);
+        }
+      }
 
-      IntBuffer countSend = MPI.newIntBuffer(noOfTasks);
-      IntBuffer countReceive = MPI.newIntBuffer(noOfTasks);
-
-      int size = bytes.length;
-      ByteBuffer sendBuffer = MPI.newByteBuffer(size * 2 * worldSize);
-      ByteBuffer receiveBuffer = MPI.newByteBuffer(size * 2 * worldSize);
-
-      // now calculate the total number of characters
       long start = System.nanoTime();
-      countSend.put(bytes.length);
-      MPI.COMM_WORLD.bcast(countSend, worldSize, MPI.INT, scatterTask);
+      comm.bcast(countSend, worldSize, MPI.INT, scatterTask);
+      total = 0;
+      for (int i = 0; i < worldSize; i++) {
+        int total1 = countSend.get(i);
+        total += total1;
+        System.out.println(String.format("%d size: %d", thisTask, total1));
+      }
+
+      ByteBuffer sendBuffer = MPI.newByteBuffer(total * 2);
+      if (thisTask == scatterTask) {
+        for (int i = 0; i < worldSize; i++) {
+          sendBuffer.put(dataList.get(i));
+        }
+      }
+      // now calculate the total number of characters
       allGatherTime += (System.nanoTime() - start);
 
       int[] receiveSizes = new int[worldSize];
       int[] displacements = new int[worldSize];
       int sum = 0;
       for (int i = 0; i < worldSize; i++) {
-        receiveSizes[i] = countReceive.get(i);
+        receiveSizes[i] = countSend.get(i);
         displacements[i] = sum;
         sum += receiveSizes[i];
       }
-      sendBuffer.put(bytes);
 
       start = System.nanoTime();
+
+      ByteBuffer receiveBuffer = MPI.newByteBuffer(receiveSizes[thisTask]);
       // now lets receive the process names of each rank
-      MPI.COMM_WORLD.scatterv(sendBuffer, receiveSizes, displacements, MPI.BYTE, scatterTask);
+      comm.scatterv(sendBuffer, receiveSizes, displacements, MPI.BYTE, receiveBuffer, receiveSizes[thisTask], MPI.BYTE, scatterTask);
       gatherTIme += (System.nanoTime() - start);
-      List<Object> gather = new ArrayList<>();
-      if (thisTask == scatterTask) {
-        for (int i = 0; i < receiveSizes.length; i++) {
-          byte[] c = new byte[receiveSizes[i]];
-          receiveBuffer.get(c);
-          Object desObj = (Object) kryoMemorySerializer.deserialize(c);
-          gather.add(desObj);
-        }
-      }
-      return gather;
+      byte[] c = new byte[receiveSizes[thisTask]];
+      receiveBuffer.get(c);
+      Object desObj = (Object) kryoMemorySerializer.deserialize(c);
+      return desObj;
     } catch (MPIException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  public static void main(String[] args) throws MPIException {
+    MPI.Init(args);
+    int size = MPI.COMM_WORLD.getSize();
+    int rank = MPI.COMM_WORLD.getRank();
+    List<Simple> list = new ArrayList<>();
+
+    for (int i = 0; i < size; i++) {
+      list.add(new Simple("Hello: " + i));
+    }
+
+    ScatterOperation scatterOperation = new ScatterOperation(MPI.COMM_WORLD, new KryoMemorySerializer());
+    Object value = scatterOperation.scatter(list, 0, MessageType.OBJECT);
+    System.out.println(String.format("%d value: %s", rank, ((Simple)value).getVal()));
+
+    MPI.Finalize();
+  }
+
+  private static class Simple {
+    private String val;
+
+    public Simple(String val) {
+      this.val = val;
+    }
+
+    public Simple() {
+    }
+
+    public String getVal() {
+      return val;
+    }
+
+    public void setVal(String val) {
+      this.val = val;
     }
   }
 }
