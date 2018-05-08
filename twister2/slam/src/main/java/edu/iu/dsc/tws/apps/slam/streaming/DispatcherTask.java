@@ -15,8 +15,8 @@ import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class DispatcherBolt {
-  private static Logger LOG = LoggerFactory.getLogger(DispatcherBolt.class);
+public class DispatcherTask {
+  private static Logger LOG = LoggerFactory.getLogger(DispatcherTask.class);
 
   private Kryo kryo;
   private Kryo mainKryo;
@@ -38,7 +38,6 @@ public class DispatcherBolt {
   private enum State {
     WAITING_FOR_READING,
     WAITING_FOR_READY,
-    WAITING_ANY
   }
 
   private State state = State.WAITING_FOR_READING;
@@ -67,6 +66,10 @@ public class DispatcherBolt {
 
   private MPIDataFlowBroadcast broadcast;
 
+  public void setBroadcast(MPIDataFlowBroadcast broadcast) {
+    this.broadcast = broadcast;
+  }
+
   public void execute(Tuple input) {
     lock.lock();
     try {
@@ -77,11 +80,8 @@ public class DispatcherBolt {
         t.setPd(previousTime);
         // todo
         broadcast.send(task, input, 0);
-        this.state = State.WAITING_ANY;
-        LOG.info("Changing state from READING to ANY");
-      } else if (this.state == State.WAITING_ANY) {
         this.state = State.WAITING_FOR_READY;
-        LOG.info("Changing state from ANY to READY");
+        LOG.info("Changing state from READING to ANY");
       } else if (this.state == State.WAITING_FOR_READY) {
         LOG.info("Input while in state READY");
       }
@@ -121,5 +121,6 @@ public class DispatcherBolt {
         execute(tuple);
       }
     }
+    broadcast.progress();
   }
 }

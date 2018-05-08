@@ -262,6 +262,7 @@ public class Utils {
         Set<Integer> nodesOfExecutor;
         if (executorToGraphNodes.get(taskId) == null) {
           nodesOfExecutor = new HashSet<>();
+          executorToGraphNodes.put(taskId, nodesOfExecutor);
         } else {
           nodesOfExecutor = executorToGraphNodes.get(taskId);
         }

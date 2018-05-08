@@ -24,8 +24,6 @@ public class SLAMTopology {
         // first load the configurations from command line and config files
         Config config = ResourceAllocator.loadConfig(new HashMap<>());
         Options options = new Options();
-        options.addOption(Constants.ARGS_NAME, true, "Name of the topology");
-        options.addOption(Constants.ARGS_LOCAL, false, "Weather we want run locally");
         options.addOption(Constants.ARGS_PARALLEL, true, "No of parallel nodes");
         options.addOption(Constants.ARGS_PARTICLES, true, "No of particles");
         options.addOption(Constants.CONFIG_FILE, true, "Config file");
@@ -33,7 +31,6 @@ public class SLAMTopology {
 
         CommandLineParser commandLineParser = new BasicParser();
         CommandLine cmd = commandLineParser.parse(options, args);
-        String name = cmd.getOptionValue(Constants.ARGS_NAME);
         String pValue = cmd.getOptionValue(Constants.ARGS_PARALLEL);
         String particles = cmd.getOptionValue(Constants.ARGS_PARTICLES);
         String configFile = cmd.getOptionValue(Constants.CONFIG_FILE);
@@ -42,8 +39,8 @@ public class SLAMTopology {
 
         // build JobConfig
         JobConfig jobConfig = new JobConfig();
-        jobConfig.put(Constants.ARGS_NAME, name);
         jobConfig.put(Constants.ARGS_PARTICLES, particles);
+        jobConfig.put(Constants.ARGS_PARALLEL, pValue);
         jobConfig.put(Constants.CONFIG_FILE, configFile);
         jobConfig.put(Constants.INPUT_FILE, inputFile);
 
@@ -51,8 +48,8 @@ public class SLAMTopology {
         BasicJob basicJob = null;
         basicJob = BasicJob.newBuilder()
             .setName("kmeans-bench")
-            .setContainerClass(SLAMTopology.class.getName())
-            .setRequestResource(new ResourceContainer(2, 1024), p + 1)
+            .setContainerClass(SlamWorker.class.getName())
+            .setRequestResource(new ResourceContainer(2.0, 1024), p + 1)
             .setConfig(jobConfig)
             .build();
         // now submit the job

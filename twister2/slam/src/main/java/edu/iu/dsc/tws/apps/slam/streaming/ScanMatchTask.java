@@ -189,12 +189,6 @@ public class ScanMatchTask {
 
   public void execute(Tuple tuple) {
     String stream = tuple.getSourceStreamId();
-    // if we receive a control message init and return
-    if (stream.equals(Constants.Fields.CONTROL_STREAM)) {
-      init(conf);
-      return;
-    }
-
     lock.lock();
     try {
       if (stream.equals(Constants.Fields.ASSIGNMENT_STREAM)) {
