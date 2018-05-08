@@ -73,8 +73,13 @@ public class ReSamplingTask {
    */
   private ScanMatchTask scanMatchTask;
 
-  public void prepare(Map map) {
+  public void prepare(Map map, Intracomm intracomm,  ScanMatchTask scanMatchTask, ScatterOperation scatterOperation, BCastOperation bCastOperation) {
     this.conf = map;
+    this.scanMatchTask = scanMatchTask;
+    this.scatterOperation = scatterOperation;
+    this.bCastOperation = bCastOperation;
+    this.intracomm = intracomm;
+
     this.executor = Executors.newScheduledThreadPool(8);
     this.kryo = new Kryo();
     Utils.registerClasses(kryo);
@@ -269,10 +274,8 @@ public class ReSamplingTask {
 
     LOG.debug("Sending particle assignment");
     byte[] b = Utils.serialize(kryo, assignments);
-    List<Object> emit = new ArrayList<Object>();
-    emit.add(b);
     // todo
-    Object data = bCastOperation.bcast(b, rank, totalTasks, MessageType.BYTE);
+    Object data = bCastOperation.bcast(b, 0, MessageType.BYTE);
     // now call the
     scanMatchTask.onParticleAssignment((byte[]) data);
   }

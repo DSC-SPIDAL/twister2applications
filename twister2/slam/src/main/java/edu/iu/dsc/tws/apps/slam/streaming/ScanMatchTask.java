@@ -6,6 +6,7 @@ import edu.iu.dsc.tws.apps.slam.core.gridfastsalm.Particle;
 import edu.iu.dsc.tws.apps.slam.core.sensor.RangeReading;
 import edu.iu.dsc.tws.apps.slam.core.utils.DoubleOrientedPoint;
 import edu.iu.dsc.tws.apps.slam.streaming.msgs.*;
+import edu.iu.dsc.tws.apps.slam.streaming.ops.BCastOperation;
 import edu.iu.dsc.tws.apps.slam.streaming.ops.GatherOperation;
 import edu.iu.dsc.tws.apps.slam.streaming.ops.ScatterOperation;
 import edu.iu.dsc.tws.apps.slam.streaming.stats.GCCounter;
@@ -74,6 +75,7 @@ public class ScanMatchTask {
 
   private GatherOperation gatherOperation;
   private ScatterOperation scatterOperation;
+  private BCastOperation bCastOperation;
 
   private ReSamplingTask reSamplingTask;
 
@@ -91,6 +93,7 @@ public class ScanMatchTask {
 
   private MPIDataFlowPartition partition;
   private Intracomm intracomm;
+  private int thisRank = 0;
 
   private enum MatchState {
     INIT,
@@ -105,6 +108,7 @@ public class ScanMatchTask {
     this.taskId = taskId;
     this.totalTasks = totalTasks;
     this.intracomm = comm;
+    this.thisRank = comm.getRank();
 
     executor = Executors.newScheduledThreadPool(8);
     this.conf = map;
@@ -126,6 +130,10 @@ public class ScanMatchTask {
 
     gatherOperation = new GatherOperation(intracomm, new KryoMemorySerializer());
     scatterOperation = new ScatterOperation(intracomm, new KryoMemorySerializer());
+    bCastOperation = new BCastOperation(intracomm, new KryoMemorySerializer());
+
+    this.reSamplingTask = new ReSamplingTask();
+    this.reSamplingTask.prepare(map, intracomm, this, scatterOperation, bCastOperation);
 
     // read the configuration of the scanmatcher from topology.xml
     try {
@@ -308,8 +316,19 @@ public class ScanMatchTask {
       Tuple particleTuple = createParticleTuple(pvs, scan, trace);
       // lets gather
       List<Object> objs = gatherOperation.gather(particleTuple, 0, MessageType.OBJECT);
-      // todo
-//            outputCollector.emit(Constants.Fields.PARTICLE_STREAM, emit);
+
+      if (thisRank == 0) {
+        reSamplingTask.execute(objs);
+      } else {
+        // we are here to receive the assignments
+        Object obj = bCastOperation.bcast(null, 0, MessageType.OBJECT);
+        onParticleAssignment((byte[]) obj);
+
+        // lets do a scatter to get the particle values
+        Object particleValues = scatterOperation.scatter(null, 0, MessageType.OBJECT);
+        onParticleValue((byte[]) particleValues);
+      }
+
     } finally {
       lock.unlock();
     }
@@ -389,6 +408,13 @@ public class ScanMatchTask {
     processReceivedValues(origin);
 
     if (expectingParticleMaps == 0 && expectingParticleValues == 0) {
+      // lets do a barrier
+      try {
+        intracomm.barrier();
+      } catch (MPIException e) {
+        throw new RuntimeException("Error", e);
+      }
+
       state = MatchState.COMPUTING_NEW_PARTICLES;
       LOG.info("taskId {}: Map Handler Changing state to COMPUTING_NEW_PARTICLES", taskId);
       long ppTime = System.currentTimeMillis();

@@ -13,31 +13,31 @@
             <groupId>edu.iu.dsc.twister2</groupId>
             <artifactId>comms</artifactId>
             <version>LOCAL-SNAPSHOT</version>
-            <scope>provided</scope>
+            <!--<scope>provided</scope>-->
         </dependency>
         <dependency>
             <groupId>edu.iu.dsc.twister2</groupId>
             <artifactId>resource-scheduler</artifactId>
             <version>LOCAL-SNAPSHOT</version>
-            <scope>provided</scope>
+            <!--<scope>provided</scope>-->
         </dependency>
         <dependency>
             <groupId>edu.iu.dsc.twister2</groupId>
             <artifactId>common</artifactId>
             <version>LOCAL-SNAPSHOT</version>
-            <scope>provided</scope>
+            <!--<scope>provided</scope>-->
         </dependency>
         <dependency>
             <groupId>edu.iu.dsc.twister2</groupId>
             <artifactId>config</artifactId>
             <version>LOCAL-SNAPSHOT</version>
-            <scope>provided</scope>
+            <!--<scope>provided</scope>-->
         </dependency>
         <dependency>
             <groupId>edu.iu.dsc.twister2</groupId>
             <artifactId>api</artifactId>
             <version>LOCAL-SNAPSHOT</version>
-            <scope>provided</scope>
+            <!--<scope>provided</scope>-->
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
