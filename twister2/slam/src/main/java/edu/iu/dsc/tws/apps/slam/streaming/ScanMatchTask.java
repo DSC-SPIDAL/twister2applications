@@ -216,6 +216,7 @@ public class ScanMatchTask {
   }
 
   public void execute(Tuple tuple) {
+    LOG.info(String.format("%d received laser scan taskId %d.......", thisRank, taskId));
     String stream = tuple.getSourceStreamId();
     lock.lock();
     try {

@@ -17,8 +17,10 @@ import mpi.MPI;
 import mpi.MPIException;
 
 import java.util.*;
+import java.util.logging.Logger;
 
 public class SlamWorker implements IContainer {
+  private static final Logger LOG = Logger.getLogger(SlamWorker.class.getName());
   private MPIDataFlowBroadcast broadcast;
   private MPIDataFlowPartition partition;
 
@@ -34,7 +36,8 @@ public class SlamWorker implements IContainer {
     // lets create two communicators
     try {
       int rank = MPI.COMM_WORLD.getRank();
-      int color = rank == 0 ? 0 : 1;
+      int worldSize = MPI.COMM_WORLD.getSize();
+      int color = rank == (worldSize - 1) ? 0 : 1;
 
       Intracomm scanMatchComm = MPI.COMM_WORLD.split(color, rank);
 
@@ -112,6 +115,7 @@ public class SlamWorker implements IContainer {
 
     @Override
     public boolean onMessage(int i, int i1, int i2, int i3, Object o) {
+      LOG.info(String.format("Bcast receive %d %d %d %d", i, i1, i2, i3));
       if (!(o instanceof Tuple)) {
         throw new RuntimeException("Un-expected object");
       }
