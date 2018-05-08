@@ -17,12 +17,17 @@ import mpi.MPI;
 import mpi.MPIException;
 
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.logging.Logger;
 
 public class SlamWorker implements IContainer {
   private static final Logger LOG = Logger.getLogger(SlamWorker.class.getName());
   private MPIDataFlowBroadcast broadcast;
   private MPIDataFlowPartition partition;
+
+  private BlockingQueue<Tuple> broadcastQueue = new ArrayBlockingQueue<>(64);
+  private BlockingQueue<byte []> partitionQueue = new ArrayBlockingQueue<>(64);
 
   @Override
   public void init(Config config, int containerId, ResourcePlan resourcePlan) {
@@ -69,7 +74,7 @@ public class SlamWorker implements IContainer {
       }
 
       broadcast = (MPIDataFlowBroadcast) channel.broadCast(new HashMap<>(), MessageType.OBJECT, 100, dispatchTask,
-          scanMatcherTasks, new BCastMessageReceiver(scanMatchTask));
+          scanMatcherTasks, new BCastMessageReceiver(scanMatchTask, broadcastQueue));
       if (dispatcherBolt != null) {
         dispatcherBolt.setBroadcast(broadcast);
       }
@@ -80,18 +85,15 @@ public class SlamWorker implements IContainer {
         scanMatchTask.setPartition(partition);
       }
 
+      if (resourcePlan.getThisId() != resourcePlan.noOfContainers() - 1) {
+        Thread t = new Thread(new ScanMatchWorker(broadcast, partition, scanMatchTask, broadcastQueue));
+        t.start();
+      } else {
+        Thread t = new Thread(new DispatchWorker(dispatcherBolt, broadcast));
+        t.start();
+      }
+
       while (true) {
-        if (resourcePlan.getThisId() != resourcePlan.noOfContainers() - 1) {
-          // lets create scanmatcher
-          if (scanMatchTask != null) {
-            scanMatchTask.progress();
-          }
-        } else {
-          // lets use the dispatch bolt here
-          if (dispatcherBolt != null) {
-            dispatcherBolt.progress();
-          }
-        }
         broadcast.progress();
         partition.progress();
         channel.progress();
@@ -101,11 +103,60 @@ public class SlamWorker implements IContainer {
     }
   }
 
+  private static class DispatchWorker implements Runnable {
+    DispatcherTask dispatcherTask;
+    MPIDataFlowBroadcast broadcast;
+
+    public DispatchWorker(DispatcherTask dispatcherTask, MPIDataFlowBroadcast broadcast) {
+      this.dispatcherTask = dispatcherTask;
+      this.broadcast = broadcast;
+    }
+
+    @Override
+    public void run() {
+      while (true) {
+        dispatcherTask.progress();
+        broadcast.progress();
+      }
+    }
+  }
+
+  private static class ScanMatchWorker implements Runnable {
+    private MPIDataFlowBroadcast broadcast;
+    private MPIDataFlowPartition partition;
+    private ScanMatchTask scanMatchTask;
+    private BlockingQueue<Tuple> broadcastQueue;
+
+    public ScanMatchWorker(MPIDataFlowBroadcast broadcast, MPIDataFlowPartition partition, ScanMatchTask scanMatchTask,
+                           BlockingQueue<Tuple> broadcastQueue) {
+      this.broadcast = broadcast;
+      this.partition = partition;
+      this.scanMatchTask = scanMatchTask;
+      this.broadcastQueue = broadcastQueue;
+    }
+
+    @Override
+    public void run() {
+      while (true) {
+        Tuple t = broadcastQueue.poll();
+        if (t != null) {
+          scanMatchTask.execute(t);
+        }
+
+        scanMatchTask.progress();
+        broadcast.progress();
+        partition.progress();
+      }
+    }
+  }
+
   private static class BCastMessageReceiver implements MessageReceiver {
     private ScanMatchTask scanMatchTask;
+    BlockingQueue<Tuple> broadcastQueue;
 
-    public BCastMessageReceiver(ScanMatchTask scanMatchTask) {
+    public BCastMessageReceiver(ScanMatchTask scanMatchTask, BlockingQueue<Tuple> broadcastQueue) {
       this.scanMatchTask = scanMatchTask;
+      this.broadcastQueue = broadcastQueue;
     }
 
     @Override
@@ -119,7 +170,7 @@ public class SlamWorker implements IContainer {
       if (!(o instanceof Tuple)) {
         throw new RuntimeException("Un-expected object");
       }
-      scanMatchTask.execute((Tuple) o);
+      broadcastQueue.offer((Tuple) o);
       return true;
     }
 
