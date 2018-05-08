@@ -1,7 +1,5 @@
 package edu.iu.dsc.tws.apps.slam.streaming.msgs;
 
-import com.sun.corba.se.impl.encoding.OSFCodeSetRegistry;
-
 import java.util.HashMap;
 import java.util.Map;
 

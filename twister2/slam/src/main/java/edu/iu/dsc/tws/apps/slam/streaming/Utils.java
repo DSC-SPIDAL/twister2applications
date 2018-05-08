@@ -44,7 +44,7 @@ public class Utils {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     Output output = new Output(byteArrayOutputStream);
 //        output.setOutputStream(byteArrayOutputStream);
-    kryo.writeObject(output, object);
+    kryo.writeClassAndObject(output, object);
     output.flush();
     return byteArrayOutputStream.toByteArray();
   }
@@ -57,7 +57,7 @@ public class Utils {
    * @return the serialized bytes
    */
   public static Object deSerialize(Kryo kryo, byte[] b, Class e) {
-    return kryo.readObject(new Input(new ByteArrayInputStream(b)), e);
+    return kryo.readClassAndObject(new Input(new ByteArrayInputStream(b)));
   }
 
   public static TransferMap createTransferMap(IGMap map) {

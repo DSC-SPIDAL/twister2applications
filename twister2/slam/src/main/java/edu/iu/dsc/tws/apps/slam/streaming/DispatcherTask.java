@@ -55,7 +55,7 @@ public class DispatcherTask {
     Utils.registerClasses(kryo);
     Utils.registerClasses(mainKryo);
     this.dataReader = new SlamDataReader(inputFile);
-    this.kryoMemorySerializer = new KryoMemorySerializer();
+    this.kryoMemorySerializer = new KryoMemorySerializer(mainKryo);
   }
 
   private long beginTime;
@@ -103,7 +103,7 @@ public class DispatcherTask {
 
   private Tuple createTuple(LaserScan scan, Trace trace) {
     Map<String, Object> objects = new HashMap<>();
-    objects.put(Constants.Fields.BODY, kryoMemorySerializer.serialize(scan));
+    objects.put(Constants.Fields.BODY, Utils.serialize(kryo, scan));
     objects.put(Constants.Fields.TIME_FIELD, System.currentTimeMillis());
     objects.put(Constants.Fields.SENSOR_ID_FIELD, "");
 

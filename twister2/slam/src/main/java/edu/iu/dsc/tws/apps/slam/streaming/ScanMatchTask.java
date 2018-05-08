@@ -128,9 +128,9 @@ public class ScanMatchTask {
     Utils.registerClasses(kryoReady);
     Utils.registerClasses(kryoMapWriter);
 
-    gatherOperation = new GatherOperation(intracomm, new KryoMemorySerializer());
-    scatterOperation = new ScatterOperation(intracomm, new KryoMemorySerializer());
-    bCastOperation = new BCastOperation(intracomm, new KryoMemorySerializer());
+    gatherOperation = new GatherOperation(intracomm, new KryoMemorySerializer(kryoAssignReading));
+    scatterOperation = new ScatterOperation(intracomm, new KryoMemorySerializer(kryoBestParticle));
+    bCastOperation = new BCastOperation(intracomm, new KryoMemorySerializer(kryoMapReading));
 
     this.reSamplingTask = new ReSamplingTask();
     this.reSamplingTask.prepare(map, intracomm, this, scatterOperation, bCastOperation);
@@ -241,7 +241,8 @@ public class ScanMatchTask {
     time = tuple.getValueByField(Constants.Fields.TIME_FIELD);
 
     byte traceBytes[] = (byte[]) tuple.getValueByField(Constants.Fields.TRACE_FIELD);
-    Trace trace = (Trace) Utils.deSerialize(kryoLaserReading, traceBytes, Trace.class);
+//    Trace trace = (Trace) Utils.deSerialize(kryoLaserReading, traceBytes, Trace.class);
+    Trace trace = new Trace();
     Object val = tuple.getValueByField(Constants.Fields.BODY);
     if (!(val instanceof byte[])) {
       throw new IllegalArgumentException("The laser scan should be of type byte[]");
