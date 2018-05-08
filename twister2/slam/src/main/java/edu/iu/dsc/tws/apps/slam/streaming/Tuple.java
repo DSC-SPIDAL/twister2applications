@@ -13,6 +13,9 @@ public class Tuple {
     this.sourceStreamId = sourceStreamId;
   }
 
+  public Tuple() {
+  }
+
   public Object getValueByField(String field) {
     return values.get(field);
   }

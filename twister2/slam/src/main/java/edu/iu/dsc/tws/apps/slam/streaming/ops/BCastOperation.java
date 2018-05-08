@@ -1,4 +1,4 @@
-package edu.iu.dsc.tws.apps.slam.streaming;
+package edu.iu.dsc.tws.apps.slam.streaming.ops;
 
 import edu.iu.dsc.tws.comms.api.MessageType;
 import edu.iu.dsc.tws.data.utils.KryoMemorySerializer;

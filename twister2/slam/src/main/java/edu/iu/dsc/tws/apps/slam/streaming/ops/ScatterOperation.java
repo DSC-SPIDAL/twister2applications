@@ -1,4 +1,4 @@
-package edu.iu.dsc.tws.apps.slam.streaming;
+package edu.iu.dsc.tws.apps.slam.streaming.ops;
 
 import edu.iu.dsc.tws.comms.api.MessageType;
 import edu.iu.dsc.tws.data.utils.KryoMemorySerializer;
@@ -33,7 +33,7 @@ public class ScatterOperation {
     this.thisTask = thisTask;
   }
 
-  public Object scatter(List<Object> data, int scatterTask, int noOfTasks, MessageType type) {
+  public Object scatter(List data, int scatterTask, int noOfTasks, MessageType type) {
     try {
       byte[] bytes = kryoMemorySerializer.serialize(data);
 

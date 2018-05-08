@@ -72,14 +72,6 @@ public abstract class Constants {
         public static final String READY_ROUTING_KEY = "ready";
     }
 
-    public abstract class Topology {
-        public static final String RECEIVE_SPOUT = "receive_spout";
-        public static final String SCAN_MATCH_BOLT = "scan_match_bolt";
-        public static final String RE_SAMPLE_BOLT = "re_sample_bolt";
-        public static final String MAP_COMPUTE_BOLT = "map_bolt";
-        public static final String MAP_SEND_BOLD = "map_send_bolt";
-        public static final String BEST_PARTICLE_SEND_BOLT = "best_send_bolt";
-        public static final String CONTROL_SPOUT = "control_spout";
-        public static final String DISPATCHER_BOLT = "dispatcher_bolt";
-    }
+    public static final String CONFIG_FILE = "conf_file";
+    public static final String INPUT_FILE = "input_file";
 }

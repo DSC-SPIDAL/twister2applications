@@ -103,10 +103,10 @@ public class ReduceStream implements IContainer {
         try {
           if (!jobParameters.isThreads()) {
             for (ExternalSource s : reduceWorkers.values()) {
-              if (!source.isStop()) {
-                while (source.execute()) ;
+              if (!s.isStop()) {
+                while (s.execute()) ;
               }
-              source.progress();
+              s.progress();
             }
           }
           // progress the channel
