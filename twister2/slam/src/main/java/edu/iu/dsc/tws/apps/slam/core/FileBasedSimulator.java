@@ -104,7 +104,7 @@ public class FileBasedSimulator {
       simulator.start(Boolean.parseBoolean(args[0]), args[1], Integer.parseInt(args[2]), Boolean.parseBoolean(args[3]), Boolean.parseBoolean(args[5]));
       simulator.parallel = Integer.parseInt(args[4]);
     } else if (args.length == 1) {
-      simulator.start(false, args[0], 20, false, false);
+      simulator.start(false, args[0], 100, false, false);
     }
   }
 }
