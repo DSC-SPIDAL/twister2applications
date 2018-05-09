@@ -1,7 +1,7 @@
 package edu.iu.dsc.tws.apps.slam.streaming.ops;
 
+import edu.iu.dsc.tws.apps.slam.streaming.Serializer;
 import edu.iu.dsc.tws.comms.api.MessageType;
-import edu.iu.dsc.tws.data.utils.KryoMemorySerializer;
 import mpi.Intracomm;
 import mpi.MPI;
 import mpi.MPIException;
@@ -10,11 +10,13 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 public class ScatterOperation {
   private Intracomm comm;
 
-  private KryoMemorySerializer kryoMemorySerializer;
+  private Serializer serializer;
 
   private long allGatherTime = 0;
 
@@ -26,11 +28,19 @@ public class ScatterOperation {
 
   private int thisTask;
 
-  public ScatterOperation(Intracomm comm, KryoMemorySerializer kryoMemorySerializer) throws MPIException {
+  private BlockingQueue<Object> result = new ArrayBlockingQueue<>(4);
+
+  private BlockingQueue<Request> requests = new ArrayBlockingQueue<>(4);
+
+  public ScatterOperation(Intracomm comm, Serializer serializer) throws MPIException {
     this.comm = comm;
-    this.kryoMemorySerializer = kryoMemorySerializer;
+    this.serializer = serializer;
     this.worldSize = comm.getSize();
     this.thisTask = comm.getRank();
+  }
+
+  public void iScatter(List data, int scatterTask, MessageType type) {
+    requests.offer(new Request(data, scatterTask, type));
   }
 
   public Object scatter(List data, int scatterTask, MessageType type) {
@@ -40,7 +50,7 @@ public class ScatterOperation {
       List<byte []> dataList = new ArrayList<>();
       if (thisTask == scatterTask) {
         for (Object o : data) {
-          byte[] bytes = kryoMemorySerializer.serialize(o);
+          byte[] bytes = serializer.serialize(o);
           countSend.put(bytes.length);
           total += bytes.length;
           dataList.add(bytes);
@@ -82,9 +92,25 @@ public class ScatterOperation {
       gatherTIme += (System.nanoTime() - start);
       byte[] c = new byte[receiveSizes[thisTask]];
       receiveBuffer.get(c);
-      Object desObj = (Object) kryoMemorySerializer.deserialize(c);
+      Object desObj = (Object) serializer.deserialize(c);
       return desObj;
     } catch (MPIException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void op() {
+    Request r = requests.poll();
+    if (r != null) {
+      Object l = scatter((List) r.getData(), r.getTask(), r.getType());
+      result.offer(l);
+    }
+  }
+
+  public Object getResult() {
+    try {
+      return result.take();
+    } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
   }
@@ -99,7 +125,7 @@ public class ScatterOperation {
       list.add(new Simple("Hello: " + i));
     }
 
-    ScatterOperation scatterOperation = new ScatterOperation(MPI.COMM_WORLD, new KryoMemorySerializer());
+    ScatterOperation scatterOperation = new ScatterOperation(MPI.COMM_WORLD, new Serializer());
     Object value = scatterOperation.scatter(list, 0, MessageType.OBJECT);
     System.out.println(String.format("%d value: %s", rank, ((Simple)value).getVal()));
 

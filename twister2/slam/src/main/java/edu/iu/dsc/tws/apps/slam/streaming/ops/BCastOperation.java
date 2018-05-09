@@ -1,7 +1,7 @@
 package edu.iu.dsc.tws.apps.slam.streaming.ops;
 
+import edu.iu.dsc.tws.apps.slam.streaming.Serializer;
 import edu.iu.dsc.tws.comms.api.MessageType;
-import edu.iu.dsc.tws.data.utils.KryoMemorySerializer;
 import mpi.Intracomm;
 import mpi.MPI;
 import mpi.MPIException;
@@ -10,11 +10,13 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 public class BCastOperation {
   private Intracomm comm;
 
-  private KryoMemorySerializer kryoMemorySerializer;
+  private Serializer serializer;
 
   private long allGatherTime = 0;
 
@@ -26,11 +28,19 @@ public class BCastOperation {
 
   private int thisTask;
 
-  public BCastOperation(Intracomm comm, KryoMemorySerializer kryoMemorySerializer) throws MPIException {
+  private BlockingQueue<Object> result = new ArrayBlockingQueue<>(4);
+
+  private BlockingQueue<Request> requests = new ArrayBlockingQueue<>(4);
+
+  public BCastOperation(Intracomm comm, Serializer serializer) throws MPIException {
     this.comm = comm;
-    this.kryoMemorySerializer = kryoMemorySerializer;
+    this.serializer = serializer;
     this.worldSize = comm.getSize();
     this.thisTask = comm.getRank();
+  }
+
+  public void iBcast(Object data, int bcastTask, MessageType type) {
+    requests.offer(new Request(data, bcastTask, type));
   }
 
   public Object bcast(Object data, int bcastTask, MessageType type) {
@@ -38,7 +48,7 @@ public class BCastOperation {
       IntBuffer countSend = MPI.newIntBuffer(1);
       byte[] bytes = null;
       if (thisTask == bcastTask) {
-        bytes = kryoMemorySerializer.serialize(data);
+        bytes = serializer.serialize(data);
         countSend.put(bytes.length);
       }
 
@@ -61,10 +71,26 @@ public class BCastOperation {
 
       byte[] c = new byte[receiveSize];
       sendBuffer.get(c);
-      Object desObj = (Object) kryoMemorySerializer.deserialize(c);
+      Object desObj = (Object) serializer.deserialize(c);
       return desObj;
     } catch (MPIException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  public Object getResult() {
+    try {
+      return result.take();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void op() {
+    Request r = requests.poll();
+    if (r != null) {
+      Object o = bcast(r.getData(), r.getTask(), r.getType());
+      result.offer(o);
     }
   }
 
@@ -78,8 +104,10 @@ public class BCastOperation {
       list.add("Hello: " + i);
     }
 
-    BCastOperation scatterOperation = new BCastOperation(MPI.COMM_WORLD, new KryoMemorySerializer());
-    Object l = scatterOperation.bcast(list.get(rank), 0, MessageType.OBJECT);
+    BCastOperation scatterOperation = new BCastOperation(MPI.COMM_WORLD, new Serializer());
+    scatterOperation.bcast(list.get(rank), 0, MessageType.OBJECT);
+    scatterOperation.op();
+    Object l = scatterOperation.getResult();
     System.out.println(String.format("%d Received list %s", rank, l));
     MPI.Finalize();
   }

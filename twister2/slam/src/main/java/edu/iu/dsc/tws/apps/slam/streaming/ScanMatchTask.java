@@ -14,7 +14,6 @@ import edu.iu.dsc.tws.apps.slam.streaming.stats.GCInformation;
 import com.esotericsoftware.kryo.Kryo;
 import edu.iu.dsc.tws.comms.api.MessageType;
 import edu.iu.dsc.tws.comms.mpi.MPIDataFlowPartition;
-import edu.iu.dsc.tws.data.utils.KryoMemorySerializer;
 import mpi.Intracomm;
 import mpi.MPIException;
 import org.slf4j.Logger;
@@ -36,19 +35,19 @@ public class ScanMatchTask {
 
   private DScanMatcher gfsp = null;
 
-  private Kryo kryoPVReading;
+  private Serializer kryoPVReading;
 
-  private Kryo kryoMapReading;
+  private Serializer kryoMapReading;
 
-  private Kryo kryoAssignReading;
+  private Serializer kryoAssignReading;
 
-  private Kryo kryoLaserReading;
+  private Serializer kryoLaserReading;
 
-  private Kryo kryoBestParticle;
+  private Serializer kryoBestParticle;
 
-  private Kryo kryoReady;
+  private Serializer kryoReady;
 
-  private Kryo kryoMapWriter;
+  private Serializer kryoMapWriter;
 
   private volatile MatchState state = MatchState.INIT;
 
@@ -59,7 +58,7 @@ public class ScanMatchTask {
 
   private ExecutorService executor;
 
-  private List<Kryo> kryoMapWriters = new ArrayList<Kryo>();
+  private List<Serializer> kryoMapWriters = new ArrayList<Serializer>();
 
   private Map conf;
 
@@ -104,33 +103,37 @@ public class ScanMatchTask {
     COMPUTING_NEW_PARTICLES,
   }
 
-  public void prepare(Map map, Intracomm comm, int taskId, int totalTasks) throws MPIException {
+  public void prepare(Map map, Intracomm comm, int taskId, int totalTasks,
+                      GatherOperation gatherOperation, ScatterOperation scatterOperation,
+                      BCastOperation bCastOperation) throws MPIException {
     this.taskId = taskId;
     this.totalTasks = totalTasks;
     this.intracomm = comm;
     this.thisRank = comm.getRank();
 
+    this.gatherOperation = gatherOperation;
+    this.scatterOperation = scatterOperation;
+    this.bCastOperation = bCastOperation;
+
     executor = Executors.newScheduledThreadPool(8);
     this.conf = map;
-    this.kryoAssignReading = new Kryo();
-    this.kryoPVReading = new Kryo();
-    this.kryoMapReading = new Kryo();
-    this.kryoLaserReading = new Kryo();
-    this.kryoBestParticle = new Kryo();
-    this.kryoReady = new Kryo();
-    this.kryoMapWriter = new Kryo();
+    this.kryoAssignReading = new Serializer();
+    this.kryoPVReading = new Serializer();
+    this.kryoMapReading = new Serializer();
+    this.kryoLaserReading = new Serializer();
+    this.kryoBestParticle = new Serializer();
+    this.kryoReady = new Serializer();
+    this.kryoMapWriter = new Serializer();
 
-    Utils.registerClasses(kryoAssignReading);
-    Utils.registerClasses(kryoPVReading);
-    Utils.registerClasses(kryoMapReading);
-    Utils.registerClasses(kryoLaserReading);
-    Utils.registerClasses(kryoBestParticle);
-    Utils.registerClasses(kryoReady);
-    Utils.registerClasses(kryoMapWriter);
+//    Utils.registerClasses(kryoAssignReading);
+//    Utils.registerClasses(kryoPVReading);
+//    Utils.registerClasses(kryoMapReading);
+//    Utils.registerClasses(kryoLaserReading);
+//    Utils.registerClasses(kryoBestParticle);
+//    Utils.registerClasses(kryoReady);
+//    Utils.registerClasses(kryoMapWriter);
 
-    gatherOperation = new GatherOperation(intracomm, new KryoMemorySerializer(kryoAssignReading));
-    scatterOperation = new ScatterOperation(intracomm, new KryoMemorySerializer(kryoBestParticle));
-    bCastOperation = new BCastOperation(intracomm, new KryoMemorySerializer(kryoMapReading));
+
 
     this.reSamplingTask = new ReSamplingTask();
     this.reSamplingTask.prepare(map, intracomm, this, scatterOperation, bCastOperation);
@@ -138,8 +141,8 @@ public class ScanMatchTask {
     // read the configuration of the scanmatcher from topology.xml
     try {
       for (int i = 0; i < totalTasks; i++) {
-        Kryo k = new Kryo();
-        Utils.registerClasses(k);
+        Serializer k = new Serializer();
+//        Utils.registerClasses(k);
         kryoMapWriters.add(k);
       }
     } catch (Exception e) {
@@ -218,17 +221,6 @@ public class ScanMatchTask {
   public void execute(Tuple tuple) {
     LOG.info(String.format("%d received laser scan taskId %d.......", thisRank, taskId));
     String stream = tuple.getSourceStreamId();
-    lock.lock();
-    try {
-      if (stream.equals(Constants.Fields.ASSIGNMENT_STREAM)) {
-        byte[] body = (byte[]) tuple.getValueByField(Constants.Fields.ASSIGNMENT_FILED);
-        ParticleAssignments assignments = (ParticleAssignments) Utils.deSerialize(kryoAssignReading, body, ParticleAssignments.class);
-        handleAssignment(taskId, assignments);
-        return;
-      }
-    } finally {
-      lock.unlock();
-    }
 
     if (state != MatchState.WAITING_FOR_READING) {
       // we ack the tuple and discard it, because we cannot process the tuple at this moment
@@ -251,7 +243,7 @@ public class ScanMatchTask {
 
     lock.lock();
     try {
-      scan = (LaserScan) Utils.deSerialize(kryoLaserReading, (byte[]) val, LaserScan.class);
+      scan = (LaserScan) kryoLaserReading.deserialize((byte[]) val);
     } catch (Exception e) {
       LOG.error("Failed to deserialize laser scan", e);
     } finally {
@@ -317,17 +309,23 @@ public class ScanMatchTask {
 
       Tuple particleTuple = createParticleTuple(pvs, scan, trace);
       // lets gather
-      List<Object> objs = gatherOperation.gather(particleTuple, 0, MessageType.OBJECT);
+      gatherOperation.iGather(particleTuple, 0, MessageType.OBJECT);
+      List<Object> objs = gatherOperation.getResult();
 
       if (thisRank == 0) {
+        LOG.info(String.format("%d Resampling", thisRank));
         reSamplingTask.execute(objs);
       } else {
         // we are here to receive the assignments
-        Object obj = bCastOperation.bcast(null, 0, MessageType.OBJECT);
+        LOG.info(String.format("%d Broadcast assignments", thisRank));
+        bCastOperation.iBcast(null, 0, MessageType.OBJECT);
+        Object obj = bCastOperation.getResult();
         onParticleAssignment((byte[]) obj);
 
         // lets do a scatter to get the particle values
-        Object particleValues = scatterOperation.scatter(null, 0, MessageType.OBJECT);
+        LOG.info(String.format("%d Scatter values", thisRank));
+        scatterOperation.iScatter(null, 0, MessageType.OBJECT);
+        Object particleValues = scatterOperation.getResult();
         onParticleValue((byte[]) particleValues);
       }
 
@@ -353,7 +351,7 @@ public class ScanMatchTask {
 
   public void onMap(byte[] body) {
     LOG.info("taskId {}: Received maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
-    ParticleMapsList pm = (ParticleMapsList) Utils.deSerialize(kryoMapReading, body, ParticleMapsList.class);
+    ParticleMapsList pm = (ParticleMapsList) kryoMapReading.deserialize(body);
     lock.lock();
     try {
       if (state == MatchState.WAITING_FOR_NEW_PARTICLES) {
@@ -366,7 +364,7 @@ public class ScanMatchTask {
           List<ParticleMaps> list = pm.getParticleMapsArrayList();
           for (ParticleMaps p : list) {
             if (p.getSerializedMap() != null) {
-              TransferMap map = (TransferMap) Utils.deSerialize(kryoMapReading, p.getSerializedMap(), TransferMap.class);
+              TransferMap map = (TransferMap) kryoMapReading.deserialize(p.getSerializedMap());
               p.setMap(map);
             }
             addMaps(p, "map");
@@ -459,7 +457,7 @@ public class ScanMatchTask {
   private void changeToReady(int taskId) {
     state = MatchState.WAITING_FOR_READING;
     Ready ready = new Ready(taskId);
-    byte[] readyBody = Utils.serialize(kryoReady, ready);
+    byte[] readyBody = kryoReady.serialize(ready);
 
 
     Message m = new Message(readyBody);
@@ -479,7 +477,7 @@ public class ScanMatchTask {
       if (!particleMapses.isEmpty()) {
         for (ParticleMaps existingPm : particleMapses) {
           if (existingPm.getSerializedMap() != null) {
-            TransferMap map = (TransferMap) Utils.deSerialize(kryoMapReading, existingPm.getSerializedMap(), TransferMap.class);
+            TransferMap map = (TransferMap) kryoMapReading.deserialize(existingPm.getSerializedMap());
             existingPm.setMap(map);
           }
           addMaps(existingPm, origin);
@@ -501,7 +499,7 @@ public class ScanMatchTask {
     currentTrace.setSmaPP(ppTime);
 
     List<Object> emitValue = new ArrayList<Object>();
-    emitValue.add(Utils.serialize(kryoBestParticle, currentTrace));
+    emitValue.add(kryoBestParticle.serialize(currentTrace));
     emitValue.add(sensorId);
     emitValue.add(time);
     lock.lock();
@@ -529,7 +527,7 @@ public class ScanMatchTask {
       if (state == MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
         try {
           LOG.debug("taskId {}: Received particle assignment", taskId);
-          ParticleAssignments assignments = (ParticleAssignments) Utils.deSerialize(kryoAssignReading, body, ParticleAssignments.class);
+          ParticleAssignments assignments = (ParticleAssignments) kryoAssignReading.deserialize(body);
           handleAssignment(taskId, assignments);
         } catch (Exception e) {
           LOG.error("taskId {}: Failed to deserialize assignment", taskId, e);
@@ -603,7 +601,7 @@ public class ScanMatchTask {
               // create a new ParticleMaps
               TransferMap transferMap = Utils.createTransferMap(p.getMap());
 
-              byte[] b = Utils.serialize(kryoMapWriter, transferMap);
+              byte[] b = kryoMapWriter.serialize(transferMap);
               tempMaps.put(previousIndex, b);
               LOG.info("taskId {}: Created transfer maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
             }
@@ -660,8 +658,8 @@ public class ScanMatchTask {
     int noOfSend = values.size();
     for (final Map.Entry<Integer, ParticleMapsList> listEntry : values.entrySet()) {
       LOG.info("taskId {}: Serializing maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
-      Kryo k = kryoMapWriters.get(listEntry.getKey());
-      byte[] b = Utils.serialize(k, listEntry.getValue());
+      Serializer k = kryoMapWriters.get(listEntry.getKey());
+      byte[] b = k.serialize(listEntry.getValue());
       LOG.debug("Sending particle map to {}", listEntry.getKey());
       LOG.info("taskId {}: Sending maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
       // RabbitMQSender particleSender = particleSenders.get(listEntry.getKey());
@@ -691,7 +689,7 @@ public class ScanMatchTask {
 
   public void onParticleValue(byte[] body) {
     LOG.info("taskId {}: Received values: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
-    ParticleValues pvs = (ParticleValues) Utils.deSerialize(kryoPVReading, body, ParticleValues.class);
+    ParticleValues pvs = (ParticleValues) kryoPVReading.deserialize(body);
     LOG.debug("taskId {}: Received particle value", taskId);
     lock.lock();
     try {

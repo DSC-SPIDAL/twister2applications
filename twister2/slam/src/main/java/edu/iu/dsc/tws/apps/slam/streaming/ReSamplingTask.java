@@ -46,7 +46,7 @@ public class ReSamplingTask {
    */
   private RangeReading reading;
 
-  private Kryo kryo;
+  private Serializer kryo;
 
   private int receivedParticles = 0;
   private Map conf;
@@ -54,7 +54,7 @@ public class ReSamplingTask {
   private long firstReadingTime = -1;
 
   private ExecutorService executor;
-  private List<Kryo> kryoValueWriters = new ArrayList<Kryo>();
+  private List<Serializer> kryoValueWriters = new ArrayList<Serializer>();
 
   private Intracomm intracomm;
 
@@ -81,8 +81,8 @@ public class ReSamplingTask {
     this.intracomm = intracomm;
 
     this.executor = Executors.newScheduledThreadPool(8);
-    this.kryo = new Kryo();
-    Utils.registerClasses(kryo);
+    this.kryo = new Serializer();
+//    Utils.registerClasses(kryo);
     // read the configuration of the scanmatcher from topology.xml
     // use the configuration to create the resampler
     init(conf);
@@ -90,8 +90,8 @@ public class ReSamplingTask {
       totalTasks = intracomm.getSize();
       rank = intracomm.getRank();
       for (int i = 0; i < totalTasks; i++) {
-        Kryo k = new Kryo();
-        Utils.registerClasses(k);
+        Serializer k = new Serializer();
+//        Utils.registerClasses(k);
         kryoValueWriters.add(k);
       }
     } catch (Exception e) {
@@ -218,12 +218,15 @@ public class ReSamplingTask {
       List<byte[]> scatterValues = new ArrayList<>();
       for (final Map.Entry<Integer, List<ParticleValue>> e : values.entrySet()) {
         ParticleValues particleValues = new ParticleValues(e.getValue());
-        Kryo kryo = kryoValueWriters.get(e.getKey());
-        byte[] b = Utils.serialize(kryo, particleValues);
+        Serializer kryo = kryoValueWriters.get(e.getKey());
+        byte[] b = kryo.serialize(particleValues);
+        LOG.info(String.format("%d RE Scatter values", rank));
         scatterValues.add(b);
       }
       // todo
-      Object particleValue = scatterOperation.scatter(scatterValues, 0, MessageType.BYTE);
+      scatterOperation.iScatter(scatterValues, 0, MessageType.BYTE);
+      Object particleValue = scatterOperation.getResult();
+      scanMatchTask.onParticleValue((byte[]) particleValue);
     } else {
       LOG.info("NOT ReSampled, distributing assignments");
       ParticleAssignments assignments = new ParticleAssignments();
@@ -273,10 +276,12 @@ public class ReSamplingTask {
     assignments.setTrace(t);
 
     LOG.debug("Sending particle assignment");
-    byte[] b = Utils.serialize(kryo, assignments);
+    byte[] b = kryo.serialize(assignments);
     // todo
-    Object data = bCastOperation.bcast(b, 0, MessageType.BYTE);
-    // now call the
+    LOG.info(String.format("%d RE Broadcast assignments", rank));
+    bCastOperation.iBcast(b, 0, MessageType.BYTE);
+    Object data = bCastOperation.getResult();
+        // now call the
     scanMatchTask.onParticleAssignment((byte[]) data);
   }
 

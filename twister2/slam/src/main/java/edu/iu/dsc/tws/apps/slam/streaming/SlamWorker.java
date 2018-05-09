@@ -1,5 +1,8 @@
 package edu.iu.dsc.tws.apps.slam.streaming;
 
+import edu.iu.dsc.tws.apps.slam.streaming.ops.BCastOperation;
+import edu.iu.dsc.tws.apps.slam.streaming.ops.GatherOperation;
+import edu.iu.dsc.tws.apps.slam.streaming.ops.ScatterOperation;
 import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.common.config.ConfigReader;
 import edu.iu.dsc.tws.comms.api.DataFlowOperation;
@@ -28,7 +31,9 @@ public class SlamWorker implements IContainer {
 
   private BlockingQueue<Tuple> broadcastQueue = new ArrayBlockingQueue<>(64);
   private BlockingQueue<byte []> partitionQueue = new ArrayBlockingQueue<>(64);
-
+  private GatherOperation gatherOperation;
+  private ScatterOperation scatterOperation;
+  private BCastOperation bCastOperation;
   @Override
   public void init(Config config, int containerId, ResourcePlan resourcePlan) {
     // lets read the configuration file
@@ -59,13 +64,18 @@ public class SlamWorker implements IContainer {
       TWSNetwork network = new TWSNetwork(config, taskPlan);
       TWSCommunication channel = network.getDataFlowTWSCommunication();
 
+      gatherOperation = new GatherOperation(scanMatchComm, new Serializer());
+      scatterOperation = new ScatterOperation(scanMatchComm, new Serializer());
+      bCastOperation = new BCastOperation(scanMatchComm, new Serializer());
+
       ScanMatchTask scanMatchTask = null;
       DispatcherTask dispatcherBolt = null;
       if (resourcePlan.getThisId() != resourcePlan.noOfContainers() - 1) {
         int thisTask = resourcePlan.getThisId();
         // lets create scanmatcher
         scanMatchTask = new ScanMatchTask();
-        scanMatchTask.prepare(slamConf, scanMatchComm, thisTask, parallel);
+        scanMatchTask.prepare(slamConf, scanMatchComm, thisTask, parallel,
+            gatherOperation, scatterOperation, bCastOperation);
       } else {
         // lets use the dispatch bolt here
         dispatcherBolt = new DispatcherTask();
@@ -94,6 +104,10 @@ public class SlamWorker implements IContainer {
       }
 
       while (true) {
+        gatherOperation.op();
+        scatterOperation.op();
+        bCastOperation.op();
+
         broadcast.progress();
         partition.progress();
         channel.progress();

@@ -3,10 +3,10 @@ package edu.iu.dsc.tws.apps.slam.streaming;
 import edu.iu.dsc.tws.apps.slam.core.app.LaserScan;
 import edu.iu.dsc.tws.apps.slam.streaming.msgs.Ready;
 import edu.iu.dsc.tws.apps.slam.streaming.msgs.Trace;
-import com.esotericsoftware.kryo.Kryo;
 import edu.iu.dsc.tws.comms.mpi.MPIDataFlowBroadcast;
 import edu.iu.dsc.tws.data.utils.KryoMemorySerializer;
 import mpi.Intracomm;
+import mpi.MPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,8 +18,8 @@ import java.util.concurrent.locks.ReentrantLock;
 public class DispatcherTask {
   private static Logger LOG = LoggerFactory.getLogger(DispatcherTask.class);
 
-  private Kryo kryo;
-  private Kryo mainKryo;
+  private Serializer kryo;
+  private Serializer mainKryo;
 
   private Map conf;
 
@@ -50,12 +50,11 @@ public class DispatcherTask {
     // todo: set this value
     this.noOfParallelTasks = 0;
 
-    kryo = new Kryo();
-    mainKryo = new Kryo();
-    Utils.registerClasses(kryo);
-    Utils.registerClasses(mainKryo);
+    kryo = new Serializer();
+    mainKryo = new Serializer();
+//    Utils.registerClasses(kryo);
+//    Utils.registerClasses(mainKryo);
     this.dataReader = new SlamDataReader(inputFile);
-    this.kryoMemorySerializer = new KryoMemorySerializer(mainKryo);
   }
 
   private long beginTime;
@@ -103,11 +102,11 @@ public class DispatcherTask {
 
   private Tuple createTuple(LaserScan scan, Trace trace) {
     Map<String, Object> objects = new HashMap<>();
-    objects.put(Constants.Fields.BODY, Utils.serialize(kryo, scan));
+    objects.put(Constants.Fields.BODY, kryo.serialize(scan));
     objects.put(Constants.Fields.TIME_FIELD, System.currentTimeMillis());
     objects.put(Constants.Fields.SENSOR_ID_FIELD, "");
 
-    byte[] traceBytes = Utils.serialize(mainKryo, trace);
+    byte[] traceBytes = mainKryo.serialize(trace);
     objects.put(Constants.Fields.TRACE_FIELD, traceBytes);
 
     return new Tuple(objects, "dispatch");

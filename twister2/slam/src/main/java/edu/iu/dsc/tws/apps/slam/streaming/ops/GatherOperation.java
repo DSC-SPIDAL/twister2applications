@@ -1,7 +1,7 @@
 package edu.iu.dsc.tws.apps.slam.streaming.ops;
 
+import edu.iu.dsc.tws.apps.slam.streaming.Serializer;
 import edu.iu.dsc.tws.comms.api.MessageType;
-import edu.iu.dsc.tws.data.utils.KryoMemorySerializer;
 import mpi.Intracomm;
 import mpi.MPI;
 import mpi.MPIException;
@@ -10,11 +10,17 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class GatherOperation {
+  private static final Logger LOG = Logger.getLogger(GatherOperation.class.getName());
+
   private Intracomm comm;
 
-  private KryoMemorySerializer kryoMemorySerializer;
+  private Serializer serializer;
 
   private long allGatherTime = 0;
 
@@ -26,16 +32,24 @@ public class GatherOperation {
 
   private int thisTask;
 
-  public GatherOperation(Intracomm comm, KryoMemorySerializer kryoMemorySerializer) throws MPIException {
+  private BlockingQueue<List<Object>> result = new ArrayBlockingQueue<>(4);
+
+  private BlockingQueue<Request> requests = new ArrayBlockingQueue<>(4);
+
+  public GatherOperation(Intracomm comm, Serializer serializer) throws MPIException {
     this.comm = comm;
-    this.kryoMemorySerializer = kryoMemorySerializer;
+    this.serializer = serializer;
     this.worldSize = comm.getSize();
     this.thisTask = comm.getRank();
   }
 
+  public void iGather(Object data, int receiveTask, MessageType type) {
+    requests.offer(new Request(data, receiveTask, type));
+  }
+
   public List<Object> gather(Object data, int receiveTask, MessageType type) {
     try {
-      byte[] bytes = kryoMemorySerializer.serialize(data);
+      byte[] bytes = serializer.serialize(data);
 
       IntBuffer countSend = MPI.newIntBuffer(worldSize);
       IntBuffer countReceive = MPI.newIntBuffer(worldSize);
@@ -49,6 +63,7 @@ public class GatherOperation {
       countSend.put(bytes.length);
       comm.allGather(countSend, 1, MPI.INT, countReceive, 1, MPI.INT);
       allGatherTime += (System.nanoTime() - start);
+      LOG.log(Level.INFO, String.format("%d ALL Gather done", thisTask));
 
       int[] receiveSizes = new int[worldSize];
       int[] displacements = new int[worldSize];
@@ -64,18 +79,35 @@ public class GatherOperation {
       // now lets receive the process names of each rank
       comm.gatherv(sendBuffer, bytes.length, MPI.BYTE, receiveBuffer,
           receiveSizes, displacements, MPI.BYTE, 0);
+      LOG.log(Level.INFO, String.format("%d GatherV done", thisTask));
       gatherTIme += (System.nanoTime() - start);
       List<Object> gather = new ArrayList<>();
       if (thisTask == receiveTask) {
         for (int i = 0; i < receiveSizes.length; i++) {
           byte[] c = new byte[receiveSizes[i]];
           receiveBuffer.get(c);
-          Object desObj = (Object) kryoMemorySerializer.deserialize(c);
+          Object desObj = (Object) serializer.deserialize(c);
           gather.add(desObj);
         }
       }
       return gather;
     } catch (MPIException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void op() {
+    Request r = requests.poll();
+    if (r != null) {
+      List<Object> l = gather(r.getData(), r.getTask(), r.getType());
+      result.offer(l);
+    }
+  }
+
+  public List<Object> getResult() {
+    try {
+      return result.take();
+    } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
   }
@@ -90,7 +122,7 @@ public class GatherOperation {
       list.add(new Simple("Hello: " + i));
     }
 
-    GatherOperation scatterOperation = new GatherOperation(MPI.COMM_WORLD, new KryoMemorySerializer());
+    GatherOperation scatterOperation = new GatherOperation(MPI.COMM_WORLD, new Serializer());
     List<Object> l = scatterOperation.gather(list.get(rank), 0, MessageType.OBJECT);
     System.out.println(String.format("%d Received list %d", rank, l.size()));
     for (int i = 0; i < l.size(); i++) {
