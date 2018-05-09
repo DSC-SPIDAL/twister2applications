@@ -54,7 +54,7 @@ public class BCastOperation {
 
       // now calculate the total number of characters
       long start = System.nanoTime();
-      MPI.COMM_WORLD.bcast(countSend, worldSize, MPI.INT, bcastTask);
+      comm.bcast(countSend, worldSize, MPI.INT, bcastTask);
       allGatherTime += (System.nanoTime() - start);
 
       int receiveSize = countSend.get(0);
@@ -65,7 +65,7 @@ public class BCastOperation {
 
       start = System.nanoTime();
       // now lets receive the process names of each rank
-      MPI.COMM_WORLD.bcast(sendBuffer, receiveSize, MPI.BYTE, bcastTask);
+      comm.bcast(sendBuffer, receiveSize, MPI.BYTE, bcastTask);
       gatherTIme += (System.nanoTime() - start);
       sendBuffer.position(0);
 

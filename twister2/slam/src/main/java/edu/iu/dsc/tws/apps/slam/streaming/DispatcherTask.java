@@ -6,7 +6,6 @@ import edu.iu.dsc.tws.apps.slam.streaming.msgs.Trace;
 import edu.iu.dsc.tws.comms.mpi.MPIDataFlowBroadcast;
 import edu.iu.dsc.tws.data.utils.KryoMemorySerializer;
 import mpi.Intracomm;
-import mpi.MPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,16 +80,13 @@ public class DispatcherTask {
         broadcast.send(task, input, 0);
         this.state = State.WAITING_FOR_READY;
         LOG.info("Changing state from READING to ANY");
-      } else if (this.state == State.WAITING_FOR_READY) {
-        LOG.info("Input while in state READY");
       }
     }  finally {
       lock.unlock();
     }
   }
 
-
-  private void handleReady(Ready ready) {
+  public void handleReady(Ready ready) {
     lock.lock();
     try {
       state = State.WAITING_FOR_READING;

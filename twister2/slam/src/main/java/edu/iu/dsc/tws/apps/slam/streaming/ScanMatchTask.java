@@ -7,11 +7,11 @@ import edu.iu.dsc.tws.apps.slam.core.sensor.RangeReading;
 import edu.iu.dsc.tws.apps.slam.core.utils.DoubleOrientedPoint;
 import edu.iu.dsc.tws.apps.slam.streaming.msgs.*;
 import edu.iu.dsc.tws.apps.slam.streaming.ops.BCastOperation;
+import edu.iu.dsc.tws.apps.slam.streaming.ops.BarrierOperation;
 import edu.iu.dsc.tws.apps.slam.streaming.ops.GatherOperation;
 import edu.iu.dsc.tws.apps.slam.streaming.ops.ScatterOperation;
 import edu.iu.dsc.tws.apps.slam.streaming.stats.GCCounter;
 import edu.iu.dsc.tws.apps.slam.streaming.stats.GCInformation;
-import com.esotericsoftware.kryo.Kryo;
 import edu.iu.dsc.tws.comms.api.MessageType;
 import edu.iu.dsc.tws.comms.mpi.MPIDataFlowPartition;
 import mpi.Intracomm;
@@ -72,9 +72,12 @@ public class ScanMatchTask {
 
   private int totalTasks;
 
+  private int dispatchTaskId;
+
   private GatherOperation gatherOperation;
   private ScatterOperation scatterOperation;
   private BCastOperation bCastOperation;
+  private BarrierOperation barrierOperation;
 
   private ReSamplingTask reSamplingTask;
 
@@ -91,6 +94,8 @@ public class ScanMatchTask {
   private long assignmentReceiveTime;
 
   private MPIDataFlowPartition partition;
+  private MPIDataFlowPartition readyPartition;
+
   private Intracomm intracomm;
   private int thisRank = 0;
 
@@ -103,17 +108,19 @@ public class ScanMatchTask {
     COMPUTING_NEW_PARTICLES,
   }
 
-  public void prepare(Map map, Intracomm comm, int taskId, int totalTasks,
+  public void prepare(Map map, Intracomm comm, int taskId, int totalTasks, int dispatchTaskId,
                       GatherOperation gatherOperation, ScatterOperation scatterOperation,
-                      BCastOperation bCastOperation) throws MPIException {
+                      BCastOperation bCastOperation, BarrierOperation barrierOperation) throws MPIException {
     this.taskId = taskId;
     this.totalTasks = totalTasks;
     this.intracomm = comm;
     this.thisRank = comm.getRank();
+    this.dispatchTaskId = dispatchTaskId;
 
     this.gatherOperation = gatherOperation;
     this.scatterOperation = scatterOperation;
     this.bCastOperation = bCastOperation;
+    this.barrierOperation = barrierOperation;
 
     executor = Executors.newScheduledThreadPool(8);
     this.conf = map;
@@ -156,6 +163,10 @@ public class ScanMatchTask {
 
   public void setPartition(MPIDataFlowPartition partition) {
     this.partition = partition;
+  }
+
+  public void setReadyPartition(MPIDataFlowPartition readyPartition) {
+    this.readyPartition = readyPartition;
   }
 
   private void init(Map conf) {
@@ -320,13 +331,16 @@ public class ScanMatchTask {
         LOG.info(String.format("%d Broadcast assignments", thisRank));
         bCastOperation.iBcast(null, 0, MessageType.OBJECT);
         Object obj = bCastOperation.getResult();
-        onParticleAssignment((byte[]) obj);
+        ParticleAssignments assignments = (ParticleAssignments) kryoAssignReading.deserialize((byte[]) obj);
+        onParticleAssignment(assignments);
 
         // lets do a scatter to get the particle values
-        LOG.info(String.format("%d Scatter values", thisRank));
-        scatterOperation.iScatter(null, 0, MessageType.OBJECT);
-        Object particleValues = scatterOperation.getResult();
-        onParticleValue((byte[]) particleValues);
+        if (assignments.isReSampled()) {
+          LOG.info(String.format("%d Scatter values", thisRank));
+          scatterOperation.iScatter(null, 0, MessageType.OBJECT);
+          Object particleValues = scatterOperation.getResult();
+          onParticleValue((byte[]) particleValues);
+        }
       }
 
     } finally {
@@ -409,11 +423,8 @@ public class ScanMatchTask {
 
     if (expectingParticleMaps == 0 && expectingParticleValues == 0) {
       // lets do a barrier
-      try {
-        intracomm.barrier();
-      } catch (MPIException e) {
-        throw new RuntimeException("Error", e);
-      }
+      barrierOperation.iBarrier();
+      barrierOperation.getResult();
 
       state = MatchState.COMPUTING_NEW_PARTICLES;
       LOG.info("taskId {}: Map Handler Changing state to COMPUTING_NEW_PARTICLES", taskId);
@@ -457,13 +468,12 @@ public class ScanMatchTask {
   private void changeToReady(int taskId) {
     state = MatchState.WAITING_FOR_READING;
     Ready ready = new Ready(taskId);
-    byte[] readyBody = kryoReady.serialize(ready);
 
-
-    Message m = new Message(readyBody);
     try {
       // todo
-//            readySender.send(m, Constants.Messages.READY_ROUTING_KEY);
+      if (thisRank == 0) {
+        readyPartition.send(taskId, ready, 0, dispatchTaskId);
+      }
     } catch (Exception e) {
       String msg = "Error sending the ready message";
       LOG.error(msg, e);
@@ -521,13 +531,12 @@ public class ScanMatchTask {
   }
 
 
-  public void onParticleAssignment(byte[] body) {
+  public void onParticleAssignment(ParticleAssignments assignments) {
     lock.lock();
     try {
       if (state == MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
         try {
           LOG.debug("taskId {}: Received particle assignment", taskId);
-          ParticleAssignments assignments = (ParticleAssignments) kryoAssignReading.deserialize(body);
           handleAssignment(taskId, assignments);
         } catch (Exception e) {
           LOG.error("taskId {}: Failed to deserialize assignment", taskId, e);

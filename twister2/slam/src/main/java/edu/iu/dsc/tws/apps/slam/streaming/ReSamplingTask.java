@@ -281,8 +281,9 @@ public class ReSamplingTask {
     LOG.info(String.format("%d RE Broadcast assignments", rank));
     bCastOperation.iBcast(b, 0, MessageType.BYTE);
     Object data = bCastOperation.getResult();
-        // now call the
-    scanMatchTask.onParticleAssignment((byte[]) data);
+    ParticleAssignments pa = (ParticleAssignments) kryo.deserialize((byte[]) data);
+    // now call the
+    scanMatchTask.onParticleAssignment(pa);
   }
 
   /**
