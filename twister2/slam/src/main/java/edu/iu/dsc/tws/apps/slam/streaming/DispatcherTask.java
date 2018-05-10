@@ -90,7 +90,7 @@ public class DispatcherTask {
     lock.lock();
     try {
       state = State.WAITING_FOR_READING;
-      LOG.info("Time: " + (System.currentTimeMillis() - lastSendTime) + " Total: " + (System.currentTimeMillis() - startTime) / 1000 + " number: " + count);
+      LOG.info("Time: " + (System.currentTimeMillis() - lastSendTime) + " Total: " + (System.currentTimeMillis() - startTime * 1.0) / 1000.0 + " number: " + count);
     } finally {
       lock.unlock();
     }
