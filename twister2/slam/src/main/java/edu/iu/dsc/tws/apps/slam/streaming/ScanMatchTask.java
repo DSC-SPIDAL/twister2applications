@@ -230,7 +230,7 @@ public class ScanMatchTask {
   }
 
   public void execute(Tuple tuple) {
-    LOG.info(String.format("%d received laser scan rank %d.......", taskId, rank));
+//    LOG.info(String.format("%d received laser scan rank %d.......", taskId, rank));
     String stream = tuple.getSourceStreamId();
 
     if (state != MatchState.WAITING_FOR_READING) {
@@ -283,7 +283,7 @@ public class ScanMatchTask {
     }
 
     // now we will start the computation
-    LOG.info("rank {}: Changing state to COMPUTING_INIT_READINGS", rank);
+//    LOG.info("rank {}: Changing state to COMPUTING_INIT_READINGS", rank);
     state = MatchState.COMPUTING_INIT_READINGS;
     if (!gfsp.processScan(reading, 0)) {
       changeToReady(rank);
@@ -294,12 +294,12 @@ public class ScanMatchTask {
     List<Integer> activeParticles = gfsp.getActiveParticles();
     List<Particle> particles = gfsp.getParticles();
 
-    LOG.info("rank {}: execute: changing state to WAITING_FOR_PARTICLE_ASSIGNMENTS_AND_NEW_PARTICLES", rank);
+//    LOG.info("rank {}: execute: changing state to WAITING_FOR_PARTICLE_ASSIGNMENTS_AND_NEW_PARTICLES", rank);
     state = MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS;
 
     // after the computation we are going to create a new object without the map and nodes in particle and emit it
     // these will be used by the re sampler to re sample particles
-    LOG.debug("rank {}: no of active particles {}", rank, activeParticles.size());
+//    LOG.debug("rank {}: no of active particles {}", rank, activeParticles.size());
     List<ParticleValue> pvs = new ArrayList<ParticleValue>();
     for (int i = 0; i < activeParticles.size(); i++) {
       int index = activeParticles.get(i);
@@ -316,7 +316,7 @@ public class ScanMatchTask {
       trace.getSmp().put(rank, timeSpent);
       trace.getGcTimes().put(rank, gcTime);
       GCInformation.getInstance().removeCounter(gcCounter);
-      LOG.debug("rank {}: emitting to resample ", rank);
+//      LOG.debug("rank {}: emitting to resample ", rank);
 
       Tuple particleTuple = createParticleTuple(pvs, scan, trace);
       // lets gather
@@ -368,7 +368,7 @@ public class ScanMatchTask {
   private List<ParticleMaps> particleMapses = new ArrayList<ParticleMaps>();
 
   public void onMap(byte[] body) {
-    LOG.info("rank {}: Received maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
+//    LOG.info("rank {}: Received maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
     ParticleMapsList pm = (ParticleMapsList) kryoMapReading.deserialize(body);
     lock.lock();
     try {
@@ -415,7 +415,7 @@ public class ScanMatchTask {
     if (state == MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
       lock.lock();
       try {
-        LOG.info("rank {}: {} Changing state to WAITING_FOR_NEW_PARTICLES", origin, taskId);
+//        LOG.info("rank {}: {} Changing state to WAITING_FOR_NEW_PARTICLES", origin, taskId);
         state = MatchState.WAITING_FOR_NEW_PARTICLES;
       } finally {
         lock.unlock();
@@ -431,11 +431,11 @@ public class ScanMatchTask {
       barrierOperation.getResult();
 
       state = MatchState.COMPUTING_NEW_PARTICLES;
-      LOG.info("rank {}: Map Handler Changing state to COMPUTING_NEW_PARTICLES", taskId);
+//      LOG.info("rank {}: Map Handler Changing state to COMPUTING_NEW_PARTICLES", taskId);
       long ppTime = System.currentTimeMillis();
       if (resampled) {
         // add the temp to active particles
-        LOG.info("rank {}: Clearing active particles", taskId);
+//        LOG.info("rank {}: Clearing active particles", taskId);
         gfsp.clearActiveParticles();
         gfsp.getActiveParticles().addAll(tempActiveParticles);
         tempActiveParticles.clear();
@@ -464,7 +464,7 @@ public class ScanMatchTask {
       }
 
       changeToReady(taskId);
-      LOG.info("rank {}: Changing state to WAITING_FOR_READING", taskId);
+//      LOG.info("rank {}: Changing state to WAITING_FOR_READING", taskId);
     }
   }
 
@@ -539,7 +539,7 @@ public class ScanMatchTask {
     try {
       if (state == MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
         try {
-          LOG.info("rank {}: Received particle assignment", rank);
+//          LOG.info("rank {}: Received particle assignment", rank);
           handleAssignment(rank, assignments);
         } catch (Exception e) {
           LOG.error("rank {}: Failed to deserialize assignment", rank, e);
@@ -555,7 +555,7 @@ public class ScanMatchTask {
   private void handleAssignment(int taskId, ParticleAssignments assignments) {
     currentTrace = assignments.getTrace();
     assignmentReceiveTime = System.currentTimeMillis();
-    LOG.info("rank {}: Best particle index {}", taskId, assignments.getBestParticle());
+//    LOG.info("rank {}: Best particle index {}", taskId, assignments.getBestParticle());
     // if we have resampled ditributed the assignments
     if (assignments.isReSampled()) {
       // now go through the assignments and send them to the bolts directly
@@ -591,8 +591,8 @@ public class ScanMatchTask {
         }
       }
     }
-    LOG.info("rank {}: expectingParticleValues: {} expectingParticleMaps: {}", rank,
-        expectingParticleValues, expectingParticleMaps);
+//    LOG.info("rank {}: expectingParticleValues: {} expectingParticleMaps: {}", rank,
+//        expectingParticleValues, expectingParticleMaps);
   }
 
   private void distributeAssignments(ParticleAssignments assignments) {
@@ -608,14 +608,14 @@ public class ScanMatchTask {
           // send the particle over rabbitmq if this is a different task
           if (assignment.getNewTask() != rank) {
             if (!tempMaps.containsKey(previousIndex)) {
-              LOG.info("rank {}: Start creating transfer maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
+//              LOG.info("rank {}: Start creating transfer maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
               Particle p = gfsp.getParticles().get(previousIndex);
               // create a new ParticleMaps
               TransferMap transferMap = Utils.createTransferMap(p.getMap());
 
               byte[] b = kryoMapWriter.serialize(transferMap);
               tempMaps.put(previousIndex, b);
-              LOG.info("rank {}: Created transfer maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
+//              LOG.info("rank {}: Created transfer maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
             }
           }
         } else {
@@ -700,9 +700,9 @@ public class ScanMatchTask {
   private List<ParticleValue> particleValues = new ArrayList<ParticleValue>();
 
   public void onParticleValue(byte[] body) {
-    LOG.info("rank {}: Received values: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
+//    LOG.info("rank {}: Received values: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
     ParticleValues pvs = (ParticleValues) kryoPVReading.deserialize(body);
-    LOG.info("rank {}: Received particle value", rank);
+//    LOG.info("rank {}: Received particle value", rank);
     lock.lock();
     try {
       if (state == MatchState.WAITING_FOR_NEW_PARTICLES) {
@@ -780,7 +780,7 @@ public class ScanMatchTask {
 
     // we have received one particle
     expectingParticleValues--;
-    LOG.info("rank {}: Expecting particle values {} origin {}", rank, expectingParticleValues, origin);
+//    LOG.info("rank {}: Expecting particle values {} origin {}", rank, expectingParticleValues, origin);
   }
 
 
@@ -810,6 +810,6 @@ public class ScanMatchTask {
 
     // we have received one particle
     expectingParticleMaps--;
-    LOG.info("rank {}: Expecting particle maps {} origin {}", rank, expectingParticleMaps, origin);
+//    LOG.info("rank {}: Expecting particle maps {} origin {}", rank, expectingParticleMaps, origin);
   }
 }

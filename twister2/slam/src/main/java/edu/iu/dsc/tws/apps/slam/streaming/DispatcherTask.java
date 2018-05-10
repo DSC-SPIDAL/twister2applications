@@ -77,7 +77,7 @@ public class DispatcherTask {
         lastSendTime = System.currentTimeMillis();
         broadcast.send(task, input, 0);
         this.state = State.WAITING_FOR_READY;
-        LOG.info("Changing state from READING to ANY");
+//        LOG.info("Changing state from READING to ANY");
       }
     }  finally {
       lock.unlock();
@@ -88,7 +88,7 @@ public class DispatcherTask {
     lock.lock();
     try {
       state = State.WAITING_FOR_READING;
-      LOG.info("Changing state from ANY to READING");
+      LOG.info("Time: " + (System.currentTimeMillis() - lastSendTime));
     } finally {
       lock.unlock();
     }
@@ -109,7 +109,7 @@ public class DispatcherTask {
   private long lastSendTime = 0;
 
   public void progress() {
-    if (state != State.WAITING_FOR_READY || (lastSendTime + 5000) < System.currentTimeMillis()) {
+    if (state != State.WAITING_FOR_READY) {
       LaserScan scan = dataReader.read();
       if (scan != null) {
         Tuple tuple = createTuple(scan, new Trace());

@@ -64,7 +64,7 @@ public class GatherOperation {
       countSend.put(bytes.length);
       comm.allGather(countSend, 1, MPI.INT, countReceive, 1, MPI.INT);
       allGatherTime += (System.nanoTime() - start);
-      LOG.log(Level.INFO, String.format("%d ALL Gather done", thisTask));
+//      LOG.log(Level.INFO, String.format("%d ALL Gather done", thisTask));
 
       int[] receiveSizes = new int[worldSize];
       int[] displacements = new int[worldSize];

@@ -130,7 +130,7 @@ public class ReSamplingTask {
       if (val != null && (val instanceof List)) {
         pvs = (List<ParticleValue>) val;
         for (ParticleValue value : pvs) {
-          LOG.debug("Received particle with index {}", value.getIndex());
+//          LOG.debug("Received particle with index {}", value.getIndex());
           addParticleValue(value, trace);
         }
       } else {
@@ -160,7 +160,7 @@ public class ReSamplingTask {
       smap.put(sensor.getName(), sensor);
     }
 
-    LOG.debug("receivedParticles: {}, expecting particles:{}", receivedParticles, reSampler.getParticles().size());
+//    LOG.debug("receivedParticles: {}, expecting particles:{}", receivedParticles, reSampler.getParticles().size());
     // this bolt will wait until all the particle values are obtained
     if (receivedParticles < reSampler.getNoOfParticles() || reading == null) {
       return;
@@ -190,7 +190,7 @@ public class ReSamplingTask {
     if (hasReSampled.isReSampled()) {
       // first we will distribute the new assignments
       // this will distribute the current maps
-      LOG.info("ReSampled, distributing assignments.....");
+//      LOG.info("ReSampled, distributing assignments.....");
       List<Integer> particles = hasReSampled.getIndexes();
       ParticleAssignments assignments = createAssignments(particles);
       assignments.setReSampled(true);
@@ -206,7 +206,7 @@ public class ReSamplingTask {
         // we assume there is a direct mapping between particles in the resampler and the indexes
         ParticleAssignment assignment = assignments.getAssignments().get(i);
         if (i == best) {
-          LOG.info("Best node index: {}, sending this to task: {}", i, assignment.getNewTask());
+//          LOG.info("Best node index: {}, sending this to task: {}", i, assignment.getNewTask());
           pv.setBest(true);
         }
         addParticleValueToMap(values, assignment.getNewTask(), pv);
@@ -217,7 +217,7 @@ public class ReSamplingTask {
         ParticleValues particleValues = new ParticleValues(e.getValue());
         Serializer kryo = kryoValueWriters.get(e.getKey());
         byte[] b = kryo.serialize(particleValues);
-        LOG.info(String.format("%d RE Scatter values", rank));
+//        LOG.info(String.format("%d RE Scatter values", rank));
         scatterValues.add(b);
       }
       // todo
@@ -225,7 +225,7 @@ public class ReSamplingTask {
       Object particleValue = scatterOperation.getResult();
       scanMatchTask.onParticleValue((byte[]) particleValue);
     } else {
-      LOG.info("NOT ReSampled, distributing assignments");
+//      LOG.info("NOT ReSampled, distributing assignments");
       ParticleAssignments assignments = new ParticleAssignments();
       assignments.setReSampled(false);
       assignments.setBestParticle(best);
@@ -247,7 +247,7 @@ public class ReSamplingTask {
   }
 
   protected synchronized void addParticleValue(ParticleValue value, Trace trace) {
-    LOG.debug("Received particle value from taskID {}", value.getTaskId());
+//    LOG.debug("Received particle value from taskID {}", value.getTaskId());
     particleValueses[value.getIndex()] = value;
     traceMap.put(value.getTaskId(), trace);
     receivedParticles++;
@@ -272,7 +272,7 @@ public class ReSamplingTask {
     firstReadingTime = -1;
     assignments.setTrace(t);
 
-    LOG.debug("Sending particle assignment");
+//    LOG.debug("Sending particle assignment");
     byte[] b = kryo.serialize(assignments);
     // todo
     LOG.info(String.format("%d RE Broadcast assignments", rank));

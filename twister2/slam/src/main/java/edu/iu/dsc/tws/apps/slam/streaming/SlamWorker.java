@@ -207,7 +207,7 @@ public class SlamWorker implements IContainer {
 
     @Override
     public boolean onMessage(int i, int i1, int i2, int i3, Object o) {
-      LOG.info(String.format("Bcast receive %d %d %d %d", i, i1, i2, i3));
+//      LOG.info(String.format("Bcast receive %d %d %d %d", i, i1, i2, i3));
       if (!(o instanceof Tuple)) {
         throw new RuntimeException("Un-expected object");
       }

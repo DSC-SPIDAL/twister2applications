@@ -100,7 +100,7 @@ public class DScanMatcher extends AbstractGridSlamProcessor {
             lastPartPose = odoPose = relPose;
         }
 
-        LOG.info("Got laser pose: {}", reading.getPose());
+//        LOG.info("Got laser pose: {}", reading.getPose());
 
         for (Particle p : particles) {
             p.pose = motionModel.drawFromMotion(p.pose, relPose, odoPose);

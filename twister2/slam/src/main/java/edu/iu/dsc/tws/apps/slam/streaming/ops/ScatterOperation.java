@@ -66,7 +66,7 @@ public class ScatterOperation {
       for (int i = 0; i < worldSize; i++) {
         int total1 = countSend.get(i);
         total += total1;
-        System.out.println(String.format("%d size: %d", thisTask, total1));
+//        System.out.println(String.format("%d size: %d", thisTask, total1));
       }
 
       ByteBuffer sendBuffer = MPI.newByteBuffer(total * 2);
