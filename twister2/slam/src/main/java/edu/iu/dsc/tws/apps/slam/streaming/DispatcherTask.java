@@ -39,6 +39,8 @@ public class DispatcherTask {
 
   private State state = State.WAITING_FOR_READING;
 
+  private long startTime = System.currentTimeMillis();
+
   public void prepare(Map stormConf, Intracomm intracomm, String inputFile, int task) {
     this.conf = stormConf;
     this.task = task;
@@ -114,6 +116,8 @@ public class DispatcherTask {
       if (scan != null) {
         Tuple tuple = createTuple(scan, new Trace());
         execute(tuple);
+      } else {
+        LOG.info("Total time: " + (System.currentTimeMillis() - startTime) / 1000);
       }
     }
     broadcast.progress();
