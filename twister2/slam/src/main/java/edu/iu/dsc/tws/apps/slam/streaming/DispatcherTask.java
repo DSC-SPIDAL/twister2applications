@@ -26,8 +26,6 @@ public class DispatcherTask {
 
   private Lock lock = new ReentrantLock();
 
-  private Intracomm intracomm;
-
   private SlamDataReader dataReader;
 
   private KryoMemorySerializer kryoMemorySerializer;
@@ -43,7 +41,6 @@ public class DispatcherTask {
 
   public void prepare(Map stormConf, Intracomm intracomm, String inputFile, int task) {
     this.conf = stormConf;
-    this.intracomm = intracomm;
     this.task = task;
 
     // todo: set this value
@@ -77,6 +74,7 @@ public class DispatcherTask {
         Trace t = new Trace();
         t.setPd(previousTime);
         // todo
+        lastSendTime = System.currentTimeMillis();
         broadcast.send(task, input, 0);
         this.state = State.WAITING_FOR_READY;
         LOG.info("Changing state from READING to ANY");
@@ -108,8 +106,10 @@ public class DispatcherTask {
     return new Tuple(objects, "dispatch");
   }
 
+  private long lastSendTime = 0;
+
   public void progress() {
-    if (state != State.WAITING_FOR_READY) {
+    if (state != State.WAITING_FOR_READY || (lastSendTime + 5000) < System.currentTimeMillis()) {
       LaserScan scan = dataReader.read();
       if (scan != null) {
         Tuple tuple = createTuple(scan, new Trace());

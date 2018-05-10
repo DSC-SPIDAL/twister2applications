@@ -324,25 +324,29 @@ public class ScanMatchTask {
       List<Object> objs = gatherOperation.getResult();
 
       if (thisRank == 0) {
-        LOG.info(String.format("%d Resampling", thisRank));
+//        LOG.info(String.format("%d Resampling", thisRank));
         reSamplingTask.execute(objs);
       } else {
         // we are here to receive the assignments
-        LOG.info(String.format("%d Broadcast assignments", thisRank));
+//        LOG.info(String.format("%d Broadcast assignments", thisRank));
         bCastOperation.iBcast(null, 0, MessageType.OBJECT);
         Object obj = bCastOperation.getResult();
         ParticleAssignments assignments = (ParticleAssignments) kryoAssignReading.deserialize((byte[]) obj);
+//        ParticleAssignments assignments = new ParticleAssignments();
+//        assignments.setReSampled(false);
+//        assignments.setTrace(new Trace());
         onParticleAssignment(assignments);
 
         // lets do a scatter to get the particle values
         if (assignments.isReSampled()) {
-          LOG.info(String.format("%d Scatter values", thisRank));
+//          LOG.info(String.format("%d Scatter values", thisRank));
           scatterOperation.iScatter(null, 0, MessageType.OBJECT);
           Object particleValues = scatterOperation.getResult();
           onParticleValue((byte[]) particleValues);
         }
       }
-
+    } catch (Throwable t) {
+      LOG.error("Error ", t);
     } finally {
       lock.unlock();
     }
@@ -468,7 +472,6 @@ public class ScanMatchTask {
   private void changeToReady(int taskId) {
     state = MatchState.WAITING_FOR_READING;
     Ready ready = new Ready(taskId);
-
     try {
       // todo
       if (thisRank == 0) {
@@ -536,7 +539,7 @@ public class ScanMatchTask {
     try {
       if (state == MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
         try {
-          LOG.debug("taskId {}: Received particle assignment", taskId);
+          LOG.info("taskId {}: Received particle assignment", taskId);
           handleAssignment(taskId, assignments);
         } catch (Exception e) {
           LOG.error("taskId {}: Failed to deserialize assignment", taskId, e);
@@ -552,7 +555,7 @@ public class ScanMatchTask {
   private void handleAssignment(int taskId, ParticleAssignments assignments) {
     currentTrace = assignments.getTrace();
     assignmentReceiveTime = System.currentTimeMillis();
-    LOG.debug("taskId {}: Best particle index {}", taskId, assignments.getBestParticle());
+    LOG.info("taskId {}: Best particle index {}", taskId, assignments.getBestParticle());
     // if we have resampled ditributed the assignments
     if (assignments.isReSampled()) {
       // now go through the assignments and send them to the bolts directly
@@ -588,7 +591,7 @@ public class ScanMatchTask {
         }
       }
     }
-    LOG.debug("taskId {}: expectingParticleValues: {} expectingParticleMaps: {}", taskId,
+    LOG.info("taskId {}: expectingParticleValues: {} expectingParticleMaps: {}", taskId,
         expectingParticleValues, expectingParticleMaps);
   }
 
@@ -699,7 +702,7 @@ public class ScanMatchTask {
   public void onParticleValue(byte[] body) {
     LOG.info("taskId {}: Received values: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
     ParticleValues pvs = (ParticleValues) kryoPVReading.deserialize(body);
-    LOG.debug("taskId {}: Received particle value", taskId);
+    LOG.info("taskId {}: Received particle value", taskId);
     lock.lock();
     try {
       if (state == MatchState.WAITING_FOR_NEW_PARTICLES) {
@@ -777,7 +780,7 @@ public class ScanMatchTask {
 
     // we have received one particle
     expectingParticleValues--;
-    LOG.debug("taskId {}: Expecting particle values {} origin {}", taskId, expectingParticleValues, origin);
+    LOG.info("taskId {}: Expecting particle values {} origin {}", taskId, expectingParticleValues, origin);
   }
 
 
@@ -807,6 +810,6 @@ public class ScanMatchTask {
 
     // we have received one particle
     expectingParticleMaps--;
-    LOG.debug("taskId {}: Expecting particle maps {} origin {}", taskId, expectingParticleMaps, origin);
+    LOG.info("taskId {}: Expecting particle maps {} origin {}", taskId, expectingParticleMaps, origin);
   }
 }

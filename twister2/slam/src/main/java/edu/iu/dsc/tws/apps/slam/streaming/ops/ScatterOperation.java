@@ -12,8 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.logging.Logger;
 
 public class ScatterOperation {
+  private static final Logger LOG = Logger.getLogger(ScatterOperation.class.getName());
   private Intracomm comm;
 
   private Serializer serializer;
@@ -44,6 +46,7 @@ public class ScatterOperation {
   }
 
   public Object scatter(List data, int scatterTask, MessageType type) {
+//    LOG.log(Level.INFO, "SCATTER ------------------------");
     try {
       IntBuffer countSend = MPI.newIntBuffer(worldSize);
       int total = 0;

@@ -12,8 +12,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class BCastOperation {
+  private static final Logger LOG = Logger.getLogger(BCastOperation.class.getName());
   private Intracomm comm;
 
   private Serializer serializer;
@@ -45,6 +48,7 @@ public class BCastOperation {
 
   public Object bcast(Object data, int bcastTask, MessageType type) {
     try {
+//      LOG.log(Level.INFO, "BCAST ------------------------" + thisTask + " " + bcastTask);
       IntBuffer countSend = MPI.newIntBuffer(1);
       byte[] bytes = null;
       if (thisTask == bcastTask) {
@@ -54,7 +58,7 @@ public class BCastOperation {
 
       // now calculate the total number of characters
       long start = System.nanoTime();
-      comm.bcast(countSend, worldSize, MPI.INT, bcastTask);
+      comm.bcast(countSend, 1, MPI.INT, bcastTask);
       allGatherTime += (System.nanoTime() - start);
 
       int receiveSize = countSend.get(0);

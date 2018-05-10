@@ -49,6 +49,7 @@ public class GatherOperation {
 
   public List<Object> gather(Object data, int receiveTask, MessageType type) {
     try {
+//      LOG.log(Level.INFO, "GATHER ------------------------");
       byte[] bytes = serializer.serialize(data);
 
       IntBuffer countSend = MPI.newIntBuffer(worldSize);
@@ -79,7 +80,7 @@ public class GatherOperation {
       // now lets receive the process names of each rank
       comm.gatherv(sendBuffer, bytes.length, MPI.BYTE, receiveBuffer,
           receiveSizes, displacements, MPI.BYTE, 0);
-      LOG.log(Level.INFO, String.format("%d GatherV done", thisTask));
+//      LOG.log(Level.INFO, String.format("%d GatherV done", thisTask));
       gatherTIme += (System.nanoTime() - start);
       List<Object> gather = new ArrayList<>();
       if (thisTask == receiveTask) {

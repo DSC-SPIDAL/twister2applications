@@ -56,8 +56,6 @@ public class ReSamplingTask {
   private ExecutorService executor;
   private List<Serializer> kryoValueWriters = new ArrayList<Serializer>();
 
-  private Intracomm intracomm;
-
   private Lock lock = new ReentrantLock();
 
   private ScatterOperation scatterOperation;
@@ -78,7 +76,6 @@ public class ReSamplingTask {
     this.scanMatchTask = scanMatchTask;
     this.scatterOperation = scatterOperation;
     this.bCastOperation = bCastOperation;
-    this.intracomm = intracomm;
 
     this.executor = Executors.newScheduledThreadPool(8);
     this.kryo = new Serializer();
@@ -282,7 +279,11 @@ public class ReSamplingTask {
     bCastOperation.iBcast(b, 0, MessageType.BYTE);
     Object data = bCastOperation.getResult();
     ParticleAssignments pa = (ParticleAssignments) kryo.deserialize((byte[]) data);
+//    pa.setReSampled(false);
     // now call the
+//    ParticleAssignments pa = new ParticleAssignments();
+//    pa.setReSampled(false);
+//    pa.setTrace(new Trace());
     scanMatchTask.onParticleAssignment(pa);
   }
 
