@@ -809,7 +809,7 @@ public class ScanMatchTask {
     tempActiveParticles.add(newIndex);
 
     // we have received one particle
-    expectingParticleMaps = 0;
+    expectingParticleMaps--;
     LOG.info("rank {}: Expecting particle maps {} origin {}", rank, expectingParticleMaps, origin);
   }
 }

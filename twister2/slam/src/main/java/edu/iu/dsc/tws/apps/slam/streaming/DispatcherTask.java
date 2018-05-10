@@ -90,7 +90,7 @@ public class DispatcherTask {
     lock.lock();
     try {
       state = State.WAITING_FOR_READING;
-      LOG.info("Time: " + (System.currentTimeMillis() - lastSendTime));
+      LOG.info("Time: " + (System.currentTimeMillis() - lastSendTime) + " Total: " + (System.currentTimeMillis() - startTime) / 1000 + " number: " + count);
     } finally {
       lock.unlock();
     }
@@ -109,6 +109,7 @@ public class DispatcherTask {
   }
 
   private long lastSendTime = 0;
+  private int count = 0;
 
   public void progress() {
     if (state != State.WAITING_FOR_READY) {
@@ -116,6 +117,7 @@ public class DispatcherTask {
       if (scan != null) {
         Tuple tuple = createTuple(scan, new Trace());
         execute(tuple);
+        count++;
       } else {
         LOG.info("Total time: " + (System.currentTimeMillis() - startTime) / 1000);
       }
