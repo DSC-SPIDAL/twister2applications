@@ -11,6 +11,8 @@ public interface IPartitionCommunication {
 
     void onRandomSelection(int noOfTasks);
 
+    int onRandomSelection(int startTask, int noOfTasks);
+
     void onRingSelection();
 
     void onCustomSelection();
