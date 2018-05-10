@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class BCastOperation {
@@ -33,7 +32,7 @@ public class BCastOperation {
 
   private BlockingQueue<Object> result = new ArrayBlockingQueue<>(4);
 
-  private BlockingQueue<Request> requests = new ArrayBlockingQueue<>(4);
+  private BlockingQueue<OpRequest> requests = new ArrayBlockingQueue<>(4);
 
   public BCastOperation(Intracomm comm, Serializer serializer) throws MPIException {
     this.comm = comm;
@@ -43,7 +42,7 @@ public class BCastOperation {
   }
 
   public void iBcast(Object data, int bcastTask, MessageType type) {
-    requests.offer(new Request(data, bcastTask, type));
+    requests.offer(new OpRequest(data, bcastTask, type));
   }
 
   public Object bcast(Object data, int bcastTask, MessageType type) {
@@ -91,7 +90,7 @@ public class BCastOperation {
   }
 
   public void op() {
-    Request r = requests.poll();
+    OpRequest r = requests.poll();
     if (r != null) {
       Object o = bcast(r.getData(), r.getTask(), r.getType());
       result.offer(o);

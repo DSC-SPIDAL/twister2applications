@@ -24,7 +24,7 @@ public class BarrierOperation {
 
   private BlockingQueue<Object> result = new ArrayBlockingQueue<>(4);
 
-  private BlockingQueue<Request> requests = new ArrayBlockingQueue<>(4);
+  private BlockingQueue<OpRequest> requests = new ArrayBlockingQueue<>(4);
 
   public BarrierOperation(Intracomm comm, Serializer serializer) throws MPIException {
     this.comm = comm;
@@ -34,7 +34,7 @@ public class BarrierOperation {
   }
 
   public void iBarrier() {
-    requests.offer(new Request(null, 0, null));
+    requests.offer(new OpRequest(null, 0, null));
   }
 
   public boolean barrier() {
@@ -55,7 +55,7 @@ public class BarrierOperation {
   }
 
   public void op() {
-    Request r = requests.poll();
+    OpRequest r = requests.poll();
     if (r != null) {
       Object o = barrier();
       result.offer(o);
