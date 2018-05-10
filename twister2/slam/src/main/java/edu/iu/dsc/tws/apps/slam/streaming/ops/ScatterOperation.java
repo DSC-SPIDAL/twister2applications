@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ScatterOperation {
@@ -32,7 +33,7 @@ public class ScatterOperation {
 
   private BlockingQueue<Object> result = new ArrayBlockingQueue<>(4);
 
-  private BlockingQueue<Request> requests = new ArrayBlockingQueue<>(4);
+  private BlockingQueue<OpRequest> requests = new ArrayBlockingQueue<>(4);
 
   public ScatterOperation(Intracomm comm, Serializer serializer) throws MPIException {
     this.comm = comm;
@@ -42,11 +43,11 @@ public class ScatterOperation {
   }
 
   public void iScatter(List data, int scatterTask, MessageType type) {
-    requests.offer(new Request(data, scatterTask, type));
+    requests.offer(new OpRequest(data, scatterTask, type));
   }
 
   public Object scatter(List data, int scatterTask, MessageType type) {
-//    LOG.log(Level.INFO, "SCATTER ------------------------");
+//    LOG.log(Level.INFO, "SCATTER ------------------------" + thisTask + " " + scatterTask);
     try {
       IntBuffer countSend = MPI.newIntBuffer(worldSize);
       int total = 0;
@@ -103,7 +104,7 @@ public class ScatterOperation {
   }
 
   public void op() {
-    Request r = requests.poll();
+    OpRequest r = requests.poll();
     if (r != null) {
       Object l = scatter((List) r.getData(), r.getTask(), r.getType());
       result.offer(l);

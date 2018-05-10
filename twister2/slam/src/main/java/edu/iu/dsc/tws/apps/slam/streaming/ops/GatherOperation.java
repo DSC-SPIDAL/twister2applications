@@ -5,6 +5,8 @@ import edu.iu.dsc.tws.comms.api.MessageType;
 import mpi.Intracomm;
 import mpi.MPI;
 import mpi.MPIException;
+import mpi.Request;
+import org.bouncycastle.cert.ocsp.Req;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -34,7 +36,10 @@ public class GatherOperation {
 
   private BlockingQueue<List<Object>> result = new ArrayBlockingQueue<>(4);
 
-  private BlockingQueue<Request> requests = new ArrayBlockingQueue<>(4);
+  private BlockingQueue<AllGather> allGathers = new ArrayBlockingQueue<>(4);
+  private BlockingQueue<Gather> gathers = new ArrayBlockingQueue<>(4);
+  private BlockingQueue<OpRequest> requests = new ArrayBlockingQueue<>(4);
+
 
   public GatherOperation(Intracomm comm, Serializer serializer) throws MPIException {
     this.comm = comm;
@@ -43,9 +48,10 @@ public class GatherOperation {
     this.thisTask = comm.getRank();
   }
 
-  public void iGather(Object data, int receiveTask, MessageType type) {
-    requests.offer(new Request(data, receiveTask, type));
-  }
+//  public void iGather(Object data, int receiveTask, MessageType type) {
+//    AllGather allGather = iALlGather(data, receiveTask, type);
+//    allGathers.offer(allGather);
+//  }
 
   public List<Object> gather(Object data, int receiveTask, MessageType type) {
     try {
@@ -97,11 +103,121 @@ public class GatherOperation {
     }
   }
 
+  private class AllGather {
+    Request request;
+    IntBuffer countReceive;
+    byte[] bytes;
+    int receiveTask;
+
+    public AllGather(Request request, IntBuffer countReceive, byte[] bytes, int receiveTask) {
+      this.request = request;
+      this.countReceive = countReceive;
+      this.bytes = bytes;
+      this.receiveTask = receiveTask;
+    }
+  }
+
+  public void iGather(Object data, int receiveTask, MessageType type) {
+//    LOG.log(Level.INFO, "GATHER ------------------------" + thisTask + " " + receiveTask);
+    requests.offer(new OpRequest(data, receiveTask, type));
+  }
+
+  public void iGather1(Object data, int receiveTask, MessageType type) {
+    try {
+      byte[] bytes = serializer.serialize(data);
+
+      IntBuffer countSend = MPI.newIntBuffer(worldSize);
+      IntBuffer countReceive = MPI.newIntBuffer(worldSize);
+
+      // now calculate the total number of characters
+      long start = System.nanoTime();
+      countSend.put(bytes.length);
+      Request request = comm.iAllGather(countSend, 1, MPI.INT, countReceive, 1, MPI.INT);
+      allGatherTime += (System.nanoTime() - start);
+//      LOG.log(Level.INFO, String.format("%d ALL Gather done", thisTask));
+      AllGather allGather = new AllGather(request, countReceive, bytes, receiveTask);
+      allGathers.offer(allGather);
+    } catch (MPIException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private class Gather {
+    Request request;
+
+    int receiveTask;
+
+    int[] receiveSizes;
+
+    ByteBuffer receiveBuffer;
+
+    public Gather(Request request, int receiveTask, int[] receiveSizes, ByteBuffer receiveBuffer) {
+      this.request = request;
+      this.receiveTask = receiveTask;
+      this.receiveSizes = receiveSizes;
+      this.receiveBuffer = receiveBuffer;
+    }
+  }
+
+  private void iGather2(AllGather allGather) {
+    try {
+      int size = allGather.bytes.length;
+      ByteBuffer sendBuffer = MPI.newByteBuffer(size * 2);
+      ByteBuffer receiveBuffer = MPI.newByteBuffer(size * 2 * worldSize);
+      int[] receiveSizes = new int[worldSize];
+      int[] displacements = new int[worldSize];
+      int sum = 0;
+      for (int i = 0; i < worldSize; i++) {
+        receiveSizes[i] = allGather.countReceive.get(i);
+        displacements[i] = sum;
+        sum += receiveSizes[i];
+      }
+      sendBuffer.put(allGather.bytes);
+
+      // now lets receive the process names of each rank
+      Request r = comm.iGatherv(sendBuffer, allGather.bytes.length, MPI.BYTE, receiveBuffer,
+          receiveSizes, displacements, MPI.BYTE, 0);
+//      LOG.log(Level.INFO, String.format("%d GatherV done", thisTask));
+
+      Gather g = new Gather(r, allGather.receiveTask, receiveSizes, receiveBuffer);
+      gathers.offer(g);
+    } catch (MPIException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   public void op() {
-    Request r = requests.poll();
-    if (r != null) {
-      List<Object> l = gather(r.getData(), r.getTask(), r.getType());
-      result.offer(l);
+    try {
+//      LOG.info("Gather progress: " + thisTask);
+      OpRequest op = requests.poll();
+      if (op != null) {
+        iGather1(op.getData(), op.getTask(), op.getType());
+      }
+
+      AllGather r = allGathers.peek();
+      if (r != null) {
+        if (r.request.testStatus() != null) {
+          iGather2(r);
+          allGathers.poll();
+        }
+      }
+
+      Gather g = gathers.peek();
+      if (g != null && g.request.testStatus() != null) {
+        gathers.poll();
+        List<Object> gather = new ArrayList<>();
+        if (thisTask == g.receiveTask) {
+          for (int i = 0; i < g.receiveSizes.length; i++) {
+            byte[] c = new byte[g.receiveSizes[i]];
+            g.receiveBuffer.get(c);
+            Object desObj = (Object) serializer.deserialize(c);
+            gather.add(desObj);
+          }
+        }
+        result.offer(gather);
+      }
+    } catch (MPIException e) {
+      e.printStackTrace();
     }
   }
 
@@ -124,11 +240,24 @@ public class GatherOperation {
     }
 
     GatherOperation scatterOperation = new GatherOperation(MPI.COMM_WORLD, new Serializer());
-    List<Object> l = scatterOperation.gather(list.get(rank), 0, MessageType.OBJECT);
-    System.out.println(String.format("%d Received list %d", rank, l.size()));
-    for (int i = 0; i < l.size(); i++) {
-      Simple value = (Simple) l.get(i);
-      System.out.println(String.format("%d value: %s", rank, value.getVal()));
+    scatterOperation.iGather(list.get(rank), 0, MessageType.OBJECT);
+
+    final boolean[] run = {true};
+    Thread t = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        List<Object> l = scatterOperation.getResult();
+        System.out.println(String.format("%d Received list %d", rank, l.size()));
+        for (int i = 0; i < l.size(); i++) {
+          Simple value = (Simple) l.get(i);
+          System.out.println(String.format("%d value: %s", rank, value.getVal()));
+        }
+        run[0] = false;
+      }
+    });
+    t.start();
+    while (run[0]) {
+      scatterOperation.op();
     }
 
     MPI.Finalize();

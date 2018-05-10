@@ -39,6 +39,8 @@ public class DispatcherTask {
 
   private State state = State.WAITING_FOR_READING;
 
+  private long startTime = System.currentTimeMillis();
+
   public void prepare(Map stormConf, Intracomm intracomm, String inputFile, int task) {
     this.conf = stormConf;
     this.task = task;
@@ -77,7 +79,7 @@ public class DispatcherTask {
         lastSendTime = System.currentTimeMillis();
         broadcast.send(task, input, 0);
         this.state = State.WAITING_FOR_READY;
-//        LOG.info("Changing state from READING to ANY");
+        LOG.info("Changing state from READING to ANY");
       }
     }  finally {
       lock.unlock();
@@ -88,7 +90,7 @@ public class DispatcherTask {
     lock.lock();
     try {
       state = State.WAITING_FOR_READING;
-      LOG.info("Time: " + (System.currentTimeMillis() - lastSendTime));
+      LOG.info("Time: " + (System.currentTimeMillis() - lastSendTime) + " Total: " + (System.currentTimeMillis() - startTime) / 1000 + " number: " + count);
     } finally {
       lock.unlock();
     }
@@ -107,6 +109,7 @@ public class DispatcherTask {
   }
 
   private long lastSendTime = 0;
+  private int count = 0;
 
   public void progress() {
     if (state != State.WAITING_FOR_READY) {
@@ -114,6 +117,9 @@ public class DispatcherTask {
       if (scan != null) {
         Tuple tuple = createTuple(scan, new Trace());
         execute(tuple);
+        count++;
+      } else {
+        LOG.info("Total time: " + (System.currentTimeMillis() - startTime) / 1000);
       }
     }
     broadcast.progress();
