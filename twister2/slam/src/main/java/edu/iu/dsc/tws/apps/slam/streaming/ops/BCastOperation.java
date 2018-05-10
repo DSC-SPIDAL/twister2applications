@@ -48,7 +48,7 @@ public class BCastOperation {
 
   public Object bcast(Object data, int bcastTask, MessageType type) {
     try {
-      LOG.log(Level.INFO, "BCAST ------------------------" + thisTask + " " + bcastTask);
+//      LOG.log(Level.INFO, "BCAST ------------------------" + thisTask + " " + bcastTask);
       IntBuffer countSend = MPI.newIntBuffer(1);
       byte[] bytes = null;
       if (thisTask == bcastTask) {

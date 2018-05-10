@@ -47,7 +47,7 @@ public class ScatterOperation {
   }
 
   public Object scatter(List data, int scatterTask, MessageType type) {
-    LOG.log(Level.INFO, "SCATTER ------------------------" + thisTask + " " + scatterTask);
+//    LOG.log(Level.INFO, "SCATTER ------------------------" + thisTask + " " + scatterTask);
     try {
       IntBuffer countSend = MPI.newIntBuffer(worldSize);
       int total = 0;

@@ -118,7 +118,7 @@ public class GatherOperation {
   }
 
   public void iGather(Object data, int receiveTask, MessageType type) {
-    LOG.log(Level.INFO, "GATHER ------------------------" + thisTask + " " + receiveTask);
+//    LOG.log(Level.INFO, "GATHER ------------------------" + thisTask + " " + receiveTask);
     requests.offer(new OpRequest(data, receiveTask, type));
   }
 
@@ -134,7 +134,7 @@ public class GatherOperation {
       countSend.put(bytes.length);
       Request request = comm.iAllGather(countSend, 1, MPI.INT, countReceive, 1, MPI.INT);
       allGatherTime += (System.nanoTime() - start);
-      LOG.log(Level.INFO, String.format("%d ALL Gather done", thisTask));
+//      LOG.log(Level.INFO, String.format("%d ALL Gather done", thisTask));
       AllGather allGather = new AllGather(request, countReceive, bytes, receiveTask);
       allGathers.offer(allGather);
     } catch (MPIException e) {
@@ -177,7 +177,7 @@ public class GatherOperation {
       // now lets receive the process names of each rank
       Request r = comm.iGatherv(sendBuffer, allGather.bytes.length, MPI.BYTE, receiveBuffer,
           receiveSizes, displacements, MPI.BYTE, 0);
-      LOG.log(Level.INFO, String.format("%d GatherV done", thisTask));
+//      LOG.log(Level.INFO, String.format("%d GatherV done", thisTask));
 
       Gather g = new Gather(r, allGather.receiveTask, receiveSizes, receiveBuffer);
       gathers.offer(g);
