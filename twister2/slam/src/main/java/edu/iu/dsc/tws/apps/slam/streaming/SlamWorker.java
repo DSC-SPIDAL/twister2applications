@@ -58,6 +58,7 @@ public class SlamWorker implements IContainer {
       int color = rank == (worldSize - 1) ? 0 : 1;
 
       Intracomm scanMatchComm = MPI.COMM_WORLD.split(color, rank);
+      LOG.info(String.format("Word rank %d com rank %d", rank, scanMatchComm.getRank()));
 
       int dispatchTask = parallel * 2;
       Set<Integer> scanMatcherTasks = new HashSet<>();

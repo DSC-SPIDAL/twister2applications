@@ -68,7 +68,7 @@ public class ScanMatchTask {
 
   private Lock lock = new ReentrantLock();
 
-  private int taskId;
+  private int rank;
 
   private int totalTasks;
 
@@ -97,7 +97,7 @@ public class ScanMatchTask {
   private MPIDataFlowPartition readyPartition;
 
   private Intracomm intracomm;
-  private int thisRank = 0;
+  private int taskId = 0;
 
   private enum MatchState {
     INIT,
@@ -111,10 +111,10 @@ public class ScanMatchTask {
   public void prepare(Map map, Intracomm comm, int taskId, int totalTasks, int dispatchTaskId,
                       GatherOperation gatherOperation, ScatterOperation scatterOperation,
                       BCastOperation bCastOperation, BarrierOperation barrierOperation) throws MPIException {
-    this.taskId = taskId;
+    this.rank = comm.getRank();
     this.totalTasks = totalTasks;
     this.intracomm = comm;
-    this.thisRank = comm.getRank();
+    this.taskId = taskId;
     this.dispatchTaskId = dispatchTaskId;
 
     this.gatherOperation = gatherOperation;
@@ -171,7 +171,7 @@ public class ScanMatchTask {
 
   private void init(Map conf) {
     state = MatchState.INIT;
-    LOG.info("taskId {}: Initializing scan match bolt", taskId);
+    LOG.info("rank {}: Initializing scan match bolt", rank);
     sensorId = "hello";
 
     // use the configuration to create the scanmatcher
@@ -180,10 +180,10 @@ public class ScanMatchTask {
       cfg.setNoOfParticles(((Long) conf.get(Constants.ARGS_PARTICLES)).intValue());
     }
     // set the initial particles
-    int noOfParticles = computeParticlesForTask(cfg, totalTasks, taskId);
+    int noOfParticles = computeParticlesForTask(cfg, totalTasks, rank);
 
     int previousTotal = 0;
-    for (int i = 0; i < taskId; i++) {
+    for (int i = 0; i < rank; i++) {
       previousTotal += computeParticlesForTask(cfg, totalTasks, i);
     }
 
@@ -194,8 +194,8 @@ public class ScanMatchTask {
 
     gfsp = ProcessorFactory.createScanMatcher(cfg, activeParticles);
 
-    LOG.info("taskId {}: no of active particles {}", taskId, activeParticles.size());
-    LOG.info("taskId {}: active particles at initialization {}", taskId, printActiveParticles());
+    LOG.info("rank {}: no of active particles {}", rank, activeParticles.size());
+    LOG.info("rank {}: active particles at initialization {}", rank, printActiveParticles());
     state = MatchState.WAITING_FOR_READING;
     gotFirstScan = false;
   }
@@ -230,7 +230,7 @@ public class ScanMatchTask {
   }
 
   public void execute(Tuple tuple) {
-    LOG.info(String.format("%d received laser scan taskId %d.......", thisRank, taskId));
+    LOG.info(String.format("%d received laser scan rank %d.......", taskId, rank));
     String stream = tuple.getSourceStreamId();
 
     if (state != MatchState.WAITING_FOR_READING) {
@@ -283,10 +283,10 @@ public class ScanMatchTask {
     }
 
     // now we will start the computation
-    LOG.info("taskId {}: Changing state to COMPUTING_INIT_READINGS", taskId);
+    LOG.info("rank {}: Changing state to COMPUTING_INIT_READINGS", rank);
     state = MatchState.COMPUTING_INIT_READINGS;
     if (!gfsp.processScan(reading, 0)) {
-      changeToReady(taskId);
+      changeToReady(rank);
       return;
     }
 
@@ -294,17 +294,17 @@ public class ScanMatchTask {
     List<Integer> activeParticles = gfsp.getActiveParticles();
     List<Particle> particles = gfsp.getParticles();
 
-    LOG.info("taskId {}: execute: changing state to WAITING_FOR_PARTICLE_ASSIGNMENTS_AND_NEW_PARTICLES", taskId);
+    LOG.info("rank {}: execute: changing state to WAITING_FOR_PARTICLE_ASSIGNMENTS_AND_NEW_PARTICLES", rank);
     state = MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS;
 
     // after the computation we are going to create a new object without the map and nodes in particle and emit it
     // these will be used by the re sampler to re sample particles
-    LOG.debug("taskId {}: no of active particles {}", taskId, activeParticles.size());
+    LOG.debug("rank {}: no of active particles {}", rank, activeParticles.size());
     List<ParticleValue> pvs = new ArrayList<ParticleValue>();
     for (int i = 0; i < activeParticles.size(); i++) {
       int index = activeParticles.get(i);
       Particle particle = particles.get(index);
-      ParticleValue particleValue = Utils.createParticleValue(particle, taskId, index, totalTasks);
+      ParticleValue particleValue = Utils.createParticleValue(particle, rank, index, totalTasks);
       pvs.add(particleValue);
 
     }
@@ -313,17 +313,17 @@ public class ScanMatchTask {
     long timeSpent = lastEmitTime - lastComputationBeginTime;
     lock.lock();
     try {
-      trace.getSmp().put(taskId, timeSpent);
-      trace.getGcTimes().put(taskId, gcTime);
+      trace.getSmp().put(rank, timeSpent);
+      trace.getGcTimes().put(rank, gcTime);
       GCInformation.getInstance().removeCounter(gcCounter);
-      LOG.debug("taskId {}: emitting to resample ", taskId);
+      LOG.debug("rank {}: emitting to resample ", rank);
 
       Tuple particleTuple = createParticleTuple(pvs, scan, trace);
       // lets gather
       gatherOperation.iGather(particleTuple, 0, MessageType.OBJECT);
       List<Object> objs = gatherOperation.getResult();
 
-      if (thisRank == 0) {
+      if (taskId == 0) {
 //        LOG.info(String.format("%d Resampling", thisRank));
         reSamplingTask.execute(objs);
       } else {
@@ -368,7 +368,7 @@ public class ScanMatchTask {
   private List<ParticleMaps> particleMapses = new ArrayList<ParticleMaps>();
 
   public void onMap(byte[] body) {
-    LOG.info("taskId {}: Received maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
+    LOG.info("rank {}: Received maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
     ParticleMapsList pm = (ParticleMapsList) kryoMapReading.deserialize(body);
     lock.lock();
     try {
@@ -389,22 +389,22 @@ public class ScanMatchTask {
           }
 
           // we have received all the particles we need to do the processing after resampling
-          postProcessingAfterReceiveAll(taskId, "map", true, assignments.getBestParticle());
+          postProcessingAfterReceiveAll(rank, "map", true, assignments.getBestParticle());
         } catch (Exception e) {
-          LOG.error("taskId {}: Failed to deserialize map", taskId, e);
+          LOG.error("rank {}: Failed to deserialize map", rank, e);
         }
       } else if (state == MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
         // because we haven't received the assignments yet, we will keep the values temporaly in this list
-        LOG.debug("taskId {}: Adding map state {}", taskId, state);
+        LOG.debug("rank {}: Adding map state {}", rank, state);
         List<ParticleMaps> list = pm.getParticleMapsArrayList();
         for (ParticleMaps p : list) {
           particleMapses.add(p);
         }
         if (state != MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
-          postProcessingAfterReceiveAll(taskId, "adding map", true, assignments.getBestParticle());
+          postProcessingAfterReceiveAll(rank, "adding map", true, assignments.getBestParticle());
         }
       } else {
-        LOG.error("taskId {}: Received message when we are in an unexpected state {}", taskId, state);
+        LOG.error("rank {}: Received message when we are in an unexpected state {}", rank, state);
       }
     } finally {
       lock.unlock();
@@ -415,7 +415,7 @@ public class ScanMatchTask {
     if (state == MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
       lock.lock();
       try {
-        LOG.info("taskId {}: {} Changing state to WAITING_FOR_NEW_PARTICLES", origin, taskId);
+        LOG.info("rank {}: {} Changing state to WAITING_FOR_NEW_PARTICLES", origin, taskId);
         state = MatchState.WAITING_FOR_NEW_PARTICLES;
       } finally {
         lock.unlock();
@@ -431,11 +431,11 @@ public class ScanMatchTask {
       barrierOperation.getResult();
 
       state = MatchState.COMPUTING_NEW_PARTICLES;
-      LOG.info("taskId {}: Map Handler Changing state to COMPUTING_NEW_PARTICLES", taskId);
+      LOG.info("rank {}: Map Handler Changing state to COMPUTING_NEW_PARTICLES", taskId);
       long ppTime = System.currentTimeMillis();
       if (resampled) {
         // add the temp to active particles
-        LOG.info("taskId {}: Clearing active particles", taskId);
+        LOG.info("rank {}: Clearing active particles", taskId);
         gfsp.clearActiveParticles();
         gfsp.getActiveParticles().addAll(tempActiveParticles);
         tempActiveParticles.clear();
@@ -464,7 +464,7 @@ public class ScanMatchTask {
       }
 
       changeToReady(taskId);
-      LOG.info("taskId {}: Changing state to WAITING_FOR_READING", taskId);
+      LOG.info("rank {}: Changing state to WAITING_FOR_READING", taskId);
     }
   }
 
@@ -474,7 +474,7 @@ public class ScanMatchTask {
     Ready ready = new Ready(taskId);
     try {
       // todo
-      if (thisRank == 0) {
+      if (this.taskId == 0) {
         readyPartition.send(taskId, ready, 0, dispatchTaskId);
       }
     } catch (Exception e) {
@@ -539,10 +539,10 @@ public class ScanMatchTask {
     try {
       if (state == MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
         try {
-          LOG.info("taskId {}: Received particle assignment", taskId);
-          handleAssignment(taskId, assignments);
+          LOG.info("rank {}: Received particle assignment", rank);
+          handleAssignment(rank, assignments);
         } catch (Exception e) {
-          LOG.error("taskId {}: Failed to deserialize assignment", taskId, e);
+          LOG.error("rank {}: Failed to deserialize assignment", rank, e);
         }
       } else {
         LOG.error("Received message when we are in an unexpected state {}", state);
@@ -555,7 +555,7 @@ public class ScanMatchTask {
   private void handleAssignment(int taskId, ParticleAssignments assignments) {
     currentTrace = assignments.getTrace();
     assignmentReceiveTime = System.currentTimeMillis();
-    LOG.info("taskId {}: Best particle index {}", taskId, assignments.getBestParticle());
+    LOG.info("rank {}: Best particle index {}", taskId, assignments.getBestParticle());
     // if we have resampled ditributed the assignments
     if (assignments.isReSampled()) {
       // now go through the assignments and send them to the bolts directly
@@ -583,15 +583,15 @@ public class ScanMatchTask {
     expectingParticleMaps = 0;
     for (int i = 0; i < assignmentList.size(); i++) {
       ParticleAssignment assignment = assignmentList.get(i);
-      if (assignment.getNewTask() == taskId) {
+      if (assignment.getNewTask() == rank) {
         expectingParticleValues++;
         // we only expects maps from other bolt tasks
-        if (assignment.getPreviousTask() != taskId) {
+        if (assignment.getPreviousTask() != rank) {
           expectingParticleMaps++;
         }
       }
     }
-    LOG.info("taskId {}: expectingParticleValues: {} expectingParticleMaps: {}", taskId,
+    LOG.info("rank {}: expectingParticleValues: {} expectingParticleMaps: {}", rank,
         expectingParticleValues, expectingParticleMaps);
   }
 
@@ -602,24 +602,24 @@ public class ScanMatchTask {
 
     for (int i = 0; i < assignmentList.size(); i++) {
       ParticleAssignment assignment = assignmentList.get(i);
-      if (assignment.getPreviousTask() == taskId) {
+      if (assignment.getPreviousTask() == rank) {
         int previousIndex = assignment.getPreviousIndex();
         if (gfsp.getActiveParticles().contains(previousIndex)) {
           // send the particle over rabbitmq if this is a different task
-          if (assignment.getNewTask() != taskId) {
+          if (assignment.getNewTask() != rank) {
             if (!tempMaps.containsKey(previousIndex)) {
-              LOG.info("taskId {}: Start creating transfer maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
+              LOG.info("rank {}: Start creating transfer maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
               Particle p = gfsp.getParticles().get(previousIndex);
               // create a new ParticleMaps
               TransferMap transferMap = Utils.createTransferMap(p.getMap());
 
               byte[] b = kryoMapWriter.serialize(transferMap);
               tempMaps.put(previousIndex, b);
-              LOG.info("taskId {}: Created transfer maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
+              LOG.info("rank {}: Created transfer maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
             }
           }
         } else {
-          LOG.error("taskId {}: The particle {} is not in this bolt's active list, something is wrong", taskId,
+          LOG.error("rank {}: The particle {} is not in this bolt's active list, something is wrong", rank,
               assignment.getPreviousIndex());
         }
       }
@@ -627,11 +627,11 @@ public class ScanMatchTask {
 
     for (int i = 0; i < assignmentList.size(); i++) {
       ParticleAssignment assignment = assignmentList.get(i);
-      if (assignment.getPreviousTask() == taskId) {
+      if (assignment.getPreviousTask() == rank) {
         int previousIndex = assignment.getPreviousIndex();
         if (gfsp.getActiveParticles().contains(previousIndex)) {
           // send the particle over rabbitmq if this is a different task
-          if (assignment.getNewTask() != taskId) {
+          if (assignment.getNewTask() != rank) {
 
             // create a new ParticleMaps
             Particle p = gfsp.getParticles().get(previousIndex);
@@ -660,7 +660,7 @@ public class ScanMatchTask {
             tempActiveParticles.add(newIndex);
           }
         } else {
-          LOG.error("taskId {}: The particle {} is not in this bolt's active list, something is wrong", taskId,
+          LOG.error("rank {}: The particle {} is not in this bolt's active list, something is wrong", rank,
               assignment.getPreviousIndex());
         }
       }
@@ -669,19 +669,19 @@ public class ScanMatchTask {
     final Semaphore semaphore = new Semaphore(0);
     int noOfSend = values.size();
     for (final Map.Entry<Integer, ParticleMapsList> listEntry : values.entrySet()) {
-      LOG.info("taskId {}: Serializing maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
+      LOG.info("rank {}: Serializing maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
       Serializer k = kryoMapWriters.get(listEntry.getKey());
       byte[] b = k.serialize(listEntry.getValue());
       LOG.debug("Sending particle map to {}", listEntry.getKey());
-      LOG.info("taskId {}: Sending maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
+      LOG.info("rank {}: Sending maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
       // RabbitMQSender particleSender = particleSenders.get(listEntry.getKey());
-      LOG.info("taskId {}: Sent maps: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
+      LOG.info("rank {}: Sent maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
       lock.lock();
       try {
         // todo
-         partition.send(taskId, b, 0, listEntry.getKey());
+         partition.send(rank, b, 0, listEntry.getKey() + intracomm.getSize());
       } catch (Exception e) {
-        LOG.error("taskId {}: Failed to send the new particle map", taskId, e);
+        LOG.error("rank {}: Failed to send the new particle map", rank, e);
       } finally {
         lock.unlock();
       }
@@ -700,9 +700,9 @@ public class ScanMatchTask {
   private List<ParticleValue> particleValues = new ArrayList<ParticleValue>();
 
   public void onParticleValue(byte[] body) {
-    LOG.info("taskId {}: Received values: {}", taskId, (System.currentTimeMillis() - assignmentReceiveTime));
+    LOG.info("rank {}: Received values: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
     ParticleValues pvs = (ParticleValues) kryoPVReading.deserialize(body);
-    LOG.info("taskId {}: Received particle value", taskId);
+    LOG.info("rank {}: Received particle value", rank);
     lock.lock();
     try {
       if (state == MatchState.WAITING_FOR_NEW_PARTICLES) {
@@ -717,9 +717,9 @@ public class ScanMatchTask {
           }
 
           // we have received all the particles we need to do the processing after resampling
-          postProcessingAfterReceiveAll(taskId, "assign", true, assignments.getBestParticle());
+          postProcessingAfterReceiveAll(rank, "assign", true, assignments.getBestParticle());
         } catch (Exception e) {
-          LOG.error("taskId {}: Failed to deserialize assignment", taskId, e);
+          LOG.error("rank {}: Failed to deserialize assignment", rank, e);
         }
       } else if (state == MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
         // first we need to determine the expected new maps for this particle
@@ -728,10 +728,10 @@ public class ScanMatchTask {
           particleValues.add(pv);
         }
         if (state != MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
-          postProcessingAfterReceiveAll(taskId, "adding values", true, assignments.getBestParticle());
+          postProcessingAfterReceiveAll(rank, "adding values", true, assignments.getBestParticle());
         }
       } else {
-        LOG.error("taskId {}: Received message when we are in an unexpected state {}", taskId, state);
+        LOG.error("rank {}: Received message when we are in an unexpected state {}", rank, state);
       }
     } finally {
       lock.unlock();
@@ -762,7 +762,7 @@ public class ScanMatchTask {
     boolean found = assignmentExists(value.getTaskId(), value.getIndex(), assignmentList);
 
     if (!found) {
-      String msg = "taskId " + taskId + ": We got a particle that doesn't belong here";
+      String msg = "rank " + rank + ": We got a particle that doesn't belong here";
       LOG.error(msg);
       throw new RuntimeException(msg);
     }
@@ -780,7 +780,7 @@ public class ScanMatchTask {
 
     // we have received one particle
     expectingParticleValues--;
-    LOG.info("taskId {}: Expecting particle values {} origin {}", taskId, expectingParticleValues, origin);
+    LOG.info("rank {}: Expecting particle values {} origin {}", rank, expectingParticleValues, origin);
   }
 
 
@@ -794,7 +794,7 @@ public class ScanMatchTask {
     boolean found = assignmentExists(particleMaps.getTask(), particleMaps.getIndex(), assignmentList);
 
     if (!found) {
-      String msg = "taskId " + taskId + ": We got a particle that doesn't belong here";
+      String msg = "rank " + rank + ": We got a particle that doesn't belong here";
       LOG.error(msg);
       throw new RuntimeException(msg);
     }
@@ -810,6 +810,6 @@ public class ScanMatchTask {
 
     // we have received one particle
     expectingParticleMaps--;
-    LOG.info("taskId {}: Expecting particle maps {} origin {}", taskId, expectingParticleMaps, origin);
+    LOG.info("rank {}: Expecting particle maps {} origin {}", rank, expectingParticleMaps, origin);
   }
 }
