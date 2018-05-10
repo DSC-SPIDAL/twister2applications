@@ -118,8 +118,6 @@ public class DispatcherTask {
         Tuple tuple = createTuple(scan, new Trace());
         execute(tuple);
         count++;
-      } else {
-        LOG.info("Total time: " + (System.currentTimeMillis() - startTime) / 1000);
       }
     }
     broadcast.progress();
