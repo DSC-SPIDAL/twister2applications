@@ -368,7 +368,7 @@ public class ScanMatchTask {
   private List<ParticleMaps> particleMapses = new ArrayList<ParticleMaps>();
 
   public void onMap(byte[] body) {
-//    LOG.info("rank {}: Received maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
+    LOG.info("rank {}: Received maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
     ParticleMapsList pm = (ParticleMapsList) kryoMapReading.deserialize(body);
     lock.lock();
     try {
