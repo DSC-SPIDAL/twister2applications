@@ -239,6 +239,7 @@ public class SlamWorker implements IContainer {
       if (!(o instanceof byte[])) {
         throw new RuntimeException("Un-expected object");
       }
+      LOG.info(String.format("Received map %d %d %d %d", i, i1, i2, i3));
       mapQueue.offer((byte[]) o);
       return true;
     }
