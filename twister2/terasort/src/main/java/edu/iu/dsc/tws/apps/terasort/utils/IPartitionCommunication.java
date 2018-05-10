@@ -3,7 +3,9 @@ package edu.iu.dsc.tws.apps.terasort.utils;
 
 public interface IPartitionCommunication {
 
-    void onSimpleSelection(int noOfTasks);
+    int onSimpleSelection(int noOfTasks);
+
+    int onSimpleSelection(int startTask, int noOfTasks);
 
     void onRandomSelection();
 
