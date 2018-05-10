@@ -38,6 +38,8 @@ public class GatherOperation {
 
   private BlockingQueue<AllGather> allGathers = new ArrayBlockingQueue<>(4);
   private BlockingQueue<Gather> gathers = new ArrayBlockingQueue<>(4);
+  private BlockingQueue<OpRequest> requests = new ArrayBlockingQueue<>(4);
+
 
   public GatherOperation(Intracomm comm, Serializer serializer) throws MPIException {
     this.comm = comm;
@@ -116,6 +118,10 @@ public class GatherOperation {
   }
 
   public void iGather(Object data, int receiveTask, MessageType type) {
+    requests.offer(new OpRequest(data, receiveTask, type));
+  }
+
+  public void iGather1(Object data, int receiveTask, MessageType type) {
     try {
 //      LOG.log(Level.INFO, "GATHER ------------------------");
       byte[] bytes = serializer.serialize(data);
@@ -153,7 +159,7 @@ public class GatherOperation {
     }
   }
 
-  private void iGather(AllGather allGather) {
+  private void iGather2(AllGather allGather) {
     try {
       int size = allGather.bytes.length;
       ByteBuffer sendBuffer = MPI.newByteBuffer(size * 2);
@@ -182,10 +188,15 @@ public class GatherOperation {
 
   public void op() {
     try {
+      OpRequest op = requests.poll();
+      if (op != null) {
+        iGather1(op.getData(), op.getTask(), op.getType());
+      }
+
       AllGather r = allGathers.peek();
       if (r != null) {
         if (r.request.testStatus() != null) {
-          iGather(r);
+          iGather2(r);
           allGathers.poll();
         }
       }
