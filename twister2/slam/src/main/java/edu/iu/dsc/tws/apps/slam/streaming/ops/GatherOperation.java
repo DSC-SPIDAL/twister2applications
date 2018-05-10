@@ -188,7 +188,7 @@ public class GatherOperation {
 
   public void op() {
     try {
-      LOG.info("Gather progress: " + thisTask);
+//      LOG.info("Gather progress: " + thisTask);
       OpRequest op = requests.poll();
       if (op != null) {
         iGather1(op.getData(), op.getTask(), op.getType());
