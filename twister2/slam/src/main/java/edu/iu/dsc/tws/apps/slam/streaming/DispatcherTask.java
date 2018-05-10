@@ -37,7 +37,7 @@ public class DispatcherTask {
     WAITING_FOR_READY,
   }
 
-  private State state = State.WAITING_FOR_READING;
+  private State state = State.WAITING_FOR_READY;
 
   private long startTime = System.currentTimeMillis();
 
