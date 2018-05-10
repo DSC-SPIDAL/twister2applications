@@ -561,7 +561,9 @@ public class TeraSortContainer6 implements IContainer {
             int sendCount = 0;
             int start = id;
             while (sendCount < NO_OF_TASKS) {
-                int i = start % NO_OF_TASKS;
+                //int i = start % NO_OF_TASKS;
+                PartitionCommunication partitionCommunication = new PartitionCommunication();
+                int i = partitionCommunication.onSimpleSelection(start, NO_OF_TASKS);
                 start++;
                 sendCount++;
                 if (i == task) {
