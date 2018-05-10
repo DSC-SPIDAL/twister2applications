@@ -74,6 +74,8 @@ public class FileBasedSimulator {
     @Override
     public void run() {
       LaserScan oldScan = null;
+      int count = 0;
+      long start = System.currentTimeMillis();
       while (true) {
         LaserScan scan;
         if (simbard) {
@@ -85,6 +87,8 @@ public class FileBasedSimulator {
         if (scan != null) {
           scan.setTimestamp(System.currentTimeMillis());
           gfsAlgorithm.laserScan(scan);
+          count++;
+          System.out.println("Total time: " + (System.currentTimeMillis() - start) / 1000.0 + " " + count);
         } else {
           gfsAlgorithm.setLastMapUpdate(0);
           if (oldScan != null) {
