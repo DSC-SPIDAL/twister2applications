@@ -230,7 +230,7 @@ public class ScanMatchTask {
   }
 
   public void execute(Tuple tuple) {
-//    LOG.info(String.format("%d received laser scan rank %d.......", taskId, rank));
+    LOG.info(String.format("%d received laser scan rank %d.......", taskId, rank));
     String stream = tuple.getSourceStreamId();
 
     if (state != MatchState.WAITING_FOR_READING) {
@@ -415,7 +415,7 @@ public class ScanMatchTask {
     if (state == MatchState.WAITING_FOR_PARTICLE_ASSIGNMENTS) {
       lock.lock();
       try {
-//        LOG.info("rank {}: {} Changing state to WAITING_FOR_NEW_PARTICLES", origin, taskId);
+        LOG.info("rank {}: {} Changing state to WAITING_FOR_NEW_PARTICLES", origin, taskId);
         state = MatchState.WAITING_FOR_NEW_PARTICLES;
       } finally {
         lock.unlock();
@@ -431,7 +431,7 @@ public class ScanMatchTask {
       barrierOperation.getResult();
 
       state = MatchState.COMPUTING_NEW_PARTICLES;
-//      LOG.info("rank {}: Map Handler Changing state to COMPUTING_NEW_PARTICLES", taskId);
+      LOG.info("rank {}: Map Handler Changing state to COMPUTING_NEW_PARTICLES", taskId);
       long ppTime = System.currentTimeMillis();
       if (resampled) {
         // add the temp to active particles
@@ -555,7 +555,7 @@ public class ScanMatchTask {
   private void handleAssignment(int taskId, ParticleAssignments assignments) {
     currentTrace = assignments.getTrace();
     assignmentReceiveTime = System.currentTimeMillis();
-//    LOG.info("rank {}: Best particle index {}", taskId, assignments.getBestParticle());
+    LOG.info("rank {}: Best particle index {}", taskId, assignments.getBestParticle());
     // if we have resampled ditributed the assignments
     if (assignments.isReSampled()) {
       // now go through the assignments and send them to the bolts directly
