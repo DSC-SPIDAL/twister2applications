@@ -780,7 +780,7 @@ public class ScanMatchTask {
 
     // we have received one particle
     expectingParticleValues--;
-//    LOG.info("rank {}: Expecting particle values {} origin {}", rank, expectingParticleValues, origin);
+    LOG.info("rank {}: Expecting particle values {} origin {}", rank, expectingParticleValues, origin);
   }
 
 
@@ -810,6 +810,6 @@ public class ScanMatchTask {
 
     // we have received one particle
     expectingParticleMaps--;
-//    LOG.info("rank {}: Expecting particle maps {} origin {}", rank, expectingParticleMaps, origin);
+    LOG.info("rank {}: Expecting particle maps {} origin {}", rank, expectingParticleMaps, origin);
   }
 }
