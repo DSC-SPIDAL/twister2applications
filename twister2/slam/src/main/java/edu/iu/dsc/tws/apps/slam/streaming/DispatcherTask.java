@@ -79,7 +79,7 @@ public class DispatcherTask {
         lastSendTime = System.currentTimeMillis();
         broadcast.send(task, input, 0);
         this.state = State.WAITING_FOR_READY;
-//        LOG.info("Changing state from READING to ANY");
+        LOG.info("Changing state from READING to ANY");
       }
     }  finally {
       lock.unlock();
