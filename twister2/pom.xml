@@ -11,7 +11,7 @@
         <module>performance</module>
         <module>terasort</module>
         <module>kmeans</module>
-        <!--<module>lda</module>-->
+        <module>slam</module>
     </modules>
 
 </project>
