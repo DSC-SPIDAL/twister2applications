@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class BCastOperation {
@@ -47,7 +48,7 @@ public class BCastOperation {
 
   public Object bcast(Object data, int bcastTask, MessageType type) {
     try {
-//      LOG.log(Level.INFO, "BCAST ------------------------" + thisTask + " " + bcastTask);
+      LOG.log(Level.INFO, "BCAST ------------------------" + thisTask + " " + bcastTask);
       IntBuffer countSend = MPI.newIntBuffer(1);
       byte[] bytes = null;
       if (thisTask == bcastTask) {

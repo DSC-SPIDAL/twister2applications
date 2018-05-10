@@ -118,12 +118,12 @@ public class GatherOperation {
   }
 
   public void iGather(Object data, int receiveTask, MessageType type) {
+    LOG.log(Level.INFO, "GATHER ------------------------" + thisTask + " " + receiveTask);
     requests.offer(new OpRequest(data, receiveTask, type));
   }
 
   public void iGather1(Object data, int receiveTask, MessageType type) {
     try {
-//      LOG.log(Level.INFO, "GATHER ------------------------");
       byte[] bytes = serializer.serialize(data);
 
       IntBuffer countSend = MPI.newIntBuffer(worldSize);
