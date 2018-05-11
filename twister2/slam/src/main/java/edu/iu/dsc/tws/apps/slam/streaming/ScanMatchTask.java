@@ -679,7 +679,10 @@ public class ScanMatchTask {
       lock.lock();
       try {
         // todo
-         partition.send(rank, b, 0, listEntry.getKey() + intracomm.getSize());
+        boolean send = partition.send(rank, b, 0, listEntry.getKey() + intracomm.getSize());
+        if (!send) {
+          throw new RuntimeException("Send failed");
+        }
       } catch (Exception e) {
         LOG.error("rank {}: Failed to send the new particle map", rank, e);
       } finally {
