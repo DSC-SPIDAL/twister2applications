@@ -669,13 +669,13 @@ public class ScanMatchTask {
     final Semaphore semaphore = new Semaphore(0);
     int noOfSend = values.size();
     for (final Map.Entry<Integer, ParticleMapsList> listEntry : values.entrySet()) {
-      LOG.info("rank {}: Serializing maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
+//      LOG.info("rank {}: Serializing maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
       Serializer k = kryoMapWriters.get(listEntry.getKey());
       byte[] b = k.serialize(listEntry.getValue());
-      LOG.debug("Sending particle map to {}", listEntry.getKey());
-      LOG.info("rank {}: Sending maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
+//      LOG.debug("Sending particle map to {}", listEntry.getKey());
+//      LOG.info("rank {}: Sending maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
       // RabbitMQSender particleSender = particleSenders.get(listEntry.getKey());
-      LOG.info("rank {}: Sent maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
+//      LOG.info("rank {}: Sent maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
       lock.lock();
       try {
         // todo
@@ -813,6 +813,6 @@ public class ScanMatchTask {
 
     // we have received one particle
     expectingParticleMaps--;
-    LOG.info("rank {}: Expecting particle maps {} origin {}", rank, expectingParticleMaps, origin);
+//    LOG.info("rank {}: Expecting particle maps {} origin {}", rank, expectingParticleMaps, origin);
   }
 }
