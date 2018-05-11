@@ -276,7 +276,7 @@ def plot_latency_flink():
 
     fig.tight_layout()
     fig = plt.gcf()
-    plt.legend(["Flink-IPoIB", "DWF-IB", "Fink-1Gpbs", "DWF-1Gbps"], fancybox=True, framealpha=0.0, loc="lower center", bbox_to_anchor=(.5, -.45), ncol=2)
+    plt.legend(["Flink-IPoIB", "DFW-IB", "Fink-1Gpbs", "DFW-1Gbps"], fancybox=True, framealpha=0.0, loc="lower center", bbox_to_anchor=(.5, -.45), ncol=2)
     fig.savefig("/home/supun/data/twister2/pics/flink_time.png")
     plt.show()
 
@@ -463,14 +463,31 @@ def plot_throughput():
     fig.savefig("/home/supun/data/heron/pics/throughput.png")
     plt.show()
 
+def plot_slam_speedup():
+    reduce = [[3.9,	7.3,	9.317803661,	11.29682997,	13.15436242]]
+
+    fig = plt.figure(figsize=(5, 4), dpi=100)
+
+    plt.subplot2grid((1, 8), (0, 0), colspan=8)
+    xlabels = [4,8,12,16,20]
+    plot_line(reduce, x=xlabels, legend=["100 Particles"], title="Speedup", plot=plt, ticks=xlabels, logy=False, ylabel=r"Speedup ($\mu$s)", ymax=20, legendloc="right center", xlabel="Parallel tasks")
+
+    plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
+
+    fig.tight_layout()
+    fig = plt.gcf()
+    fig.savefig("/home/supun/data/twister2/pics/slam_speedup.png")
+    plt.show()
+
 def main():
-    plot_latency_heron()
-    plot_latency_flink()
-    plot_latency_mpi()
-    plot_bandwidth()
-    plot_benchmark_latency()
-    plot_kmeans()
-    plot_terasort()
+    # plot_latency_heron()
+    # plot_latency_flink()
+    # plot_latency_mpi()
+    # plot_bandwidth()
+    # plot_benchmark_latency()
+    # plot_kmeans()
+    # plot_terasort()
+    plot_slam_speedup()
     # plot_latency_parallel_ib()
     # plot_yahoo_percentages()
     # plot_inflight()

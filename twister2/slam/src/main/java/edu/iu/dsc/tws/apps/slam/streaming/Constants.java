@@ -74,4 +74,5 @@ public abstract class Constants {
 
     public static final String CONFIG_FILE = "conf_file";
     public static final String INPUT_FILE = "input_file";
+    public static final String ARGS_SIMBAD = "simbad";
 }

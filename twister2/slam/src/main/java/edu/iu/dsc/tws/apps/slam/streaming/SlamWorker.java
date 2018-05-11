@@ -50,6 +50,7 @@ public class SlamWorker implements IContainer {
     int parallel = Integer.parseInt(config.getStringValue(Constants.ARGS_PARALLEL));
     int particles = Integer.parseInt(config.getStringValue(Constants.ARGS_PARTICLES));
     String inputFile = config.getStringValue(Constants.INPUT_FILE);
+    boolean simbad = Boolean.parseBoolean(config.getStringValue(Constants.ARGS_SIMBAD));
 
     // lets create two communicators
     try {
@@ -92,7 +93,7 @@ public class SlamWorker implements IContainer {
         // lets use the dispatch bolt here
         dispatcherBolt = new DispatcherTask();
         // todo
-        dispatcherBolt.prepare(slamConf, MPI.COMM_WORLD, inputFile,  dispatchTask);
+        dispatcherBolt.prepare(slamConf, MPI.COMM_WORLD, inputFile,  dispatchTask, simbad);
       }
 
       broadcast = (MPIDataFlowBroadcast) channel.broadCast(new HashMap<>(), MessageType.OBJECT, 100, dispatchTask,

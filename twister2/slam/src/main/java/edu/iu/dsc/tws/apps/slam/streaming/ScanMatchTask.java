@@ -244,17 +244,17 @@ public class ScanMatchTask {
 
     time = tuple.getValueByField(Constants.Fields.TIME_FIELD);
 
-    byte traceBytes[] = (byte[]) tuple.getValueByField(Constants.Fields.TRACE_FIELD);
+//    byte traceBytes[] = (byte[]) tuple.getValueByField(Constants.Fields.TRACE_FIELD);
 //    Trace trace = (Trace) Utils.deSerialize(kryoLaserReading, traceBytes, Trace.class);
-    Trace trace = new Trace();
+    Trace trace = (Trace) tuple.getValueByField(Constants.Fields.TRACE_FIELD);
     Object val = tuple.getValueByField(Constants.Fields.BODY);
-    if (!(val instanceof byte[])) {
-      throw new IllegalArgumentException("The laser scan should be of type byte[]");
-    }
+//    if (!(val instanceof byte[])) {
+//      throw new IllegalArgumentException("The laser scan should be of type byte[]");
+//    }
 
     lock.lock();
     try {
-      scan = (LaserScan) kryoLaserReading.deserialize((byte[]) val);
+      scan = (LaserScan) val;
     } catch (Exception e) {
       LOG.error("Failed to deserialize laser scan", e);
     } finally {
@@ -669,17 +669,20 @@ public class ScanMatchTask {
     final Semaphore semaphore = new Semaphore(0);
     int noOfSend = values.size();
     for (final Map.Entry<Integer, ParticleMapsList> listEntry : values.entrySet()) {
-      LOG.info("rank {}: Serializing maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
+//      LOG.info("rank {}: Serializing maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
       Serializer k = kryoMapWriters.get(listEntry.getKey());
       byte[] b = k.serialize(listEntry.getValue());
-      LOG.debug("Sending particle map to {}", listEntry.getKey());
-      LOG.info("rank {}: Sending maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
+//      LOG.debug("Sending particle map to {}", listEntry.getKey());
+//      LOG.info("rank {}: Sending maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
       // RabbitMQSender particleSender = particleSenders.get(listEntry.getKey());
-      LOG.info("rank {}: Sent maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
+//      LOG.info("rank {}: Sent maps: {}", rank, (System.currentTimeMillis() - assignmentReceiveTime));
       lock.lock();
       try {
         // todo
-         partition.send(rank, b, 0, listEntry.getKey() + intracomm.getSize());
+        boolean send = partition.send(rank, b, 0, listEntry.getKey() + intracomm.getSize());
+        if (!send) {
+          throw new RuntimeException("Send failed");
+        }
       } catch (Exception e) {
         LOG.error("rank {}: Failed to send the new particle map", rank, e);
       } finally {
@@ -810,6 +813,6 @@ public class ScanMatchTask {
 
     // we have received one particle
     expectingParticleMaps--;
-    LOG.info("rank {}: Expecting particle maps {} origin {}", rank, expectingParticleMaps, origin);
+//    LOG.info("rank {}: Expecting particle maps {} origin {}", rank, expectingParticleMaps, origin);
   }
 }
