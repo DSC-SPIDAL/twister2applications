@@ -57,6 +57,7 @@ public final class TeraSortJob {
         options.addOption("partitionSamplesPerNode",
                 true, "Number of samples to choose from each node");
         options.addOption("filePrefix", true, "Prefix of the file partition");
+        options.addOption("partitionType", true, "Partition Type: eg: simple, random, ring");
         CommandLineParser commandLineParser = new DefaultParser();
         CommandLine cmd;
         try {
@@ -85,13 +86,14 @@ public final class TeraSortJob {
         jobConfig.put("partitionSamplesPerNode",
                 cmd.getOptionValue("partitionSamplesPerNode"));
         jobConfig.put("filePrefix", cmd.getOptionValue("filePrefix"));
+        jobConfig.put("partitionType", cmd.getOptionValue("partitionType"));
         // first load the configurations from command line and config files
         Config config = ResourceAllocator.loadConfig(new HashMap<>());
 
         // build JobConfig
         BasicJob.BasicJobBuilder jobBuilder = BasicJob.newBuilder();
         jobBuilder.setName("terasort");
-        jobBuilder.setContainerClass(TeraSortContainer6.class.getName());
+        jobBuilder.setContainerClass(TeraSortApp.class.getName());
         jobBuilder.setRequestResource(new ResourceContainer(4, 1024), Integer.valueOf(cmd.getOptionValue("totalTasks")));
         jobBuilder.setConfig(jobConfig);
 

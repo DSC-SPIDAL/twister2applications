@@ -1,4 +1,5 @@
 package edu.iu.dsc.tws.apps.terasort;
+
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -11,6 +12,7 @@ package edu.iu.dsc.tws.apps.terasort;
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
+import edu.iu.dsc.tws.apps.terasort.constants.PartitionType;
 import edu.iu.dsc.tws.apps.terasort.utils.*;
 import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.comms.api.*;
@@ -34,17 +36,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * Example that performs tera sort
- */
-public class TeraSortContainer6 implements IContainer {
+public class TeraSortApp implements IContainer {
     private static final Logger LOG = Logger.
-            getLogger(TeraSortContainer6.class.getName());
+            getLogger(TeraSortApp.class.getName());
     private String inputFolder;
     private String filePrefix;
     private String outputFolder;
     private int maxRecordsInMemory;
     private String tmpFolder;
+    private String partitionType;
 
     private int partitionSampleNodes;
     private int partitionSamplesPerNode;
@@ -101,6 +101,7 @@ public class TeraSortContainer6 implements IContainer {
         partitionSampleNodes = cfg.getIntegerValue("partitionSampleNodes", 1);
         partitionSamplesPerNode = cfg.getIntegerValue("partitionSamplesPerNode", 1000);
         filePrefix = cfg.getStringValue("filePrefix");
+        partitionType = cfg.getStringValue("partitionType");
         System.out.println(inputFolder + " : " + partitionSampleNodes);
         // lets create the task plan
         TaskPlan taskPlan = Utils.createReduceTaskPlan(cfg, plan, NO_OF_TASKS);
@@ -108,7 +109,7 @@ public class TeraSortContainer6 implements IContainer {
         TWSNetwork network = new TWSNetwork(cfg, taskPlan);
 
         TWSCommunication channel = network.getDataFlowTWSCommunication();
-
+        // creating the source task and destinations in communication
         Set<Integer> sources = new HashSet<>();
         Set<Integer> dests = new HashSet<>();
         for (int i = 0; i < NO_OF_TASKS; i++) {
@@ -127,14 +128,12 @@ public class TeraSortContainer6 implements IContainer {
         for (int i = 0; i < noOfTasksPerExecutor; i++) {
             int taskId = i;
             LOG.info(String.format("%d Starting %d", id, i + id * noOfTasksPerExecutor));
-            Thread mapThread = new Thread(new SampleKeyCollection(i + id * noOfTasksPerExecutor, taskId));
+            Thread mapThread = new Thread(new TeraSortApp.SampleKeyCollection(i + id * noOfTasksPerExecutor, taskId));
             mapThread.start();
         }
 
-        //Thread progressChannel = new Thread(new ProgressThreadC(channel));
-        Thread progressSample = new Thread(new ProgressThreadSG(samplesGather));
+        Thread progressSample = new Thread(new TeraSortApp.ProgressThreadSG(samplesGather));
         progressSample.start();
-        //progressChannel.start();
 
         Text[] selected = new Text[0];
         if (id == 0) {
@@ -142,9 +141,7 @@ public class TeraSortContainer6 implements IContainer {
                 channel.progress();
             }
         }
-//            System.out.println("Got to results at : " + id );
-//            LOG.info("Gather results (only the first int of each array)"
-//                    + sampleData.size());
+
         if (id == 0) {
             selected = getSelectedKeys(sampleData);
         }
@@ -152,15 +149,15 @@ public class TeraSortContainer6 implements IContainer {
         //Not lets start the threads to get the records from the previous step
         edgeCount++;
         keyBroadCast = channel.broadCast(newCfg, MessageType.OBJECT, edgeCount, dest,
-                sources, new BCastReceive());
+                sources, new TeraSortApp.BCastReceive());
 
         if (id == 0) {
             LOG.info(String.format("%d Starting Boardcast thread", id));
-            Thread mapThread = new Thread(new BoardCastKeys(NO_OF_TASKS, selected));
+            Thread mapThread = new Thread(new TeraSortApp.BoardCastKeys(NO_OF_TASKS, selected));
             mapThread.start();
         }
         samplingDone = true;
-        Thread progressBroadcast = new Thread(new ProgressThreadB(keyBroadCast));
+        Thread progressBroadcast = new Thread(new TeraSortApp.ProgressThreadB(keyBroadCast));
         progressBroadcast.start();
 
         while (!broadcastDone) {
@@ -181,7 +178,7 @@ public class TeraSortContainer6 implements IContainer {
         }
         newCfg = new HashMap<>();
         startTimePartition = System.currentTimeMillis();
-        FinalPartitionReceiver finalPartitionRec = new FinalPartitionReceiver();
+        FinalPartitionReceiver finalPartitionRec = new TeraSortApp.FinalPartitionReceiver();
         partitionOp = channel.partition(newCfg, MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE, edgeCount,
                 sources, dests, finalPartitionRec);
         finalPartitionRec.setMap(expectedIds);
@@ -190,13 +187,13 @@ public class TeraSortContainer6 implements IContainer {
         for (int i = 0; i < noOfTasksPerExecutor; i++) {
             int taskId = i;
             LOG.info(String.format("%d Starting Distributer %d", id, i + id * noOfTasksPerExecutor));
-            Thread mapThread = new Thread(new DistributeData(i + id * noOfTasksPerExecutor, taskId));
+            Thread mapThread = new Thread(new TeraSortApp.DistributeData(i + id * noOfTasksPerExecutor, taskId, partitionType));
             mapThread.start();
         }
 
         LOG.info(String.format("%d After partitionOp thread memory Map", id));
 
-        Thread progressPartition = new Thread(new ProgressThreadP(partitionOp));
+        Thread progressPartition = new Thread(new TeraSortApp.ProgressThreadP(partitionOp));
         progressPartition.start();
 
         while (!reduceDone) {
@@ -206,6 +203,7 @@ public class TeraSortContainer6 implements IContainer {
         long endTimeTotal = System.currentTimeMillis();
         System.out.println("Time taken for partition Operation : " + (endTimePartition - startTimePartition));
         System.out.println("====================== Total Time taken : " + (endTimeTotal - startTimeTotal));
+        System.out.println("Partition Type: " + partitionType);
         System.out.println("Tera Sort Completed...");
         while (true) {
             //Waiting to make sure this thread does not die
@@ -234,29 +232,6 @@ public class TeraSortContainer6 implements IContainer {
                         Thread.sleep(1);
                     }
 
-                } catch (Throwable t) {
-                    LOG.log(Level.SEVERE, "Something bad happened", t);
-                }
-            }
-        }
-    }
-
-    private class ProgressThreadC implements Runnable {
-        private TWSCommunication channel;
-
-        public ProgressThreadC(TWSCommunication channel) {
-            this.channel = channel;
-        }
-
-        @Override
-        public void run() {
-            while (true) {
-                try {
-                    // progress the channel
-                    if (channel != null) {
-                        this.channel.progress();
-                    }
-                    Thread.yield();
                 } catch (Throwable t) {
                     LOG.log(Level.SEVERE, "Something bad happened", t);
                 }
@@ -337,45 +312,7 @@ public class TeraSortContainer6 implements IContainer {
         return selectedKeys;
     }
 
-    private PartitionTree buildPartitionTree(List<Record[]> records, DataFlowOperation samplesGather) {
-        // first create the partitionOp communicator
-//        if (rank < partitionSampleNodes) {
-//            partitionCom = MPI.COMM_WORLD.split(0, rank);
-//        } else {
-//            partitionCom = MPI.COMM_WORLD.split(1, rank);
-//        }
-//
-        List<Record> partitionRecordList = new ArrayList<>();
-        for (Record[] recordList : records) {
-            for (Record record : recordList) {
-                partitionRecordList.add(record);
-            }
-        }
-        System.out.println("Total number of partitions : " + partitionRecordList.size());
-        DataPartitioner partitioner = new DataPartitioner(samplesGather, partitionSamplesPerNode, NO_OF_TASKS);
-        byte[] selectedKeys = partitioner.execute(partitionRecordList);
-
-        int noOfPartitions = NO_OF_TASKS - 1;
-        if (selectedKeys.length / Record.KEY_SIZE != noOfPartitions) {
-            String msg = "Selected keys( " + selectedKeys.length / Record.KEY_SIZE
-                    + " ) generated is not equal to: " + noOfPartitions;
-            LOG.log(Level.SEVERE, msg);
-            throw new RuntimeException(msg);
-        }
-        // now build the tree
-        Text[] partitions = new Text[noOfPartitions];
-        for (int i = 0; i < noOfPartitions; i++) {
-            Text t = new Text();
-            t.set(selectedKeys, i * Record.KEY_SIZE, Record.KEY_SIZE);
-
-            partitions[i] = t;
-        }
-
-        PartitionTree.TrieNode root = PartitionTree.buildTrie(partitions, 0, partitions.length, new Text(), 2);
-        return new PartitionTree(root);
-    }
-
-    /**
+     /**
      * This task is used to collect samples from each datacols partitionOp
      * these collected records are used to create the key based partitiions
      */
@@ -448,10 +385,17 @@ public class TeraSortContainer6 implements IContainer {
     private class DistributeData implements Runnable {
         private int task = 0;
         private int localId = 0;
+        private String partitionType = "SIMPLE";
 
         public DistributeData(int task, int localId) {
             this.task = task;
             this.localId = localId;
+        }
+
+        public DistributeData(int task, int localId, String partitionType) {
+            this.task = task;
+            this.localId = localId;
+            this.partitionType = partitionType;
         }
 
         @Override
@@ -489,7 +433,7 @@ public class TeraSortContainer6 implements IContainer {
             KeyedContent keyedContent = null;
             int partition;
             int localCount;
-            Record text;
+
             Text tempText;
             int countRecords = 0;
             try {
@@ -506,9 +450,6 @@ public class TeraSortContainer6 implements IContainer {
                     for (int i = 0; i < countRecords; i++) {
                         tempText = new Text(recordsKeys.get(i));
                         partition = tree.getPartition(tempText);
-//                        if(task == 0 && (i % 10000 == 0)){
-//                            System.out.println("partition " + partition + " text " + tempText.toString());
-//                        }
                         localCount = countsMap.get(partition);
                         countsMap.put(partition, (localCount + 1) % block_size);
 
@@ -526,26 +467,6 @@ public class TeraSortContainer6 implements IContainer {
                                 }
                             }
                         }
-
-//                        if (i == countRecords - 1) {
-//                            for (int j = 0; j < NO_OF_TASKS; j++) {
-//                                int tempCount = countsMap.get(j);
-//                                if (tempCount > 0) {
-//                                    keyedContent = new KeyedContent(keyMap.get(j), dataMap.get(j),
-//                                            MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
-//                                    while (!partitionOp.send(task, keyedContent, 0, j)) {
-//                                        // lets wait a litte and try again
-//                                        try {
-//                                            Thread.sleep(1);
-//                                        } catch (InterruptedException e) {
-//                                            e.printStackTrace();
-//                                        }
-//                                    }
-//                                }
-//                            }
-//                        }
-
-
                     }
                 }
             } catch (IOException e) {
@@ -553,7 +474,13 @@ public class TeraSortContainer6 implements IContainer {
                 throw new RuntimeException(e);
             }
 
-//            System.out.println("Done reading data");
+            /*
+            * The following logic checkes whether there are messages which are not yet transmitted to the
+            * corresponding nodes. If the message stacks are not filled with the expected buffered content
+            * and if all the messages are already read, the messages left in these buffering queues are being
+            * sent to their destinations. This part must be abstracted in the communication layer.
+            * **/
+
 
             //Send messages to all tasks to let them know that the messages are finished
 
@@ -562,41 +489,56 @@ public class TeraSortContainer6 implements IContainer {
             // for (int i = 0; i < NO_OF_TASKS; i++) {
             int sendCount = 0;
             int start = id;
-            while (sendCount < NO_OF_TASKS) {
-                //int i = start % NO_OF_TASKS;
-                PartitionCommunication partitionCommunication = new PartitionCommunication();
-                int i = partitionCommunication.onSimpleSelection(start, NO_OF_TASKS);
-                start++;
-                sendCount++;
-                if (i == task) {
-                    continue;
-                }
-                int tempCount = countsMap.get(i);
-                if (tempCount == 0 || tempCount == (block_size - 1)) {
-                    keyList = new ArrayList<>();
-                    dataList = new ArrayList<>();
-                    keyList.add(new byte[10]);
-                    dataList.add(new byte[90]);
-                    keyedContent = new KeyedContent(keyList, dataList,
-                            MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
-                    while (!partitionOp.send(task, keyedContent, flags, i)) {
-                        // lets wait a litte and try again
-                        partitionOp.progress();
+            // this.partitionType.equals(PartitionType.SIMPLE)
+            System.out.println("Partition Type: " + this.partitionType);
+            if(this.partitionType.equals(PartitionType.SIMPLE.toString())){
+
+                while (sendCount < NO_OF_TASKS) {
+                    //int i = start % NO_OF_TASKS;
+                    PartitionCommunication partitionCommunication = new PartitionCommunication();
+                    int i = partitionCommunication.onSimpleSelection(start, NO_OF_TASKS);
+                    start++;
+                    sendCount++;
+                    if (i == task) {
+                        continue;
                     }
-                } else {
-                    keyList = keyMap.get(i).subList(0, tempCount);
-                    dataList = dataMap.get(i).subList(0, tempCount);
-                    keyedContent = new KeyedContent(keyList, dataList,
-                            MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
-                    while (!partitionOp.send(task, keyedContent, flags, i)) {
-                        // lets wait a litte and try again
-                        partitionOp.progress();
+                    int tempCount = countsMap.get(i);
+                    if (tempCount == 0 || tempCount == (block_size - 1)) {
+                        keyList = new ArrayList<>();
+                        dataList = new ArrayList<>();
+                        keyList.add(new byte[10]);
+                        dataList.add(new byte[90]);
+                        keyedContent = new KeyedContent(keyList, dataList,
+                                MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
+                        while (!partitionOp.send(task, keyedContent, flags, i)) {
+                            // lets wait a litte and try again
+                            partitionOp.progress();
+                        }
+                    } else {
+                        keyList = keyMap.get(i).subList(0, tempCount);
+                        dataList = dataMap.get(i).subList(0, tempCount);
+                        keyedContent = new KeyedContent(keyList, dataList,
+                                MessageType.MULTI_FIXED_BYTE, MessageType.MULTI_FIXED_BYTE);
+                        while (!partitionOp.send(task, keyedContent, flags, i)) {
+                            // lets wait a litte and try again
+                            partitionOp.progress();
+                        }
                     }
-                }
 
 
+                }
+
+            }else if(this.partitionType.equals(PartitionType.RANDOM.toString())){
+
+                /*
+                TODO: add the random partition logic
+                * */
+
+            }else if(this.partitionType.equals(PartitionType.RING.toString())){
+                 /*
+                TODO: Implement ring partition mechanism
+                * */
             }
-
 
         }
     }
@@ -735,7 +677,7 @@ public class TeraSortContainer6 implements IContainer {
                     sorter.addData(tempList);
                 }
             }
-	        adddatatime += System.currentTimeMillis() - stime1;
+            adddatatime += System.currentTimeMillis() - stime1;
 
             if (((flags & MessageFlags.FLAGS_LAST) == MessageFlags.FLAGS_LAST) && isAllFinished(target)) {
                 completedTasks++;
@@ -755,7 +697,7 @@ public class TeraSortContainer6 implements IContainer {
                             long sortTime = sorter.merge();
                             long etime = System.currentTimeMillis();
                             System.out.println("Sort time " + id + " : " + (sortTime + (etime - stime)));
-                            System.out.println("Add Data time " + id + " : " + adddatatime);        
+                            System.out.println("Add Data time " + id + " : " + adddatatime);
                             reduceDone = true;
                         }
                     }).start();
