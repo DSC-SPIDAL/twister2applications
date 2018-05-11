@@ -98,12 +98,12 @@ public class DispatcherTask {
 
   private Tuple createTuple(LaserScan scan, Trace trace) {
     Map<String, Object> objects = new HashMap<>();
-    objects.put(Constants.Fields.BODY, kryo.serialize(scan));
+    objects.put(Constants.Fields.BODY, scan);
     objects.put(Constants.Fields.TIME_FIELD, System.currentTimeMillis());
     objects.put(Constants.Fields.SENSOR_ID_FIELD, "");
 
-    byte[] traceBytes = mainKryo.serialize(trace);
-    objects.put(Constants.Fields.TRACE_FIELD, traceBytes);
+//    byte[] traceBytes = mainKryo.serialize(trace);
+    objects.put(Constants.Fields.TRACE_FIELD, trace);
 
     return new Tuple(objects, "dispatch");
   }

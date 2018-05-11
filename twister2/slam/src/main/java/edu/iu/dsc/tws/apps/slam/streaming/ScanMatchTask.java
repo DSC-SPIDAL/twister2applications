@@ -244,17 +244,17 @@ public class ScanMatchTask {
 
     time = tuple.getValueByField(Constants.Fields.TIME_FIELD);
 
-    byte traceBytes[] = (byte[]) tuple.getValueByField(Constants.Fields.TRACE_FIELD);
+//    byte traceBytes[] = (byte[]) tuple.getValueByField(Constants.Fields.TRACE_FIELD);
 //    Trace trace = (Trace) Utils.deSerialize(kryoLaserReading, traceBytes, Trace.class);
-    Trace trace = new Trace();
+    Trace trace = (Trace) tuple.getValueByField(Constants.Fields.TRACE_FIELD);
     Object val = tuple.getValueByField(Constants.Fields.BODY);
-    if (!(val instanceof byte[])) {
-      throw new IllegalArgumentException("The laser scan should be of type byte[]");
-    }
+//    if (!(val instanceof byte[])) {
+//      throw new IllegalArgumentException("The laser scan should be of type byte[]");
+//    }
 
     lock.lock();
     try {
-      scan = (LaserScan) kryoLaserReading.deserialize((byte[]) val);
+      scan = (LaserScan) val;
     } catch (Exception e) {
       LOG.error("Failed to deserialize laser scan", e);
     } finally {
