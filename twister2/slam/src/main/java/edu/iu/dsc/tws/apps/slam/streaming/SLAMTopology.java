@@ -28,6 +28,7 @@ public class SLAMTopology {
         options.addOption(Constants.ARGS_PARTICLES, true, "No of particles");
         options.addOption(Constants.CONFIG_FILE, true, "Config file");
         options.addOption(Constants.INPUT_FILE, true, "Input file");
+        options.addOption(Constants.ARGS_SIMBAD, false, "Simabd");
 
         CommandLineParser commandLineParser = new BasicParser();
         CommandLine cmd = commandLineParser.parse(options, args);
@@ -35,6 +36,10 @@ public class SLAMTopology {
         String particles = cmd.getOptionValue(Constants.ARGS_PARTICLES);
         String configFile = cmd.getOptionValue(Constants.CONFIG_FILE);
         String inputFile = cmd.getOptionValue(Constants.INPUT_FILE);
+        String simbad = "false";
+        if (cmd.hasOption(Constants.ARGS_SIMBAD)) {
+            simbad = "true";
+        }
         int p = Integer.parseInt(pValue);
 
         // build JobConfig
@@ -43,6 +48,7 @@ public class SLAMTopology {
         jobConfig.put(Constants.ARGS_PARALLEL, pValue);
         jobConfig.put(Constants.CONFIG_FILE, configFile);
         jobConfig.put(Constants.INPUT_FILE, inputFile);
+        jobConfig.put(Constants.ARGS_SIMBAD, simbad);
 
         // build the job
         BasicJob basicJob = null;

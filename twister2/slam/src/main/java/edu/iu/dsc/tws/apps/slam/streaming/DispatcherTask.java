@@ -3,6 +3,7 @@ package edu.iu.dsc.tws.apps.slam.streaming;
 import edu.iu.dsc.tws.apps.slam.core.app.LaserScan;
 import edu.iu.dsc.tws.apps.slam.streaming.msgs.Ready;
 import edu.iu.dsc.tws.apps.slam.streaming.msgs.Trace;
+import edu.iu.dsc.tws.apps.slam.utils.FileIO;
 import edu.iu.dsc.tws.comms.mpi.MPIDataFlowBroadcast;
 import edu.iu.dsc.tws.data.utils.KryoMemorySerializer;
 import mpi.Intracomm;
@@ -32,6 +33,8 @@ public class DispatcherTask {
 
   private int task;
 
+  private boolean simbad = true;
+
   private enum State {
     WAITING_FOR_READING,
     WAITING_FOR_READY,
@@ -41,7 +44,10 @@ public class DispatcherTask {
 
   private long startTime = System.currentTimeMillis();
 
-  public void prepare(Map stormConf, Intracomm intracomm, String inputFile, int task) {
+  private FileIO fileIo;
+
+  public void prepare(Map stormConf, Intracomm intracomm, String inputFile, int task, boolean simbad) {
+    this.simbad = simbad;
     this.conf = stormConf;
     this.task = task;
 
@@ -52,7 +58,11 @@ public class DispatcherTask {
     mainKryo = new Serializer();
 //    Utils.registerClasses(kryo);
 //    Utils.registerClasses(mainKryo);
-    this.dataReader = new SlamDataReader(inputFile);
+    if (!simbad) {
+      this.dataReader = new SlamDataReader(inputFile);
+    } else {
+      this.fileIo = new FileIO(inputFile, false);
+    }
   }
 
   private long beginTime;
@@ -113,7 +123,12 @@ public class DispatcherTask {
 
   public void progress() {
     if (state != State.WAITING_FOR_READY) {
-      LaserScan scan = dataReader.read();
+      LaserScan scan;
+      if (simbad) {
+        scan = fileIo.read();
+      } else {
+        scan = dataReader.read();
+      }
       if (scan != null) {
         Tuple tuple = createTuple(scan, new Trace());
         execute(tuple);
