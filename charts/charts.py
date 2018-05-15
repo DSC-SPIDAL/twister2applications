@@ -266,7 +266,7 @@ def plot_latency_flink():
 
     fig = plt.figure(figsize=(9, 4), dpi=100)
     plt.subplot2grid((10, 16), (0, 0), colspan=8, rowspan=8)
-    plot_line(flink_reduce, x=xlabels_1_32, title="Total time Reduce", plot=plt, ticks=xlabels_1_32, logy=True, ylabel="Total time (s) Log", ymax=20000, legendloc="center right", legend=["Flink-IPoIB", "TWS-1Gbps", "TWS-IB"])
+    plot_line(flink_reduce, x=xlabels_1_32, title="Total time Reduce", plot=plt, ticks=xlabels_1_32, logy=True, ylabel="Total time (s) Log", ymax=20000, legendloc="center right", legend=["Flink-IPoIB", "DFW-IB", "DFW-1Gbps"])
 
     plt.subplot2grid((10, 16), (0, 8), colspan=8, rowspan=8)
     # plot_line(flink_partition, x=xlabels_1_32, title="Latency of Partition", plot=plt, ticks=xlabels_1_32, logy=True, ylabel="Total time (s) Log", ymax=10000, legendloc="bottom right")
@@ -288,7 +288,7 @@ def plot_bandwidth():
     fig = plt.figure(figsize=(5, 4), dpi=100)
 
     plt.subplot2grid((1,8), (0, 0), colspan=8)
-    plot_bar(y_short_large_parallel, x=[1,10,40], xlabel="Different networks", legend=["Flink", "Twister2", "MPI"], title="Bandwidth Utilization",plot=plt, ylabel="GB/s")
+    plot_bar(y_short_large_parallel, x=[1,10,40], xlabel="Different networks", legend=["Flink", "DFW", "BSP"], title="Bandwidth Utilization",plot=plt, ylabel="GB/s")
     plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
     fig.tight_layout()
     fig = plt.gcf()
@@ -372,11 +372,11 @@ def plot_kmeans():
     fig = plt.figure(figsize=(10, 5), dpi=100)
 
     plt.subplot2grid((10,16), (0, 0), colspan=8, rowspan=8)
-    plot_bar(y_short_large, x=[1,2,4,8,16], xlabel="Centers x 1000", title="K-Means", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.075, col=cls, n=5, ymax=400)
+    plot_bar(y_short_large, x=[1,2,4,8,16], xlabel="Centers x 1000", title="K-Means", plot=plt, logy=True, ylabel="time(s) log", bar_width=.075, col=cls, n=5, ymax=400)
 
 
     plt.subplot2grid((10,16), (0, 8), colspan=8, rowspan=8)
-    plot_bar(y_short_large_parallel, x=[4,8,16], xlabel="Nodes", title="K-Means", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.075, col=cls, ymax=400)
+    plot_bar(y_short_large_parallel, x=[4,8,16], xlabel="Nodes", title="K-Means", plot=plt, logy=True, ylabel="time(s) log", bar_width=.075, col=cls, ymax=400)
 
     plt.subplots_adjust(left=0.06, right=0.98, top=5, bottom=0.2)
     fig.tight_layout()
@@ -406,12 +406,12 @@ def plot_terasort():
     fig = plt.figure(figsize=(10, 5), dpi=100)
 
     plt.subplot2grid((10,16), (0, 0), colspan=12, rowspan=8)
-    plot_bar_stacked(y_short_large, y2=y_short_large_2, x=[32,64,128,256], xlabel="Data - Gigabytes", title="Terasort", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.1, col=cls, n=4, ymax=100, legendloc="upper left")
+    plot_bar_stacked(y_short_large, y2=y_short_large_2, x=[32,64,128,256], xlabel="Data - Gigabytes", title="Terasort", plot=plt, logy=True, ylabel="time(s) log", bar_width=.1, col=cls, n=4, ymax=100, legendloc="upper left")
     legend=["BSP-IB-Com", "DFW-IB-Com", "Flink-IPoIB", "Flink-10Gbps", "Rest of time"]
     plt.legend(legend, fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(.5, -.35), ncol=3)
     plt.grid(b=True, which='minor', color='grey', linestyle='-', alpha=0.5, axis='y')
     plt.subplot2grid((10,16), (0, 12), colspan=4, rowspan=8)
-    plot_bar(tb, x=[.5, 1], xlabel="Data - Terabytes", title="Terasort", plot=plt, logy=True, ylabel="time(ms) log", bar_width=.125, col=cls, ymax=400, n=2)
+    plot_bar(tb, x=[.5, 1], xlabel="Data - Terabytes", title="Terasort", plot=plt, logy=True, ylabel="time(s) log", bar_width=.125, col=cls, ymax=400, n=2)
     legend=["BSP-IB", "DFW-IB"]
     plt.legend(legend, fancybox=True, framealpha=0.25, loc="lower center", bbox_to_anchor=(.5, -.35), ncol=1)
     plt.grid(b=True, which='minor', color='grey', linestyle='-', alpha=0.5, axis='y')
@@ -470,7 +470,7 @@ def plot_slam_speedup():
 
     plt.subplot2grid((1, 8), (0, 0), colspan=8)
     xlabels = [4,8,12,16,20]
-    plot_line(reduce, x=xlabels, legend=["100 Particles"], title="Speedup", plot=plt, ticks=xlabels, logy=False, ylabel=r"Speedup ($\mu$s)", ymax=20, legendloc="right center", xlabel="Parallel tasks")
+    plot_line(reduce, x=xlabels, legend=["100 Particles"], title="Speedup", plot=plt, ticks=xlabels, logy=False, ylabel=r"Speedup", ymax=20, legendloc="right center", xlabel="Parallel tasks")
 
     plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
 
@@ -479,15 +479,32 @@ def plot_slam_speedup():
     fig.savefig("/home/supun/data/twister2/pics/slam_speedup.png")
     plt.show()
 
+def plot_slam_speedup2():
+    reduce = [[3.95,	7.9,	11.08,	13.8,	17.42]]
+
+    fig = plt.figure(figsize=(5, 4), dpi=100)
+
+    plt.subplot2grid((1, 8), (0, 0), colspan=8)
+    xlabels = [4,8,12,16,20]
+    plot_line(reduce, x=xlabels, legend=["100 Particles"], title="Speedup", plot=plt, ticks=xlabels, logy=False, ylabel=r"Speedup", ymax=20, legendloc="right center", xlabel="Parallel tasks")
+
+    plt.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.2)
+
+    fig.tight_layout()
+    fig = plt.gcf()
+    fig.savefig("/home/supun/data/twister2/pics/slam_speedup_640.png")
+    plt.show()
+
 def main():
-    # plot_latency_heron()
-    # plot_latency_flink()
-    # plot_latency_mpi()
-    # plot_bandwidth()
-    # plot_benchmark_latency()
-    # plot_kmeans()
-    # plot_terasort()
+    plot_latency_heron()
+    plot_latency_flink()
+    plot_latency_mpi()
+    plot_bandwidth()
+    plot_benchmark_latency()
+    plot_kmeans()
+    plot_terasort()
     plot_slam_speedup()
+    plot_slam_speedup2()
     # plot_latency_parallel_ib()
     # plot_yahoo_percentages()
     # plot_inflight()
