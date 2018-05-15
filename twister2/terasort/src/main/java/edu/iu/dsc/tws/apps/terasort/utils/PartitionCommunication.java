@@ -21,7 +21,6 @@ public class PartitionCommunication implements IPartitionCommunication {
     }
 
 
-
     @Override
     public int onSimpleSelection(int noOfTasks) {
 
