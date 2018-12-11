@@ -2,11 +2,12 @@ package edu.iu.dsc.tws.apps.kmeans;
 
 import edu.iu.dsc.tws.api.JobConfig;
 import edu.iu.dsc.tws.api.Twister2Submitter;
-import edu.iu.dsc.tws.api.basic.job.BasicJob;
+//import edu.iu.dsc.tws.api.basic.job.BasicJob;
+import edu.iu.dsc.tws.api.job.Twister2Job;
 import edu.iu.dsc.tws.apps.kmeans.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.rsched.core.ResourceAllocator;
-import edu.iu.dsc.tws.rsched.spi.resource.ResourceContainer;
+//import edu.iu.dsc.tws.rsched.spi.resource.ResourceContainer;
 import org.apache.commons.cli.*;
 
 import java.util.HashMap;
@@ -19,7 +20,7 @@ public class Program {
     Config config = ResourceAllocator.loadConfig(new HashMap<>());
 
     Options options = new Options();
-    options.addOption(Constants.ARGS_CONTAINERS, true, "Containers");
+    options.addOption(Constants.WORKERS, true, "workers");
     options.addOption(Constants.ARGS_SIZE, true, "Size");
     options.addOption(Constants.ARGS_ITR, true, "Iteration");
     options.addOption(Utils.createOption(Constants.ARGS_COL, true, "Cols", true));
@@ -36,9 +37,9 @@ public class Program {
     options.addOption(Utils.createOption(Constants.ARGS_K, true, "K", true));
     options.addOption(Utils.createOption(Constants.ARGS_N_POINTS, true, "K", true));
 
-    CommandLineParser commandLineParser = new BasicParser();
+    CommandLineParser commandLineParser = new DefaultParser();
     CommandLine cmd = commandLineParser.parse(options, args);
-    int containers = Integer.parseInt(cmd.getOptionValue(Constants.ARGS_CONTAINERS));
+    int containers = Integer.parseInt(cmd.getOptionValue(Constants.WORKERS));
     int size = Integer.parseInt(cmd.getOptionValue(Constants.ARGS_SIZE));
     int itr = Integer.parseInt(cmd.getOptionValue(Constants.ARGS_ITR));
     int col = Integer.parseInt(cmd.getOptionValue(Constants.ARGS_COL));
@@ -79,7 +80,7 @@ public class Program {
     jobConfig.put(Constants.ARGS_ITR, Integer.toString(itr));
     jobConfig.put(Constants.ARGS_COL, Integer.toString(col));
     jobConfig.put(Constants.ARGS_SIZE, Integer.toString(size));
-    jobConfig.put(Constants.ARGS_CONTAINERS, Integer.toString(containers));
+    jobConfig.put(Constants.WORKERS, Integer.toString(containers));
     jobConfig.put(Constants.ARGS_TASK_STAGES, taskStages);
     jobConfig.put(Constants.ARGS_GAP, gap);
     jobConfig.put(Constants.ARGS_FNAME, fName);
@@ -94,7 +95,7 @@ public class Program {
     jobConfig.put(Constants.ARGS_DIMENSIONS, dim);
 
     // build the job
-    BasicJob basicJob = null;
+    /*BasicJob basicJob = null;
     basicJob = BasicJob.newBuilder()
         .setName("kmeans-bench")
         .setContainerClass(KMeans2.class.getName())
@@ -102,6 +103,16 @@ public class Program {
         .setConfig(jobConfig)
         .build();
     // now submit the job
-    Twister2Submitter.submitContainerJob(basicJob, config);
+    Twister2Submitter.submitContainerJob(basicJob, config);*/
+
+    Twister2Job.Twister2JobBuilder jobBuilder = Twister2Job.newBuilder();
+    jobBuilder.setJobName("KMeans-job");
+    jobBuilder.setWorkerClass(KMeans.class.getName());
+    jobBuilder.addComputeResource(2, 512, 1.0, containers);
+    jobBuilder.setConfig(jobConfig);
+
+    // now submit the job
+    Twister2Submitter.submitJob(jobBuilder.build(), config);
+
   }
 }

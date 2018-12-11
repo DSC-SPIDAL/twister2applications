@@ -4,15 +4,15 @@ import edu.iu.dsc.tws.apps.kmeans.utils.JobParameters;
 import edu.iu.dsc.tws.apps.kmeans.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.comms.api.*;
-import edu.iu.dsc.tws.comms.core.TWSCommunication;
-import edu.iu.dsc.tws.comms.core.TWSNetwork;
+//import edu.iu.dsc.tws.comms.core.TWSCommunication;
+//import edu.iu.dsc.tws.comms.core.TWSNetwork;
 import edu.iu.dsc.tws.comms.core.TaskPlan;
-import edu.iu.dsc.tws.comms.mpi.MPIDataFlowBroadcast;
-import edu.iu.dsc.tws.comms.mpi.MPIDataFlowReduce;
-import edu.iu.dsc.tws.comms.mpi.io.reduce.ReduceStreamingFinalReceiver;
-import edu.iu.dsc.tws.comms.mpi.io.reduce.ReduceStreamingPartialReceiver;
-import edu.iu.dsc.tws.rsched.spi.container.IContainer;
-import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
+//import edu.iu.dsc.tws.comms.mpi.MPIDataFlowBroadcast;
+//import edu.iu.dsc.tws.comms.mpi.MPIDataFlowReduce;
+//import edu.iu.dsc.tws.comms.mpi.io.reduce.ReduceStreamingFinalReceiver;
+//import edu.iu.dsc.tws.comms.mpi.io.reduce.ReduceStreamingPartialReceiver;
+//import edu.iu.dsc.tws.rsched.spi.container.IContainer;
+//import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 
 import java.io.IOException;
 import java.util.*;
@@ -22,8 +22,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
-public class KMeans2 implements IContainer {
-  private static final Logger LOG = Logger.getLogger(KMeans.class.getName());
+public class KMeans2 {//implements IContainer {
+  /*private static final Logger LOG = Logger.getLogger(KMeans.class.getName());
 
   private MPIDataFlowReduce reduceOperation;
   private MPIDataFlowBroadcast broadcastOperation;
@@ -258,4 +258,4 @@ public class KMeans2 implements IContainer {
   private static void resetCenterSumsAndCounts(double[] centerSumsAndCountsForThread) {
     IntStream.range(0, centerSumsAndCountsForThread.length).forEach(i -> centerSumsAndCountsForThread[i] = 0.0);
   }
-}
+*/}

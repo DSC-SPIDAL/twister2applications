@@ -1,15 +1,23 @@
 package edu.iu.dsc.tws.apps.kmeans;
 
+import edu.iu.dsc.tws.api.net.Network;
 import edu.iu.dsc.tws.apps.kmeans.utils.JobParameters;
 import edu.iu.dsc.tws.apps.kmeans.utils.Utils;
 import edu.iu.dsc.tws.common.config.Config;
+import edu.iu.dsc.tws.common.controller.IWorkerController;
+import edu.iu.dsc.tws.common.exceptions.TimeoutException;
+import edu.iu.dsc.tws.common.worker.IPersistentVolume;
+import edu.iu.dsc.tws.common.worker.IVolatileVolume;
+import edu.iu.dsc.tws.common.worker.IWorker;
 import edu.iu.dsc.tws.comms.api.*;
-import edu.iu.dsc.tws.comms.core.TWSCommunication;
-import edu.iu.dsc.tws.comms.core.TWSNetwork;
+/*import edu.iu.dsc.tws.comms.core.TWSCommunication;
+import edu.iu.dsc.tws.comms.core.TWSNetwork;*/
 import edu.iu.dsc.tws.comms.core.TaskPlan;
-import edu.iu.dsc.tws.comms.mpi.MPIDataFlowAllReduce;
-import edu.iu.dsc.tws.rsched.spi.container.IContainer;
-import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
+//import edu.iu.dsc.tws.comms.mpi.MPIDataFlowAllReduce;
+import edu.iu.dsc.tws.comms.op.Communicator;
+import edu.iu.dsc.tws.comms.op.batch.BReduce;
+import edu.iu.dsc.tws.proto.jobmaster.JobMasterAPI;
+//import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 
 import java.io.IOException;
 import java.util.*;
@@ -19,24 +27,69 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
-public class KMeans implements IContainer {
+public class KMeans implements IWorker {
   private static final Logger LOG = Logger.getLogger(KMeans.class.getName());
 
-  private MPIDataFlowAllReduce reduceOperation;
+  private BReduce reduce;
 
   private int id;
 
   private JobParameters jobParameters;
 
-  private Map<Integer, PipelinedTask> partitionSources = new HashMap<>();
+  protected int workerId;
 
-  private Map<Integer, BlockingQueue<Message>> workerMessageQueue = new HashMap<>();
+  protected Config config;
 
-  private Map<Integer, Integer> sourcesToReceiveMapping = new HashMap<>();
+  protected TaskPlan taskPlan;
 
-  private Map<Integer, Executor> executors = new HashMap<>();
+  protected TWSChannel channel;
+
+  protected Communicator communicator;
+
+  protected List<JobMasterAPI.WorkerInfo> workerList = null;
+
+
 
   @Override
+  public void execute(Config config, int workerID, IWorkerController workerController, IPersistentVolume persistentVolume, IVolatileVolume volatileVolume) {
+    // create the job parameters
+    this.jobParameters = JobParameters.build(config);
+    this.config = config;
+    try {
+      this.workerList = workerController.getAllWorkers();
+    } catch (TimeoutException timeoutException) {
+      LOG.log(Level.SEVERE, timeoutException.getMessage(), timeoutException);
+      return;
+    }
+
+    // lets create the task plan
+    this.taskPlan = Utils.createStageTaskPlan(config, workerID,
+            jobParameters.getTaskStages(), workerList);
+    // create the channel
+    channel = Network.initializeChannel(config, workerController);
+    // create the communicator
+    communicator = new Communicator(config, channel);
+
+    int middle = jobParameters.getTaskStages().get(0) + jobParameters.getTaskStages().get(1);
+    double[][] points = null;
+    double[] centers = null;
+    Set<Integer> mapTasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 0);
+    Set<Integer> reduceTasksOfExecutor = Utils.getTasksOfExecutor(id, taskPlan, jobParameters.getTaskStages(), 1);
+    int pointsPerTask = jobParameters.getNumPoints() / (jobParameters.getContainers() * mapTasksOfExecutor.size());
+
+    long start = System.nanoTime();
+    try {
+      points = PointReader.readPoints(jobParameters.getPointFile(), jobParameters.getNumPoints(),
+              jobParameters.getContainers(), id, mapTasksOfExecutor.size(), jobParameters.getDimension());
+      centers = PointReader.readClusters(jobParameters.getCenerFile(), jobParameters.getDimension(), jobParameters.getK());
+    } catch (IOException e) {
+      throw new RuntimeException("File read error", e);
+    }
+    LOG.info(String.format("%d reading time %d", id, (System.nanoTime() - start) / 1000000));
+  }
+
+
+  /*@Override
   public void init(Config cfg, int containerId, ResourcePlan plan) {
     LOG.log(Level.FINE, "Starting the example with container id: " + plan.getThisId());
 
@@ -134,9 +187,11 @@ public class KMeans implements IContainer {
     } catch (Throwable t) {
       t.printStackTrace();
     }
-  }
+  }*/
 
-  public class FinalReduceReceiver implements ReduceReceiver {
+
+
+  /*public class FinalReduceReceiver implements ReduceReceiver {
     @Override
     public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
       LOG.log(Level.FINE, String.format("%d Initialize worker: %s", id, expectedIds));
@@ -151,7 +206,7 @@ public class KMeans implements IContainer {
       Queue<Message> messageQueue = workerMessageQueue.get(i);
       return messageQueue.offer(new Message(i, 0, o));
     }
-  }
+  }*/
 
   public static class IdentityFunction implements ReduceFunction {
     @Override

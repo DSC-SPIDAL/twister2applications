@@ -92,7 +92,7 @@ public class KMeansJobMain {
 
         Twister2Job.Twister2JobBuilder jobBuilder = Twister2Job.newBuilder();
         jobBuilder.setJobName("KMeans-job");
-        jobBuilder.setWorkerClass(KMeansJob.class.getName());
+        jobBuilder.setWorkerClass(KMeans.class.getName());
         jobBuilder.addComputeResource(2, 512, 1.0, workers);
         jobBuilder.setConfig(jobConfig);
 
