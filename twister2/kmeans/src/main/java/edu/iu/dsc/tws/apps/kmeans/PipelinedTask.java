@@ -1,6 +1,7 @@
 package edu.iu.dsc.tws.apps.kmeans;
 
 import edu.iu.dsc.tws.comms.api.DataFlowOperation;
+import edu.iu.dsc.tws.comms.op.batch.BAllReduce;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,6 +27,8 @@ public class PipelinedTask {
 
   private DataFlowOperation allReduce;
 
+  private BAllReduce bAllReduce;
+
   private int noOfIterations;
 
   private int pointsForThread;
@@ -44,6 +47,10 @@ public class PipelinedTask {
 
     this.centerSums = new double[centers.length];
     this.centerCounts = new int[centers.length / dimension];
+  }
+
+  public void setbAllReduce(BAllReduce bAllReduce) {
+    this.bAllReduce = bAllReduce;
   }
 
   public void setAllReduce(DataFlowOperation allReduce) {
@@ -66,7 +73,7 @@ public class PipelinedTask {
     // now communicate
     emitTimes.add(System.currentTimeMillis());
 //    LOG.info(String.format("%d Sending centersum with length %d", taskId, centerSums.length));
-    allReduce.send(taskId, new Centers(centerSums, centerCounts), 0);
+    bAllReduce.reduce(taskId, new Centers(centerSums, centerCounts), 0);
 
     return true;
   }
@@ -100,7 +107,7 @@ public class PipelinedTask {
   }
 
   public void progress() {
-    allReduce.progress();
+    bAllReduce.progress();
   }
 
   private void findNearesetCenters(int dimension, double[] points, double[] centers,

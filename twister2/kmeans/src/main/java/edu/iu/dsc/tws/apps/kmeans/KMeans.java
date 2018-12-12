@@ -14,8 +14,12 @@ import edu.iu.dsc.tws.comms.api.*;
 import edu.iu.dsc.tws.comms.core.TWSNetwork;*/
 import edu.iu.dsc.tws.comms.core.TaskPlan;
 //import edu.iu.dsc.tws.comms.mpi.MPIDataFlowAllReduce;
+import edu.iu.dsc.tws.comms.dfw.DataFlowAllReduce;
 import edu.iu.dsc.tws.comms.op.Communicator;
-import edu.iu.dsc.tws.comms.op.batch.BReduce;
+import edu.iu.dsc.tws.comms.op.batch.BAllReduce;
+
+import edu.iu.dsc.tws.comms.op.functions.reduction.ReduceOperationFunction;
+import edu.iu.dsc.tws.executor.comms.batch.AllReduceBatchOperation;
 import edu.iu.dsc.tws.proto.jobmaster.JobMasterAPI;
 //import edu.iu.dsc.tws.rsched.spi.resource.ResourcePlan;
 
@@ -30,11 +34,20 @@ import java.util.stream.IntStream;
 public class KMeans implements IWorker {
   private static final Logger LOG = Logger.getLogger(KMeans.class.getName());
 
-  private BReduce reduce;
+  private BAllReduce allReduce;
 
   private int id;
 
   private JobParameters jobParameters;
+
+  private Map<Integer, PipelinedTask> partitionSources = new HashMap<>();
+
+  private Map<Integer, BlockingQueue<Message>> workerMessageQueue = new HashMap<>();
+
+  private Map<Integer, Integer> sourcesToReceiveMapping = new HashMap<>();
+
+  private Map<Integer, Executor> executors = new HashMap<>();
+
 
   protected int workerId;
 
@@ -86,6 +99,64 @@ public class KMeans implements IWorker {
       throw new RuntimeException("File read error", e);
     }
     LOG.info(String.format("%d reading time %d", id, (System.nanoTime() - start) / 1000000));
+
+    Set<Integer> sources = new HashSet<>();
+    Integer noOfSourceTasks = jobParameters.getTaskStages().get(0);
+    for (int i = 0; i < noOfSourceTasks; i++) {
+      sources.add(i);
+    }
+
+    Set<Integer> dests = new HashSet<>();
+    int noOfDestTasks = jobParameters.getTaskStages().get(1);
+    for (int i = 0; i < noOfDestTasks; i++) {
+      dests.add(i + sources.size());
+    }
+
+    Map<String, Object> newCfg = new HashMap<>();
+    LOG.log(Level.FINE, "Setting up firstPartition dataflow operation");
+    try {
+      List<Integer> sourceTasksOfExecutor = new ArrayList<>(mapTasksOfExecutor);
+      List<Integer> workerTasksOfExecutor = new ArrayList<>(reduceTasksOfExecutor);
+
+      for (int k = 0; k < sourceTasksOfExecutor.size(); k++) {
+        int sourceTask = sourceTasksOfExecutor.get(k);
+        int workerTask = workerTasksOfExecutor.get(k);
+
+        sourcesToReceiveMapping.put(sourceTask, workerTask);
+      }
+
+      for (int k = 0; k < sourceTasksOfExecutor.size(); k++) {
+        int sourceTask = sourceTasksOfExecutor.get(k);
+
+        PipelinedTask source = new PipelinedTask(points[k], centers, sourceTasksOfExecutor.get(k),
+                jobParameters.getDimension(), jobParameters.getIterations(), pointsPerTask);
+        partitionSources.put(sourceTask, source);
+      }
+
+      allReduce = new BAllReduce(communicator, taskPlan, sources, dests, new ReduceOperationFunction(Op.SUM, MessageType.DOUBLE), new FinalSingularReceiver(),
+              MessageType.INTEGER);
+
+
+      for (int k = 0; k < sourceTasksOfExecutor.size(); k++) {
+        int sourceTask = sourceTasksOfExecutor.get(k);
+        int targetTask = sourcesToReceiveMapping.get(sourceTask);
+
+        PipelinedTask source = partitionSources.get(sourceTask);
+        source.setbAllReduce(allReduce);
+
+        // the map thread where datacols is produced
+        Executor executor = new Executor(source, workerMessageQueue.get(targetTask), sourceTask);
+        executors.put(sourceTask, executor);
+
+        Thread mapThread = new Thread(executor);
+        mapThread.start();
+      }
+
+
+    }catch(Exception e) {
+      System.out.println(e);
+    }
+
   }
 
 
@@ -189,43 +260,36 @@ public class KMeans implements IWorker {
     }
   }*/
 
+    class FinalSingularReceiver implements SingularReceiver {
+      @Override
+      public void init(Config cfg, Set<Integer> expectedIds) {
+      }
+
+      @Override
+      public boolean receive(int target, Object object) {
 
 
-  /*public class FinalReduceReceiver implements ReduceReceiver {
-    @Override
-    public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
-      LOG.log(Level.FINE, String.format("%d Initialize worker: %s", id, expectedIds));
-      for (Map.Entry<Integer, List<Integer>> e : expectedIds.entrySet()) {
-        BlockingQueue<Message> queue = new ArrayBlockingQueue<>(1);
-        workerMessageQueue.put(e.getKey(), queue);
+        return true;
       }
     }
 
-    @Override
-    public boolean receive(int i, Object o) {
-      Queue<Message> messageQueue = workerMessageQueue.get(i);
-      return messageQueue.offer(new Message(i, 0, o));
-    }
-  }*/
 
-  public static class IdentityFunction implements ReduceFunction {
-    @Override
-    public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
-    }
-
-    @Override
-    public Object reduce(Object t1, Object t2) {
-      double[] data1 = (double[]) t1;
-      double[] data2 = (double[]) t2;
-      double[] data3 = new double[data1.length];
-      for (int i = 0; i < data1.length; i++) {
-        data3[i] = data1[i] + data2[i];
+    class IdentityFunction implements ReduceFunction {
+      @Override
+      public void init(Config cfg, DataFlowOperation op, Map<Integer, List<Integer>> expectedIds) {
       }
-      return data3;
+
+      @Override
+      public Object reduce(Object t1, Object t2) {
+        double[] data1 = (double[]) t1;
+        double[] data2 = (double[]) t2;
+        double[] data3 = new double[data1.length];
+        for (int i = 0; i < data1.length; i++) {
+          data3[i] = data1[i] + data2[i];
+        }
+        return data3;
+      }
     }
+
   }
 
-  private static void resetCenterSumsAndCounts(double[] centerSumsAndCountsForThread) {
-    IntStream.range(0, centerSumsAndCountsForThread.length).forEach(i -> centerSumsAndCountsForThread[i] = 0.0);
-  }
-}
