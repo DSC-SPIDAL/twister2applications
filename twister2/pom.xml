@@ -8,10 +8,12 @@
     <version>1.0.0-SNAPSHOT</version>
 
     <modules>
-        <module>performance</module>
-        <module>terasort</module>
+        <!--<module>performance</module>-->
+        <!--<module>terasort</module>-->
         <module>kmeans</module>
-        <module>slam</module>
+        <module>comms-benchmark</module>
+
+        <!--<module>slam</module>-->
     </modules>
 
 </project>
