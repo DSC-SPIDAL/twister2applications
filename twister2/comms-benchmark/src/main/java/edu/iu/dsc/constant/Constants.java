@@ -26,7 +26,10 @@ public final class Constants {
      * verify : verify the results with expected results [important for validating final result known examples] {optional flag}
      * nFiles : number of files in the loading [important to understand the partition logic]
      * fShared : this flag specify to run the application with shared file system TODO: correct this if wrong     *
-     * type : -keyed choose to run keyed operations based example, -op reduce -type keyed i.e this will run keyed-reduce operation , -app terasort runs the terasort application
+     * keyed : -keyed choose to run keyed operations based example, -op reduce -keyed i.e this will run keyed-reduce operation
+     * app : -app terasort , this will run terasort application.
+     * comms : -comms specify that the communication based examples are being run
+     * taske : -task task executor based examples are being run.
      * */
 
 
@@ -48,8 +51,12 @@ public final class Constants {
     public static final String ARGS_VERIFY = "verify";
     public static final String ARGS_NUMBER_OF_FILES = "nFiles";
     public static final String ARGS_SHARED_FILE_SYSTEM = "fShared";
-    public static final String ARGS_TYPE = "type";
+    public static final String ARGS_KEYED = "keyed";
+    public static final String ARGS_APP = "app";
+    public static final String ARGS_COMMS = "comms";
+    public static final String ARGS_TASK_EXEC = "taske";
     public static final String ARGS_GAP = "gap";
     public static final String ARGS_OUTSTANDING = "outstanding";
+    public static final String ARGS_APP_NAME = "appName";
 
 }
