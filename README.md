@@ -43,13 +43,13 @@ The module comms-benchmark is designed to benchmark the Twister2 communication p
 
 Param Definitions:
 
-i. op : operation type in running examples. For example -op "reduce", this will run the reduce example. 
-ii. app : denotes that you want run an application developed in Twister2
-iii. appName : denotes the application name you want to run , For example : -app -appName terasort. This will run the terasort application. 
-iv. keyed : denotes you want to run keyed based examples
-v. comms : denotes you are running communication examples , -keyed -comms -op reduce, this will run the keyedreduce example in comms.
-vi. taske : denotes you want to run task execution based examples. -taske -op reduce, this will run the reduce example
-vii. stream: denotes that you want to run the stream mode of the application, by default the batch mode applications will be executed.
+1. op : operation type in running examples. For example -op "reduce", this will run the reduce example. 
+2. app : denotes that you want run an application developed in Twister2
+3. appName : denotes the application name you want to run , For example : -app -appName terasort. This will run the terasort application. 
+4. keyed : denotes you want to run keyed based examples
+5. comms : denotes you are running communication examples , -keyed -comms -op reduce, this will run the keyedreduce example in comms.
+6. taske : denotes you want to run task execution based examples. -taske -op reduce, this will run the reduce example
+7. stream: denotes that you want to run the stream mode of the application, by default the batch mode applications will be executed.
 
 ### Example 
 
