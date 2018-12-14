@@ -1,5 +1,6 @@
 package edu.iu.dsc;
 
+import edu.iu.dsc.comms.CommsRunner;
 import edu.iu.dsc.comms.akeyed.AKeyedRunner;
 import edu.iu.dsc.comms.akeyed.examples.BPartitionExample;
 import edu.iu.dsc.constant.Constants;
@@ -125,8 +126,8 @@ public class RunMain {
 
         if(!keyed) {
             if(comms) {
-                AKeyedRunner aKeyedRunner = new AKeyedRunner(config, jobConfig, stream, operation, parallelism);
-                aKeyedRunner.run();
+                CommsRunner commsRunner = new CommsRunner(config, jobConfig, stream, operation, parallelism, keyed);
+                commsRunner.run();
             }
         }
 
