@@ -1,6 +1,7 @@
 package edu.iu.dsc.comms.akeyed;
 
 import edu.iu.dsc.comms.akeyed.examples.BPartitionExample;
+import edu.iu.dsc.comms.common.Submitter;
 import edu.iu.dsc.tws.api.JobConfig;
 import edu.iu.dsc.tws.api.Twister2Submitter;
 import edu.iu.dsc.tws.api.job.Twister2Job;
@@ -32,7 +33,7 @@ public class AKeyedRunner {
         if(!stream) {
             switch (this.op) {
                 case "partition":
-                    submitJob(config, parallelism, jobConfig, BPartitionExample.class.getName());
+                    Submitter.submitJob(config, parallelism, jobConfig, BPartitionExample.class.getName());
                     break;
             }
         } else {
@@ -41,15 +42,5 @@ public class AKeyedRunner {
 
     }
 
-    private static void submitJob(Config config, int containers, JobConfig jobConfig, String clazz) {
-        Twister2Job twister2Job;
-        twister2Job = Twister2Job.newBuilder()
-                .setJobName(clazz)
-                .setWorkerClass(clazz)
-                .addComputeResource(1, 512, containers)
-                .setConfig(jobConfig)
-                .build();
-        // now submit the job
-        Twister2Submitter.submitJob(twister2Job, config);
-    }
+
 }
