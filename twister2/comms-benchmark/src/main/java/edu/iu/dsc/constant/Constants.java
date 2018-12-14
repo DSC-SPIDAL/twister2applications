@@ -31,6 +31,7 @@ public final class Constants {
 
 
     public static final String ARGS_ITR = "itr";
+    public static final String ARGS_SIZE = "size";
     public static final String ARGS_OPERATION = "op";
     public static final String ARGS_PARALLELISM = "parallelism";
     public static final String ARGS_TASKS = "tasks";
@@ -48,5 +49,7 @@ public final class Constants {
     public static final String ARGS_NUMBER_OF_FILES = "nFiles";
     public static final String ARGS_SHARED_FILE_SYSTEM = "fShared";
     public static final String ARGS_TYPE = "type";
+    public static final String ARGS_GAP = "gap";
+    public static final String ARGS_OUTSTANDING = "outstanding";
 
 }
