@@ -3,8 +3,6 @@ package edu.iu.dsc.comms.akeyed;
 import edu.iu.dsc.comms.akeyed.examples.BPartitionExample;
 import edu.iu.dsc.comms.common.Submitter;
 import edu.iu.dsc.tws.api.JobConfig;
-import edu.iu.dsc.tws.api.Twister2Submitter;
-import edu.iu.dsc.tws.api.job.Twister2Job;
 import edu.iu.dsc.tws.common.config.Config;
 
 public class AKeyedRunner {
