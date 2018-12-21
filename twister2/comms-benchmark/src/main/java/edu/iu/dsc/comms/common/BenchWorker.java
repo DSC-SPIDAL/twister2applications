@@ -136,7 +136,7 @@ public abstract class BenchWorker implements IWorker {
 
         @Override
         public void run() {
-            LOG.log(Level.INFO, "Starting map worker: " + workerId + " task: " + task);
+            //LOG.log(Level.INFO, "Starting map worker: " + workerId + " task: " + task);
             Object data = generateData();
             experimentData.setInput(data);
             experimentData.setTaskStages(jobParameters.getTaskStages());
@@ -155,7 +155,7 @@ public abstract class BenchWorker implements IWorker {
                 }
                 sendMessages(task, data, flag);
             }
-            LOG.info(String.format("%d Done sending", workerId));
+            //LOG.info(String.format("%d Done sending", workerId));
             lock.lock();
             boolean allDone = true;
             finishedSources.put(task, true);
