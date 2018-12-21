@@ -126,6 +126,7 @@ public class RunMain {
 
         if(!keyed) {
             if(comms) {
+                System.out.println("==========Comms Example Running===========");
                 CommsRunner commsRunner = new CommsRunner(config, jobConfig, stream, operation, parallelism, keyed);
                 commsRunner.run();
             }

@@ -24,6 +24,7 @@ public class CommsRunner {
     }
 
     public void run() {
+        System.out.println("==========comms run===========");
         if(keyed) {
 
         }else {
