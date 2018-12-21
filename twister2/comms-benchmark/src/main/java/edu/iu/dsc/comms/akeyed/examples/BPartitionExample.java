@@ -88,8 +88,8 @@ public class BPartitionExample extends BenchWorker {
 
         @Override
         public boolean receive(int target, Iterator<Object> it) {
-            LOG.log(Level.INFO, String.format("%d Received message %d count %d expected %d",
-                    workerId, target, Iterators.size(it), expected));
+            /*LOG.log(Level.INFO, String.format("%d Received message %d count %d expected %d",
+                    workerId, target, Iterators.size(it), expected));*/
             partitionDone = true;
             return true;
         }
