@@ -10,7 +10,7 @@
     <modules>
         <!--<module>performance</module>-->
         <!--<module>terasort</module>-->
-        <module>kmeans</module>
+        <!--<module>kmeans</module>-->
         <module>comms-benchmark</module>
 
         <!--<module>slam</module>-->

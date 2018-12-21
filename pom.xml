@@ -12,12 +12,12 @@
     <packaging>pom</packaging>
 
     <modules>
-       <module>flink</module>
+      <!-- <module>flink</module>
        <module>mpi</module>
-       <module>storm</module>
+       <module>storm</module>-->
        <module>twister2</module>
        <module>common</module>
-       <module>spark</module>
+       <!--<module>spark</module>-->
     </modules>
 
     <build>
