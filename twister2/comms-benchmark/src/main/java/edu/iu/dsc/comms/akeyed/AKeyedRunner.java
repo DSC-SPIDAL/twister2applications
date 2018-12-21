@@ -31,6 +31,7 @@ public class AKeyedRunner {
         if(!stream) {
             switch (this.op) {
                 case "partition":
+                    System.out.println("==========Partition Example selected===========");
                     Submitter.submitJob(config, parallelism, jobConfig, BPartitionExample.class.getName());
                     break;
             }
