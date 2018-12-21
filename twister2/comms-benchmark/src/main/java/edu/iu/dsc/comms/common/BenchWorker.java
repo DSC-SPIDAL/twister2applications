@@ -48,11 +48,15 @@ public abstract class BenchWorker implements IWorker {
 
     protected ExperimentData experimentData;
 
+    protected long executionTime = 0;
+
     @Override
     public void execute(Config cfg, int workerID,
                         IWorkerController workerController, IPersistentVolume persistentVolume,
                         IVolatileVolume volatileVolume) {
+
         // create the job parameters
+        executionTime -= System.currentTimeMillis();
         this.jobParameters = JobParameters.build(cfg);
         this.config = cfg;
         this.workerId = workerID;
@@ -86,6 +90,11 @@ public abstract class BenchWorker implements IWorker {
         close();
         // lets terminate the communicator
         communicator.close();
+        executionTime += System.currentTimeMillis();
+        executionTime /= 1000;
+        if(workerId==0) {
+            LOG.info("Execution Time : " + executionTime + " s");
+        }
     }
 
     protected abstract void execute();
