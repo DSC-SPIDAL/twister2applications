@@ -91,9 +91,8 @@ public abstract class BenchWorker implements IWorker {
         // lets terminate the communicator
         communicator.close();
         executionTime += System.currentTimeMillis();
-        executionTime /= 1000;
         if(workerId==0) {
-            LOG.info("Execution Time : " + executionTime + " s");
+            LOG.info("Execution Time : " + executionTime + " ms");
         }
     }
 
