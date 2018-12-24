@@ -126,9 +126,9 @@ public class JobParameters {
             taskList.add(Integer.valueOf(s));
         }
 
-        LOG.info(String.format("Starting with arguments: iter %d size %d operation %s containers "
+        /*LOG.info(String.format("Starting with arguments: iter %d size %d operation %s containers "
                         + "%d taskStages %s gap %d file %s outstanding %d threads %b",
-                iterations, size, col, containers, taskList, gap, fName, outstanding, threads));
+                iterations, size, col, containers, taskList, gap, fName, outstanding, threads));*/
 
         JobParameters jobParameters = new JobParameters(size, iterations, col,
                 containers, taskList, gap);
