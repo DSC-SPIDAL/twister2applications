@@ -1,6 +1,7 @@
 package edu.iu.dsc.comms;
 
 import edu.iu.dsc.comms.akeyed.AKeyedRunner;
+import edu.iu.dsc.comms.keyed.KeyedRunner;
 import edu.iu.dsc.tws.api.JobConfig;
 import edu.iu.dsc.tws.common.config.Config;
 
@@ -26,7 +27,8 @@ public class CommsRunner {
     public void run() {
         System.out.println("==========comms run===========");
         if(keyed) {
-
+            KeyedRunner keyedRunner = new KeyedRunner(config, jobConfig, stream, op, parallelism);
+            keyedRunner.run();
         }else {
             AKeyedRunner aKeyedRunner = new AKeyedRunner(config, jobConfig, stream, op, parallelism);
             aKeyedRunner.run();

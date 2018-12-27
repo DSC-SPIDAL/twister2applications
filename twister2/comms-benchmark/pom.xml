@@ -20,6 +20,11 @@
         </dependency>
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>proto-java</artifactId>
+            <version>0.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>resource-scheduler-java</artifactId>
             <version>0.1.0</version>
             <!-- <scope>provided</scope>-->
@@ -65,7 +70,7 @@
         <dependency>
             <groupId>ompi</groupId>
             <artifactId>ompijavabinding</artifactId>
-            <version>3.1.2</version>
+            <version>3.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.esotericsoftware</groupId>
