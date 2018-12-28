@@ -15,6 +15,7 @@ import edu.iu.dsc.tws.proto.jobmaster.JobMasterAPI;
 import edu.iu.dsc.tws.task.graph.OperationMode;
 import edu.iu.dsc.util.Utils;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -91,8 +92,18 @@ public abstract class BenchWorker implements IWorker {
         // lets terminate the communicator
         communicator.close();
         executionTime += System.currentTimeMillis();
-        if(workerId==0) {
+        if (workerID == 0) {
             LOG.info("Execution Time : " + executionTime + " ms");
+            try {
+                LOG.log(Level.INFO, "Writing results to csv");
+                CSVWriter.write(
+                        "/tmp/results/runtimes.csv",
+                        jobParameters,
+                        executionTime
+                );
+            } catch (IOException e) {
+                LOG.log(Level.SEVERE, "Failed to write results to file");
+            }
         }
     }
 
