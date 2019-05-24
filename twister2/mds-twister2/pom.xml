@@ -2,13 +2,57 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>twister2-app-root</artifactId>
+        <groupId>twister2</groupId>
+        <version>0.2.1-SNAPSHOT</version>
+    </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>twister2</groupId>
-    <artifactId>twister2-kmeans</artifactId>
-    <version>0.2-SNAPSHOT</version>
+    <artifactId>mds-twister2</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>edu.indiana.soic.spidal</groupId>
+            <artifactId>common</artifactId>
+            <version>1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>habanero-java-lib</groupId>
+            <artifactId>habanero-java-lib</artifactId>
+            <version>0.1.4-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>15.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-cli</groupId>
+            <artifactId>commons-cli</artifactId>
+            <version>1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>net.openhft</groupId>
+            <artifactId>affinity</artifactId>
+            <version>3.0.6</version>
+        </dependency>
+        <dependency>
+            <groupId>net.openhft</groupId>
+            <artifactId>lang</artifactId>
+            <version>6.7.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ompi</groupId>
+            <artifactId>ompijavabinding</artifactId>
+            <!--version>1.10.1</version-->
+            <version>3.1.2</version>
+        </dependency>
+
+
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>comms-java</artifactId>
@@ -19,13 +63,13 @@
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>resource-scheduler-java</artifactId>
             <version>0.2.1</version>
-           <!-- <scope>provided</scope>-->
+            <!-- <scope>provided</scope>-->
         </dependency>
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>common-java</artifactId>
             <version>0.2.1</version>
-           <!-- <scope>provided</scope>-->
+            <!-- <scope>provided</scope>-->
         </dependency>
         <!--<dependency>
             <groupId>edu.iu.dsc.tws</groupId>
@@ -39,6 +83,20 @@
             <version>0.2.1</version>
             <!--<scope>provided</scope>-->
         </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>examples-java</artifactId>
+            <version>0.2.1</version>
+            <!--<scope>provided</scope>-->
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>twister2-storm</artifactId>
+            <version>0.2.1</version>
+        </dependency>
+
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
@@ -70,16 +128,21 @@
             <version>4.0.0</version>
         </dependency>
         <dependency>
-            <groupId>twister2</groupId>
-            <artifactId>twister2-app-common-utils</artifactId>
-            <version>0.2-SNAPSHOT</version>
-        </dependency>
-        <dependency>
             <groupId>com.esotericsoftware</groupId>
             <artifactId>kryo</artifactId>
             <version>3.0.3</version>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>rice-habanero</id>
+            <name>Habanero Repository - Rice University</name>
+            <url>https://www.cs.rice.edu/~vs3/hjlib/code/maven-repo</url>
+        </repository>
+    </repositories>
+
+
     <build>
         <plugins>
             <plugin>
