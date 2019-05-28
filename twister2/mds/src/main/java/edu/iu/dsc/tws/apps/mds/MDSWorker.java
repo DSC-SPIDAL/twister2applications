@@ -124,6 +124,8 @@ public class MDSWorker extends TaskWorker {
       DataPartition<?> dataPartition = dataPointsObject.getPartitions(context.taskIndex());
       datapoints = (short[]) dataPartition.getConsumer().next();
       LOG.info("Data points value:" + Arrays.toString(datapoints) + "\t" + datapoints.length);
+      //MDSProgramWorker mdsProgramWorker = new MDSProgramWorker();
+      //mdsProgramWorker.run();
       context.writeEnd(Context.TWISTER2_DIRECT_EDGE, "MDS Execution");
     }
 
