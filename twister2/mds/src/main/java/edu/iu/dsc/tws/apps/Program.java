@@ -36,6 +36,8 @@ public class Program {
                 true, "Matrix Input Creation directory", true));
         options.addOption(Utils.createOption(DataObjectConstants.FILE_SYSTEM,
                 true, "file system", true));
+        options.addOption(Utils.createOption(DataObjectConstants.CONFIG_FILE,
+                true, "config File", true));
 
         @SuppressWarnings("deprecation")
         CommandLineParser commandLineParser = new DefaultParser();
@@ -51,6 +53,7 @@ public class Program {
         String byteType = cmd.getOptionValue(DataObjectConstants.BYTE_TYPE);
         String dataDirectory = cmd.getOptionValue(DataObjectConstants.DINPUT_DIRECTORY);
         String fileSystem = cmd.getOptionValue(DataObjectConstants.FILE_SYSTEM);
+        String configFile = cmd.getOptionValue(DataObjectConstants.CONFIG_FILE);
 
         // build JobConfig
         JobConfig jobConfig = new JobConfig();
@@ -63,6 +66,7 @@ public class Program {
         jobConfig.put(DataObjectConstants.BYTE_TYPE, byteType);
         jobConfig.put(DataObjectConstants.DINPUT_DIRECTORY, dataDirectory);
         jobConfig.put(DataObjectConstants.FILE_SYSTEM, fileSystem);
+        jobConfig.put(DataObjectConstants.CONFIG_FILE, configFile);
 
         // build JobConfig
         Twister2Job.Twister2JobBuilder jobBuilder = Twister2Job.newBuilder();
