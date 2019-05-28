@@ -4,13 +4,11 @@ import com.google.common.base.Optional;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import edu.indiana.soic.spidal.common.*;
-
 import edu.indiana.soic.spidal.configuration.section.DAMDSSection;
+import edu.indiana.soic.spidal.damds.Program;
+import edu.indiana.soic.spidal.damds.Utils;
 import edu.indiana.soic.spidal.damds.threads.ThreadCommunicator;
 import edu.indiana.soic.spidal.damds.timing.*;
-import edu.indiana.soic.spidal.damds.Utils;
-import edu.indiana.soic.spidal.damds.ParallelOps;
-import edu.indiana.soic.spidal.damds.Program;
 import mpi.MPIException;
 import net.openhft.lang.io.Bytes;
 import org.apache.commons.cli.*;
@@ -23,13 +21,19 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.DecimalFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 public class MDSProgramWorker {
+
+    private static final Logger LOG = Logger.getLogger(MDSProgramWorker.class.getName());
 
     // Constants
     private final double INV_SHORT_MAX = 1.0 / Short.MAX_VALUE;
@@ -107,6 +111,7 @@ public class MDSProgramWorker {
     }
 
     public void setup() {
+        LOG.info("The thread row count value is:" + threadId);
         final int threadRowCount = ParallelOps.threadRowCounts[threadId];
         final int threadLocalRowStartOffset =
                 ParallelOps.threadRowStartOffsets[threadId];
@@ -139,7 +144,6 @@ public class MDSProgramWorker {
                 config.targetDimension * Double.BYTES);
 
 
-
         if (lock != null) {
             lock.unlock();
         }
@@ -149,9 +153,9 @@ public class MDSProgramWorker {
         try {
             setup();
             readDistancesAndWeights(config.isSammon);
-            /*System.out.println("Rank " + ParallelOps.worldProcRank + " " +
+            System.out.println("Rank " + ParallelOps.worldProcRank + " " +
                     "TID " + threadId + "Came " +
-                    "here ");*/
+                    "here ");
 
             RefObj<Integer> missingDistCount = new RefObj<>();
             DoubleStatistics distanceSummary = calculateStatistics(

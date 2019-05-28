@@ -14,8 +14,8 @@ import org.apache.commons.cli.*;
 import java.util.HashMap;
 import java.util.logging.Logger;
 
-public class Program {
-    private static final Logger LOG = Logger.getLogger(Program.class.getName());
+public class MDSProgram {
+    private static final Logger LOG = Logger.getLogger(MDSProgram.class.getName());
     public static void main(String[] args) throws ParseException {
         // first load the configurations from command line and config files
         Config config = ResourceAllocator.loadConfig(new HashMap<>());
@@ -67,6 +67,7 @@ public class Program {
         jobConfig.put(DataObjectConstants.DINPUT_DIRECTORY, dataDirectory);
         jobConfig.put(DataObjectConstants.FILE_SYSTEM, fileSystem);
         jobConfig.put(DataObjectConstants.CONFIG_FILE, configFile);
+        //jobConfig.put("CommandLineObject", cmd);
 
         // build JobConfig
         Twister2Job.Twister2JobBuilder jobBuilder = Twister2Job.newBuilder();

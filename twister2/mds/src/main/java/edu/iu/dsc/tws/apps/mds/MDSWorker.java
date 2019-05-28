@@ -11,10 +11,9 @@
 //  limitations under the License.
 package edu.iu.dsc.tws.apps.mds;
 
+import com.google.common.base.Stopwatch;
 import edu.indiana.soic.spidal.configuration.ConfigurationMgr;
 import edu.indiana.soic.spidal.configuration.section.DAMDSSection;
-import edu.indiana.soic.spidal.damds.Constants;
-import edu.indiana.soic.spidal.damds.ParallelOps;
 import edu.iu.dsc.tws.api.JobConfig;
 import edu.iu.dsc.tws.api.Twister2Submitter;
 import edu.iu.dsc.tws.api.job.Twister2Job;
@@ -34,8 +33,10 @@ import edu.iu.dsc.tws.task.api.BaseSource;
 import edu.iu.dsc.tws.task.api.IMessage;
 import edu.iu.dsc.tws.task.graph.DataFlowTaskGraph;
 import edu.iu.dsc.tws.task.graph.OperationMode;
+import mpi.MPIException;
 import org.apache.commons.cli.*;
 
+import java.io.IOException;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -46,6 +47,14 @@ public class MDSWorker extends TaskWorker {
 
     private static final Logger LOG = Logger.getLogger(MDSWorker.class.getName());
 
+    //Config Settings
+    private DAMDSSection mdsconfig;
+    private ByteOrder byteOrder;
+    private int BlockSize;
+
+    private static boolean bind;
+    private static int cps;
+
     @Override
     public void execute() {
 
@@ -55,9 +64,23 @@ public class MDSWorker extends TaskWorker {
         int dimension = mdsWorkerParameters.getDimension();
         int matrixSize = mdsWorkerParameters.getDsize();
 
-        LOG.info("Config Directory:" + config.get("config"));
-
         String configFile = config.getStringValue("config");
+        readConfiguration(configFile);
+
+        String[] args = new String[]{configFile, String.valueOf(edu.iu.dsc.tws.apps.mds.ParallelOps.nodeCount),
+                String.valueOf(edu.iu.dsc.tws.apps.mds.ParallelOps.threadCount)};
+        DAMDSSection mdsconfig = new ConfigurationMgr(configFile).damdsSection;
+        try {
+            LOG.info("calling Setup parallelism " + workerId);
+            ParallelOps.setupParallelism(args);
+            ParallelOps.setParallelDecomposition(mdsconfig.numberDataPoints,
+                    mdsconfig.targetDimension);
+        } catch (MPIException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         String directory = config.getStringValue("dinput");
         String byteType = config.getStringValue("byteType");
 
@@ -119,22 +142,60 @@ public class MDSWorker extends TaskWorker {
         taskExecutor.execute(mdsTaskGraph, executionPlan);
     }
 
+    private void readConfiguration(String filename) {
+        mdsconfig = new ConfigurationMgr(filename).damdsSection;
+
+        ParallelOps.nodeCount = Integer.parseInt(config.getStringValue("workers"));
+        ParallelOps.threadCount = Integer.parseInt(String.valueOf(config.get("twister2.exector.worker.threads")));
+
+        byteOrder = mdsconfig.isBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
+        BlockSize = mdsconfig.blockSize;
+
+        ParallelOps.mmapsPerNode = 1;
+        ParallelOps.mmapScratchDir = ".";
+
+        cps = -1;
+        if (cps == -1){
+            bind = false;
+        }
+        LOG.info("node count and thread count:" + ParallelOps.nodeCount + "\t"
+                + ParallelOps.threadCount + "\t" + byteOrder + "\t" + BlockSize);
+    }
+
     private static class MDSSourceTask extends BaseSource implements Receptor {
 
         private static final long serialVersionUID = -254264120110286748L;
 
         private DataObject<?> dataPointsObject = null;
-
         private short[] datapoints = null;
+
+        //Config Settings
+        private DAMDSSection mdsconfig;
+        private ByteOrder byteOrder;
+        private int BlockSize;
 
         @Override
         public void execute() {
             DataPartition<?> dataPartition = dataPointsObject.getPartitions(context.taskIndex());
             datapoints = (short[]) dataPartition.getConsumer().next();
             LOG.fine("Data points value:" + Arrays.toString(datapoints) + "\t" + datapoints.length);
-            readConfiguration(String.valueOf(config.get("config")));
-            //MDSProgramWorker mdsProgramWorker = new MDSProgramWorker();
-            //mdsProgramWorker.run();
+
+
+//            String configFilename = String.valueOf(config.get("config"));
+//            readConfiguration(configFilename);
+
+//            String[] args = new String[]{configFilename, String.valueOf(edu.iu.dsc.tws.apps.mds.ParallelOps.nodeCount),
+//                    String.valueOf(edu.iu.dsc.tws.apps.mds.ParallelOps.threadCount)};
+//            try {
+//                edu.iu.dsc.tws.apps.mds.ParallelOps.setupParallelism(args);
+//                edu.iu.dsc.tws.apps.mds.ParallelOps.setParallelDecomposition(mdsconfig.numberDataPoints, mdsconfig.targetDimension);
+//                edu.iu.dsc.tws.apps.mds.ParallelOps.worldProcsComm.barrier();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            } catch (MPIException e) {
+//                e.printStackTrace();
+//            }
+            executeMds();
             context.writeEnd(Context.TWISTER2_DIRECT_EDGE, "MDS Execution");
         }
 
@@ -146,34 +207,32 @@ public class MDSWorker extends TaskWorker {
             }
         }
 
-        private void readConfiguration(String filename) {
-            //Config Settings
-            DAMDSSection config;
-            ByteOrder byteOrder;
-            int BlockSize;
-            edu.indiana.soic.spidal.damds.Utils utils = new edu.indiana.soic.spidal.damds.Utils(0);
-            boolean bind;
-            int cps;
-
-            config = new ConfigurationMgr(filename).damdsSection;
-            LOG.info("Config in read configuration:" + config);
-//            ParallelOps.nodeCount = Integer.parseInt(cmd.getOptionValue(Constants.CMD_OPTION_LONG_N));
-//            ParallelOps.threadCount = Integer.parseInt(cmd.getOptionValue(Constants.CMD_OPTION_LONG_T));
-//
-//            ParallelOps.mmapsPerNode = cmd.hasOption(Constants.CMD_OPTION_SHORT_MMAPS) ? Integer.parseInt(cmd.getOptionValue(Constants.CMD_OPTION_SHORT_MMAPS)) : 1;
-//            ParallelOps.mmapScratchDir = cmd.hasOption(Constants.CMD_OPTION_SHORT_MMAP_SCRATCH_DIR) ? cmd.getOptionValue(Constants.CMD_OPTION_SHORT_MMAP_SCRATCH_DIR) : ".";
-//
-//            byteOrder = config.isBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
-//            BlockSize = config.blockSize;
-//
-//            bind = !cmd.hasOption(Constants.CMD_OPTION_SHORT_BIND_THREADS) ||
-//                    Boolean.parseBoolean(cmd.getOptionValue(Constants.CMD_OPTION_SHORT_BIND_THREADS));
-//            cps = (cmd.hasOption(Constants.CMD_OPTION_SHORT_CPS)) ? Integer.parseInt(cmd.getOptionValue(Constants.CMD_OPTION_SHORT_CPS)) : -1;
-//            if (cps == -1) {
-//                utils.printMessage("Disabling thread binding as cps is not specified");
-//                bind = false;
-//            }
+        private void executeMds() {
+            Stopwatch mainTimer = Stopwatch.createStarted();
+            MDSProgramWorker mdsProgramWorker = new MDSProgramWorker(0, edu.iu.dsc.tws.apps.mds.ParallelOps.threadComm,
+                    this.mdsconfig, this.byteOrder, this.BlockSize, mainTimer, null);
+            try {
+                mdsProgramWorker.run();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
+
+       /* private void readConfiguration(String filename) {
+            mdsconfig = new ConfigurationMgr(filename).damdsSection;
+
+            edu.iu.dsc.tws.apps.mds.ParallelOps.nodeCount = Integer.parseInt(config.getStringValue("workers"));
+            edu.iu.dsc.tws.apps.mds.ParallelOps.threadCount = Integer.parseInt(String.valueOf(config.get("twister2.exector.worker.threads")));
+
+            byteOrder = mdsconfig.isBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
+            BlockSize = mdsconfig.blockSize;
+
+            edu.iu.dsc.tws.apps.mds.ParallelOps.mmapsPerNode = 1;
+            edu.iu.dsc.tws.apps.mds.ParallelOps.mmapScratchDir = ".";
+
+            LOG.info("node count and thread count:" + edu.iu.dsc.tws.apps.mds.ParallelOps.nodeCount + "\t"
+                    + edu.iu.dsc.tws.apps.mds.ParallelOps.threadCount + "\t" + byteOrder + "\t" + BlockSize);
+        }*/
     }
 
     private static class MDSReceiverTask extends BaseSink implements Collector {

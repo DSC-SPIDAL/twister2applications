@@ -11,8 +11,8 @@
         <!--<module>performance</module>-->
         <!--<module>terasort</module>-->
         <!--<module>kmeans</module>-->
-        <module>comms-benchmark</module>
-        <module>mds-twister2</module>
+        <!--module>comms-benchmark</module-->
+        <module>mds</module>
 
         <!--<module>slam</module>-->
     </modules>
