@@ -112,8 +112,6 @@ public class ParallelOps {
         //MPI.Init(args);
         machineName = MPI.getProcessorName();
 
-        LOG.info("Machine Name is:" + machineName);
-
         /* Allocate basic buffers for communication */
         statBuffer = MPI.newByteBuffer(DoubleStatistics.extent);
         doubleBuffer = MPI.newDoubleBuffer(1);
@@ -127,7 +125,6 @@ public class ParallelOps {
         /* Create communicating groups */
         worldProcsPerNode = worldProcsCount / nodeCount;
 
-        LOG.info( "worldProcsPerNode:" +  worldProcsPerNode);
         isHeterogeneous = (worldProcsPerNode * nodeCount) != worldProcsCount;
         if (isHeterogeneous) {
             utils.printMessage("Running in heterogeneous mode");
@@ -234,7 +231,7 @@ public class ParallelOps {
         }
         worldProcRankLocalToNode = worldProcRank - rankOffset;
         final int procCountOnMyNode = nodeToProcCount.get(myNode);
-        LOG.info("%%%%% mmapsPerNode:" + mmapsPerNode + "\t" + procCountOnMyNode);
+        LOG.fine("%%%%% mmapsPerNode:" + mmapsPerNode + "\t" + procCountOnMyNode);
         q = procCountOnMyNode / mmapsPerNode;
         r = procCountOnMyNode % mmapsPerNode;
         return new int[]{q, r};
@@ -449,7 +446,7 @@ public class ParallelOps {
             } while (count != 0);
         }
 
-        if (edu.indiana.soic.spidal.damds.ParallelOps.isMmapLead) {
+        if (ParallelOps.isMmapLead) {
             cgProcComm.allGatherv(mmapXReadByteBuffer,
                     cgProcsMmapXByteExtents[cgProcRank], MPI.BYTE,
                     fullXByteBuffer, cgProcsMmapXByteExtents,

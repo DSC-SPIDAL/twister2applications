@@ -87,9 +87,10 @@ public class MDSProgramWorker {
 
     private Lock lock;
 
+
     public MDSProgramWorker(int threadId, ThreadCommunicator comm, DAMDSSection
             config, ByteOrder byteOrder, int blockSize, Stopwatch mainTimer,
-                            Lock lock) {
+                            Lock lock, short[] points) {
         this.threadId = threadId;
         this.threadComm = comm;
         this.config = config;
@@ -97,6 +98,7 @@ public class MDSProgramWorker {
         this.BlockSize = blockSize;
         this.mainTimer = mainTimer;
         this.lock = lock;
+        this.distances = points;
         utils = new Utils(threadId);
 
         bcInternalTimings = new BCInternalTimings();
@@ -111,7 +113,6 @@ public class MDSProgramWorker {
     }
 
     public void setup() {
-        LOG.info("The thread row count value is:" + threadId);
         final int threadRowCount = ParallelOps.threadRowCounts[threadId];
         final int threadLocalRowStartOffset =
                 ParallelOps.threadRowStartOffsets[threadId];
@@ -123,7 +124,6 @@ public class MDSProgramWorker {
         threadLocalRowRange = new Range(
                 threadLocalRowStartOffset, (
                 threadLocalRowStartOffset + threadRowCount - 1));
-
         if (lock != null) {
             lock.lock();
         }
@@ -152,14 +152,11 @@ public class MDSProgramWorker {
     public void run() throws IOException {
         try {
             setup();
-            readDistancesAndWeights(config.isSammon);
-            System.out.println("Rank " + ParallelOps.worldProcRank + " " +
-                    "TID " + threadId + "Came " +
-                    "here ");
-
+            //We are going to make use of the distance matrices we have created
+            //readDistancesAndWeights(config.isSammon);
+            readWeights(config.isSammon);
             RefObj<Integer> missingDistCount = new RefObj<>();
-            DoubleStatistics distanceSummary = calculateStatistics(
-                    distances, weights, missingDistCount);
+            DoubleStatistics distanceSummary = calculateStatistics(distances, weights, missingDistCount);
             double missingDistPercent = missingDistCount.getValue() /
                     (Math.pow(config.numberDataPoints, 2));
             INV_SUM_OF_SQUARE = 1.0 / distanceSummary.getSumOfSquare();
@@ -357,7 +354,8 @@ public class MDSProgramWorker {
 
             if (threadId == 0) {
                 if (ParallelOps.worldProcRank == 0){
-                    Utils.writeOutput(preX, Program.config.targetDimension, Program.config.pointsFile);
+            //        Utils.writeOutput(preX, Program.config.targetDimension, Program.config.pointsFile);
+                    Utils.writeOutput(preX, config.targetDimension, config.pointsFile);
                 }
                 mainTimer.stop();
             }
@@ -1175,30 +1173,9 @@ public class MDSProgramWorker {
         }
     }
 
-    private void readDistancesAndWeights(boolean isSammon) {
+    private void readWeights(boolean isSammon) {
         TransformationFunction function;
-        if (!Strings.isNullOrEmpty(config.transformationFunction)) {
-            function = loadFunction(config.transformationFunction);
-        } else {
-            function = (config.distanceTransform != 1.0
-                    ? (d -> Math.pow(d, config.distanceTransform))
-                    : null);
-        }
-
-
-        int elementCount = globalThreadRowRange.getLength() * ParallelOps
-                .globalColCount;
-        distances = new short[elementCount];
-        if (config.repetitions == 1) {
-            BinaryReader1D.readRowRange(config.distanceMatrixFile,
-                    globalThreadRowRange, ParallelOps.globalColCount, byteOrder,
-                    true, function, distances);
-        } else {
-            BinaryReader1D.readRowRange(config.distanceMatrixFile,
-                    globalThreadRowRange, ParallelOps.globalColCount, byteOrder,
-                    true, function, config.repetitions, distances);
-        }
-
+        int elementCount = globalThreadRowRange.getLength() * ParallelOps.globalColCount;
         if (!Strings.isNullOrEmpty(config.weightMatrixFile)) {
             short[] w = null;
             function = !Strings.isNullOrEmpty(config
@@ -1230,8 +1207,64 @@ public class MDSProgramWorker {
             weights = new WeightsWrap1D(
                     null, distances, isSammon, ParallelOps.globalColCount);
         }
-
     }
+
+//    private void readDistancesAndWeights(boolean isSammon) {
+//        TransformationFunction function;
+//        if (!Strings.isNullOrEmpty(config.transformationFunction)) {
+//            function = loadFunction(config.transformationFunction);
+//        } else {
+//            function = (config.distanceTransform != 1.0
+//                    ? (d -> Math.pow(d, config.distanceTransform))
+//                    : null);
+//        }
+//
+//        int elementCount = globalThreadRowRange.getLength() * ParallelOps.globalColCount;
+//        LOG.info("Element Count:" + globalThreadRowRange.getLength()  + "\t" + ParallelOps.globalColCount);
+//        distances = new short[elementCount];
+//        if (config.repetitions == 1) {
+//            BinaryReader1D.readRowRange(config.distanceMatrixFile,
+//                    globalThreadRowRange, ParallelOps.globalColCount, byteOrder,
+//                    true, function, distances);
+//        } else {
+//            BinaryReader1D.readRowRange(config.distanceMatrixFile,
+//                    globalThreadRowRange, ParallelOps.globalColCount, byteOrder,
+//                    true, function, config.repetitions, distances);
+//        }
+//
+//        if (!Strings.isNullOrEmpty(config.weightMatrixFile)) {
+//            short[] w = null;
+//            function = !Strings.isNullOrEmpty(config
+//                    .weightTransformationFunction)
+//                    ? loadFunction(config.weightTransformationFunction)
+//                    : null;
+//            if (!config.isSimpleWeights) {
+//                w = new short[elementCount];
+//                if (config.repetitions == 1) {
+//                    BinaryReader1D.readRowRange(config.weightMatrixFile,
+//                            globalThreadRowRange, ParallelOps.globalColCount,
+//                            byteOrder, true, function, w);
+//                } else {
+//                    BinaryReader1D.readRowRange(config.weightMatrixFile,
+//                            globalThreadRowRange, ParallelOps.globalColCount,
+//                            byteOrder, true, function, config.repetitions, w);
+//                }
+//                weights = new WeightsWrap1D(
+//                        w, distances, isSammon, ParallelOps.globalColCount);
+//            } else {
+//                double[] sw = null;
+//                sw = BinaryReader2D.readSimpleFile(config.weightMatrixFile,
+//                        config.numberDataPoints);
+//                weights = new WeightsWrap1D(sw, globalThreadRowRange,
+//                        distances, isSammon, ParallelOps.globalColCount,
+//                        function);
+//            }
+//        } else {
+//            weights = new WeightsWrap1D(
+//                    null, distances, isSammon, ParallelOps.globalColCount);
+//        }
+//
+//    }
 
     private DoubleStatistics calculateStatisticsInternal(
             short[] distances, WeightsWrap1D weights, RefObj<Integer>
@@ -1241,7 +1274,6 @@ public class MDSProgramWorker {
         DoubleStatistics stat = new DoubleStatistics();
 
         int threadRowCount = ParallelOps.threadRowCounts[threadId];
-
         double origD, weight;
         for (int localRow = 0; localRow < threadRowCount; ++localRow) {
             for (int globalCol = 0; globalCol < ParallelOps.globalColCount;

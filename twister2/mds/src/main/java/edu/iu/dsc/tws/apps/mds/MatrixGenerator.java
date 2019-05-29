@@ -29,9 +29,10 @@ public class MatrixGenerator {
   private static final Logger LOG = Logger.getLogger(MatrixGenerator.class.getName());
 
   private Config config;
-  private static ByteOrder endianness = ByteOrder.BIG_ENDIAN;
 
+  private static ByteOrder endianness = ByteOrder.BIG_ENDIAN;
   private static int dataTypeSize = Short.BYTES;
+
   private int workerId;
 
   public MatrixGenerator(Config cfg, int workerid) {
@@ -41,22 +42,21 @@ public class MatrixGenerator {
 
   /**
    * To generate the matrix for MDS application
-   * @param numberOfRows
-   * @param dimensions
+   * @param matrixRowLength
+   * @param matrixColumnLength
    * @param directory
    * @param byteType
    */
-  public void generate(int numberOfRows, int dimensions, String directory, String byteType) {
-
+  public void generate(int matrixRowLength, int matrixColumnLength, String directory, String byteType) {
     endianness = "big".equals(byteType) ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
 
-    short[] input = new short[numberOfRows * dimensions];
-    for (int i = 0; i < numberOfRows * dimensions; i++) {
+    short[] input = new short[matrixRowLength * matrixColumnLength];
+    for (int i = 0; i < matrixRowLength * matrixColumnLength; i++) {
       double temp = Math.random() * Short.MAX_VALUE;
       input[i] = (short) temp;
     }
     try {
-      ByteBuffer byteBuffer = ByteBuffer.allocate(numberOfRows * dimensions * 2);
+      ByteBuffer byteBuffer = ByteBuffer.allocate(matrixRowLength * matrixColumnLength * 2);
       if (endianness.equals(ByteOrder.BIG_ENDIAN)) {
         byteBuffer.order(ByteOrder.BIG_ENDIAN);
       } else {
