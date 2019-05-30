@@ -64,9 +64,12 @@ public class MDSWorker extends TaskWorker {
         int matrixRowLength = mdsWorkerParameters.getDsize();
         int matrixColumLength = mdsWorkerParameters.getDimension();
 
+        String dataInput = mdsWorkerParameters.getDataInput();
         String configFile = config.getStringValue("config");
-        readConfiguration(configFile);
+        String directory = config.getStringValue("dinput");
+        String byteType = config.getStringValue("byteType");
 
+        readConfiguration(configFile);
         String[] args = new String[]{configFile, String.valueOf(ParallelOps.nodeCount),
                 String.valueOf(ParallelOps.threadCount)};
         mdsconfig = new ConfigurationMgr(configFile).damdsSection;
@@ -79,12 +82,11 @@ public class MDSWorker extends TaskWorker {
             throw new RuntimeException(e.getMessage());
         }
 
-        String directory = config.getStringValue("dinput");
-        String byteType = config.getStringValue("byteType");
-
-        /** Generate the Matrix for the MDS **/
-        MatrixGenerator matrixGen = new MatrixGenerator(config, workerId);
-        matrixGen.generate(matrixRowLength, matrixColumLength, directory, byteType);
+        /** Generate the Matrix for the MDS if the user input is "generate" **/
+        if ("generate".equalsIgnoreCase(dataInput)) {
+            MatrixGenerator matrixGen = new MatrixGenerator(config, workerId);
+            matrixGen.generate(matrixRowLength, matrixColumLength, directory, byteType);
+        }
 
         /** Task Graph to partition the generated matrix for MDS **/
         MDSDataObjectSource mdsDataObjectSource = new MDSDataObjectSource(Context.TWISTER2_DIRECT_EDGE, directory,

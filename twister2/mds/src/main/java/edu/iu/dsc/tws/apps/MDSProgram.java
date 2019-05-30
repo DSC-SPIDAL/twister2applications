@@ -31,6 +31,7 @@ public class MDSProgram {
         options.addOption(DataObjectConstants.DSIZE, true, "Size of the matrix rows");
         options.addOption(DataObjectConstants.DIMENSIONS, true, "dimension of the matrix");
         options.addOption(DataObjectConstants.BYTE_TYPE, true, "bytetype");
+        options.addOption(DataObjectConstants.DATA_INPUT, true, "datainput");
 
         options.addOption(Utils.createOption(DataObjectConstants.DINPUT_DIRECTORY,
                 true, "Matrix Input Creation directory", true));
@@ -54,6 +55,7 @@ public class MDSProgram {
         String dataDirectory = cmd.getOptionValue(DataObjectConstants.DINPUT_DIRECTORY);
         String fileSystem = cmd.getOptionValue(DataObjectConstants.FILE_SYSTEM);
         String configFile = cmd.getOptionValue(DataObjectConstants.CONFIG_FILE);
+        String dataInput = cmd.getOptionValue(DataObjectConstants.DATA_INPUT);
 
         // build JobConfig
         JobConfig jobConfig = new JobConfig();
@@ -67,7 +69,7 @@ public class MDSProgram {
         jobConfig.put(DataObjectConstants.DINPUT_DIRECTORY, dataDirectory);
         jobConfig.put(DataObjectConstants.FILE_SYSTEM, fileSystem);
         jobConfig.put(DataObjectConstants.CONFIG_FILE, configFile);
-        //jobConfig.put("CommandLineObject", cmd);
+        jobConfig.put(DataObjectConstants.DATA_INPUT, dataInput);
 
         // build JobConfig
         Twister2Job.Twister2JobBuilder jobBuilder = Twister2Job.newBuilder();
