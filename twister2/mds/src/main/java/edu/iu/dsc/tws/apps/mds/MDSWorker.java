@@ -65,9 +65,9 @@ public class MDSWorker extends TaskWorker {
         int matrixColumLength = mdsWorkerParameters.getDimension();
 
         String dataInput = mdsWorkerParameters.getDataInput();
-        String configFile = config.getStringValue("config");
-        String directory = config.getStringValue("dinput");
-        String byteType = config.getStringValue("byteType");
+        String configFile = mdsWorkerParameters.getConfigFile();
+        String directory = mdsWorkerParameters.getDatapointDirectory();
+        String byteType = mdsWorkerParameters.getByteType();
 
         readConfiguration(configFile);
         String[] args = new String[]{configFile, String.valueOf(ParallelOps.nodeCount),
@@ -83,7 +83,8 @@ public class MDSWorker extends TaskWorker {
         }
 
         /** Generate the Matrix for the MDS if the user input is "generate" **/
-        if ("generate".equalsIgnoreCase(dataInput)) {
+        if (Context.TWISTER2_DATA_INPUT.equalsIgnoreCase(dataInput)) {
+            LOG.info("I am coming inside to generate data input");
             MatrixGenerator matrixGen = new MatrixGenerator(config, workerId);
             matrixGen.generate(matrixRowLength, matrixColumLength, directory, byteType);
         }
@@ -214,67 +215,5 @@ public class MDSWorker extends TaskWorker {
         public DataPartition<?> get() {
             return null;
         }
-    }
-
-    public static void main(String[] args) throws ParseException {
-        // first load the configurations from command line and config files
-        Config config = ResourceAllocator.loadConfig(new HashMap<>());
-
-        // build JobConfig
-        HashMap<String, Object> configurations = new HashMap<>();
-        configurations.put(SchedulerContext.THREADS_PER_WORKER, 1);
-
-        Options options = new Options();
-        options.addOption(DataObjectConstants.WORKERS, true, "Workers");
-        options.addOption(DataObjectConstants.PARALLELISM_VALUE, true, "parallelism");
-
-        options.addOption(DataObjectConstants.DSIZE, true, "Size of the matrix rows");
-        options.addOption(DataObjectConstants.DIMENSIONS, true, "dimension of the matrix");
-        options.addOption(DataObjectConstants.BYTE_TYPE, true, "bytetype");
-        options.addOption(DataObjectConstants.CONFIG_FILE, true, "configfile");
-
-        options.addOption(Utils.createOption(DataObjectConstants.DINPUT_DIRECTORY,
-                true, "Matrix Input Creation directory", true));
-        options.addOption(Utils.createOption(DataObjectConstants.FILE_SYSTEM,
-                true, "file system", true));
-
-        @SuppressWarnings("deprecation")
-        CommandLineParser commandLineParser = new DefaultParser();
-        CommandLine cmd = commandLineParser.parse(options, args);
-
-        int workers = Integer.parseInt(cmd.getOptionValue(DataObjectConstants.WORKERS));
-        int dsize = Integer.parseInt(cmd.getOptionValue(DataObjectConstants.DSIZE));
-
-        int dimension = Integer.parseInt(cmd.getOptionValue(DataObjectConstants.DIMENSIONS));
-        int parallelismValue = Integer.parseInt(cmd.getOptionValue(
-                DataObjectConstants.PARALLELISM_VALUE));
-
-        String byteType = cmd.getOptionValue(DataObjectConstants.BYTE_TYPE);
-        String dataDirectory = cmd.getOptionValue(DataObjectConstants.DINPUT_DIRECTORY);
-        String fileSystem = cmd.getOptionValue(DataObjectConstants.FILE_SYSTEM);
-        String configFile = cmd.getOptionValue(DataObjectConstants.CONFIG_FILE);
-
-        // build JobConfig
-        JobConfig jobConfig = new JobConfig();
-        jobConfig.put(DataObjectConstants.WORKERS, Integer.toString(workers));
-        jobConfig.put(DataObjectConstants.PARALLELISM_VALUE, Integer.toString(parallelismValue));
-
-        jobConfig.put(DataObjectConstants.DIMENSIONS, Integer.toString(dimension));
-        jobConfig.put(DataObjectConstants.DSIZE, Integer.toString(dsize));
-
-        jobConfig.put(DataObjectConstants.BYTE_TYPE, byteType);
-        jobConfig.put(DataObjectConstants.DINPUT_DIRECTORY, dataDirectory);
-        jobConfig.put(DataObjectConstants.FILE_SYSTEM, fileSystem);
-        jobConfig.put(DataObjectConstants.CONFIG_FILE, configFile);
-
-        // build JobConfig
-        Twister2Job.Twister2JobBuilder jobBuilder = Twister2Job.newBuilder();
-        jobBuilder.setJobName("MatrixGenerator-job");
-        jobBuilder.setWorkerClass(MDSWorker.class.getName());
-        jobBuilder.addComputeResource(2, 512, 1.0, workers);
-        jobBuilder.setConfig(jobConfig);
-
-        // now submit the job
-        Twister2Submitter.submitJob(jobBuilder.build(), config);
     }
 }

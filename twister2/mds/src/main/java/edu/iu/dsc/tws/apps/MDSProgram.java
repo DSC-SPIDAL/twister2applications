@@ -73,7 +73,7 @@ public class MDSProgram {
 
         // build JobConfig
         Twister2Job.Twister2JobBuilder jobBuilder = Twister2Job.newBuilder();
-        jobBuilder.setJobName("MatrixGenerator-job");
+        jobBuilder.setJobName("MDS-job");
         jobBuilder.setWorkerClass(MDSWorker.class.getName());
         jobBuilder.addComputeResource(2, 512, 1.0, workers);
         jobBuilder.setConfig(jobConfig);

@@ -109,7 +109,6 @@ public class MDSDataObjectSource extends BaseSource {
             buffer = byteBuffer.asShortBuffer();
             short[] shortArray = new short[getDataSize()];
             ((ShortBuffer) buffer).get(shortArray);
-
             //For writing into the partition file
             //sink.add(context.taskIndex(), Arrays.toString(shortArray));
             context.write(getEdgeName(), shortArray);
@@ -118,7 +117,7 @@ public class MDSDataObjectSource extends BaseSource {
         }
         LOG.info("count value is:" + count);
         inputSplit = null;
-        //inputSplit = source.getNextSplit(context.taskIndex()); TODO: Bug #429
+        //inputSplit = source.getNextSplit(context.taskIndex());
       } catch (Exception ioe) {
         throw new RuntimeException("IOException Occured:" + ioe.getMessage());
       }
