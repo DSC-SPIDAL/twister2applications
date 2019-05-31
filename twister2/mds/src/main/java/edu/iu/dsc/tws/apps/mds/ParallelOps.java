@@ -82,25 +82,25 @@ public class ParallelOps {
     private static DoubleBuffer doubleBuffer;
     private static double[] doubleArray;
     private static IntBuffer intBuffer;
-    public static LongBuffer threadsAndMPIBuffer;
-    public static LongBuffer mpiOnlyBuffer;
+    private static LongBuffer threadsAndMPIBuffer;
+    private static LongBuffer mpiOnlyBuffer;
 
-    public static String mmapLockFileNameOne;
-    public static String mmapEntryLockFileName;
-    public static Bytes mmapLockOne;
-    public static Bytes mmapEntryLock;
+    private static String mmapLockFileNameOne;
+    private static String mmapEntryLockFileName;
+    private static Bytes mmapLockOne;
+    private static Bytes mmapEntryLock;
     private static int FLAG = 0;
     private static int COUNT = Long.BYTES;
 
-    public static Bytes mmapXReadBytes;
-    public static ByteBuffer mmapXReadByteBuffer;
-    public static Bytes mmapXWriteBytes;
-    public static Bytes fullXBytes;
-    public static ByteBuffer fullXByteBuffer;
+    private static Bytes mmapXReadBytes;
+    private static ByteBuffer mmapXReadByteBuffer;
+    private static Bytes mmapXWriteBytes;
+    private static Bytes fullXBytes;
+    private static ByteBuffer fullXByteBuffer;
 
-    public static Bytes mmapSReadBytes;
-    public static ByteBuffer mmapSReadByteBuffer;
-    public static Bytes mmapSWriteBytes;
+    private static Bytes mmapSReadBytes;
+    private static ByteBuffer mmapSReadByteBuffer;
+    private static Bytes mmapSWriteBytes;
 
     public static ThreadCommunicator threadComm;
 
@@ -247,10 +247,10 @@ public class ParallelOps {
         }
     }
 
-    public static void tearDownParallelism() throws MPIException {
-        // End MPI
-        // MPI.Finalize();
-    }
+//    public static void tearDownParallelism() throws MPIException {
+//        // End MPI
+//        MPI.Finalize();
+//    }
 
     public static void setParallelDecomposition(int globalRowCount, int targetDimension)
             throws IOException, MPIException {
