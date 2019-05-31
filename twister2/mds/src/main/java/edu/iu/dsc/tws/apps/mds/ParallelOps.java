@@ -78,29 +78,29 @@ public class ParallelOps {
     public static int globalColCount;
 
     // Buffers for MPI operations
-    private static ByteBuffer statBuffer;
-    private static DoubleBuffer doubleBuffer;
-    private static double[] doubleArray;
-    private static IntBuffer intBuffer;
-    private static LongBuffer threadsAndMPIBuffer;
-    private static LongBuffer mpiOnlyBuffer;
+    public static ByteBuffer statBuffer;
+    public static DoubleBuffer doubleBuffer;
+    public static double[] doubleArray;
+    public static IntBuffer intBuffer;
+    public static LongBuffer threadsAndMPIBuffer;
+    public static LongBuffer mpiOnlyBuffer;
 
-    private static String mmapLockFileNameOne;
-    private static String mmapEntryLockFileName;
-    private static Bytes mmapLockOne;
-    private static Bytes mmapEntryLock;
-    private static int FLAG = 0;
-    private static int COUNT = Long.BYTES;
+    public static String mmapLockFileNameOne;
+    public static String mmapEntryLockFileName;
+    public static Bytes mmapLockOne;
+    public static Bytes mmapEntryLock;
+    public static int FLAG = 0;
+    public static int COUNT = Long.BYTES;
 
-    private static Bytes mmapXReadBytes;
-    private static ByteBuffer mmapXReadByteBuffer;
-    private static Bytes mmapXWriteBytes;
-    private static Bytes fullXBytes;
-    private static ByteBuffer fullXByteBuffer;
+    public static Bytes mmapXReadBytes;
+    public static ByteBuffer mmapXReadByteBuffer;
+    public static Bytes mmapXWriteBytes;
+    public static Bytes fullXBytes;
+    public static ByteBuffer fullXByteBuffer;
 
-    private static Bytes mmapSReadBytes;
-    private static ByteBuffer mmapSReadByteBuffer;
-    private static Bytes mmapSWriteBytes;
+    public static Bytes mmapSReadBytes;
+    public static ByteBuffer mmapSReadByteBuffer;
+    public static Bytes mmapSWriteBytes;
 
     public static ThreadCommunicator threadComm;
 
