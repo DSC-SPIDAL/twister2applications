@@ -5,13 +5,14 @@
     <groupId>twister2</groupId>
     <artifactId>twister2-app-root</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.2.1-SNAPSHOT</version>
 
     <modules>
         <!--<module>performance</module>-->
         <!--<module>terasort</module>-->
         <!--<module>kmeans</module>-->
-        <module>comms-benchmark</module>
+        <!--module>comms-benchmark</module-->
+        <module>mds</module>
 
         <!--<module>slam</module>-->
     </modules>
