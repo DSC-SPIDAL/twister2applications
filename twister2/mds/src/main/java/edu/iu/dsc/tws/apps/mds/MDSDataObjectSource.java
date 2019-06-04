@@ -31,111 +31,109 @@ import java.util.logging.Logger;
 
 public class MDSDataObjectSource extends BaseSource {
 
-  private static final Logger LOG = Logger.getLogger(MDSDataObjectSource.class.getName());
+    private static final Logger LOG = Logger.getLogger(MDSDataObjectSource.class.getName());
 
-  private static final long serialVersionUID = -1L;
+    private static final long serialVersionUID = -1L;
 
-  /**
-   * DataSource to partition the datapoints
-   */
-  private DataSource<?, ?> source;
+    /**
+     * DataSource to partition the datapoints
+     */
+    private DataSource<?, ?> source;
 
-  private DataSink<String> sink;
+    private DataSink<String> sink;
 
-  private InputPartitioner inputPartitioner;
+    private InputPartitioner inputPartitioner;
 
-  /**
-   * Edge name to write the partitoned datapoints
-   */
-  private String edgeName;
-  private String dataDirectory;
-  private int dataSize;
+    /**
+     * Edge name to write the partitoned datapoints
+     */
+    private String edgeName;
+    private String dataDirectory;
+    private int dataSize;
 
-  public MDSDataObjectSource(String edgename, String dataDirectory, int size) {
-    this.setEdgeName(edgename);
-    this.setDataDirectory(dataDirectory);
-    this.setDataSize(size);
-  }
-
-  private int getDataSize() {
-    return dataSize;
-  }
-
-  private void setDataSize(int dataSize) {
-    this.dataSize = dataSize;
-  }
-
-  private String getDataDirectory() {
-    return dataDirectory;
-  }
-
-  private void setDataDirectory(String dataDirectory) {
-    this.dataDirectory = dataDirectory;
-  }
-
-  /**
-   * Getter property to set the edge name
-   */
-  private String getEdgeName() {
-    return edgeName;
-  }
-
-  /**
-   * Setter property to set the edge name
-   */
-  private void setEdgeName(String edgeName) {
-    this.edgeName = edgeName;
-  }
-
-  /**
-   * This method get the partitioned datapoints using the task index and write those values using
-   * the respective edge name.
-   */
-  @Override
-  public void execute() {
-    Buffer buffer;
-    byte[] line = new byte[2000];
-    ByteBuffer byteBuffer = ByteBuffer.allocate(2000);
-    byteBuffer.order(ByteOrder.BIG_ENDIAN);
-    InputSplit inputSplit = source.getNextSplit(context.taskIndex());
-    int count = 0;
-    while (inputSplit != null) {
-      try {
-        while (!inputSplit.reachedEnd()) {
-          while (inputSplit.nextRecord(line) != null) {
-            byteBuffer.clear();
-            byteBuffer.put(line);
-            byteBuffer.flip();
-            buffer = byteBuffer.asShortBuffer();
-            short[] shortArray = new short[getDataSize()];
-            ((ShortBuffer) buffer).get(shortArray);
-            //For writing into the partition file
-            //sink.add(context.taskIndex(), Arrays.toString(shortArray));
-            context.write(getEdgeName(), shortArray);
-            count++;
-          }
-        }
-        LOG.info("count value is:" + count);
-        inputSplit = null;
-        //inputSplit = source.getNextSplit(context.taskIndex());
-      } catch (Exception ioe) {
-        throw new RuntimeException("IOException Occured:" + ioe.getMessage());
-      }
+    public MDSDataObjectSource(String edgename, String dataDirectory, int size) {
+        setEdgeName(edgename);
+        setDataDirectory(dataDirectory);
+        setDataSize(size);
     }
-    //For writing into the partition file
-    //sink.persist();
-    context.end(getEdgeName());
-  }
 
-  @Override
-  public void prepare(Config cfg, TaskContext context) {
-    super.prepare(cfg, context);
-    ExecutionRuntime runtime = (ExecutionRuntime) cfg.get(ExecutorContext.TWISTER2_RUNTIME_OBJECT);
-    this.source = runtime.createInput(cfg, context, new BinaryInputPartitioner(
-        new Path(getDataDirectory()), getDataSize() * Short.BYTES));
+    private int getDataSize() {
+        return dataSize;
+    }
 
-    //For writing into the partition file
-    /*this.sink = new DataSink<>(cfg,
-        new TextOutputWriter(FileSystem.WriteMode.OVERWRITE, new Path(getDataDirectory())));*/
-  }
+    private void setDataSize(int dataSize) {
+        this.dataSize = dataSize;
+    }
+
+    private String getDataDirectory() {
+        return dataDirectory;
+    }
+
+    private void setDataDirectory(String dataDirectory) {
+        this.dataDirectory = dataDirectory;
+    }
+
+    /**
+     * Getter property to set the edge name
+     */
+    private String getEdgeName() {
+        return edgeName;
+    }
+
+    /**
+     * Setter property to set the edge name
+     */
+    private void setEdgeName(String edgeName) {
+        this.edgeName = edgeName;
+    }
+
+    /**
+     * This method get the partitioned datapoints using the task index and write those values using
+     * the respective edge name.
+     */
+    @Override
+    public void execute() {
+        Buffer buffer;
+        byte[] line = new byte[getDataSize() * 2];
+        ByteBuffer byteBuffer = ByteBuffer.allocate(getDataSize() * 2);
+        byteBuffer.order(ByteOrder.BIG_ENDIAN);
+        InputSplit inputSplit = source.getNextSplit(context.taskIndex());
+        int count = 0;
+        while (inputSplit != null) {
+            try {
+                while (!inputSplit.reachedEnd()) {
+                    while (inputSplit.nextRecord(line) != null) {
+                        byteBuffer.clear();
+                        byteBuffer.put(line);
+                        byteBuffer.flip();
+                        buffer = byteBuffer.asShortBuffer();
+                        short[] shortArray = new short[getDataSize()];
+                        ((ShortBuffer) buffer).get(shortArray);
+                        //For writing into the partition file
+                        //sink.add(context.taskIndex(), Arrays.toString(shortArray));
+                        context.write(getEdgeName(), shortArray);
+                        count++;
+                    }
+                }
+                inputSplit = null;
+                //inputSplit = source.getNextSplit(context.taskIndex()); TODO: Bug #429
+            } catch (Exception ioe) {
+                throw new RuntimeException("IOException Occured:" + ioe.getMessage());
+            }
+        }
+        //For writing into the partition file
+        //sink.persist();
+        context.end(getEdgeName());
+    }
+
+    @Override
+    public void prepare(Config cfg, TaskContext context) {
+        super.prepare(cfg, context);
+        ExecutionRuntime runtime = (ExecutionRuntime) cfg.get(ExecutorContext.TWISTER2_RUNTIME_OBJECT);
+        this.source = runtime.createInput(cfg, context, new BinaryInputPartitioner(
+                new Path(getDataDirectory()), getDataSize() * Short.BYTES));
+        //For writing into the partition file
+        //this.sink = new DataSink<>(cfg,
+        //        new TextOutputWriter(FileSystem.WriteMode.OVERWRITE, new Path(getDataDirectory())));
+    }
 }
