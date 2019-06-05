@@ -75,7 +75,7 @@ public class MDSProgram {
         Twister2Job.Twister2JobBuilder jobBuilder = Twister2Job.newBuilder();
         jobBuilder.setJobName("MDS-job");
         jobBuilder.setWorkerClass(MDSWorker.class.getName());
-        jobBuilder.addComputeResource(2, 512, 1.0, workers);
+        jobBuilder.addComputeResource(2, 2048, 1.0, workers);
         jobBuilder.setConfig(jobConfig);
 
         // now submit the job
