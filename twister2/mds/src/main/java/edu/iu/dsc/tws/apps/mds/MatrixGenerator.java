@@ -32,7 +32,6 @@ public class MatrixGenerator {
 
   private static ByteOrder endianness = ByteOrder.BIG_ENDIAN;
   private static int dataTypeSize = Short.BYTES;
-
   private int workerId;
 
   public MatrixGenerator(Config cfg, int workerid) {
