@@ -29,10 +29,10 @@ public class MDSDataObjectSink  extends BaseSink implements Collector {
   private static final Logger LOG = Logger.getLogger(MDSDataObjectSink.class.getName());
 
   private short[] dataPoints;
-  private int columnLength;
-
+  private int numberOfColumns;
+  
   public MDSDataObjectSink(int length) {
-    this.columnLength = length;
+    this.numberOfColumns = length;
   }
 
   @Override
@@ -42,7 +42,7 @@ public class MDSDataObjectSink  extends BaseSink implements Collector {
       values.add((short[]) ((Iterator) content.getContent()).next());
     }
     LOG.info("Distance Matrix (Row X Column) Length:" + values.size() + "\tX\t" + values.get(0).length);
-    dataPoints = new short[values.size() * columnLength];
+    dataPoints = new short[values.size() * numberOfColumns];
     int k = 0;
     for (short[] value : values) {
       for (short aValue : value) {
