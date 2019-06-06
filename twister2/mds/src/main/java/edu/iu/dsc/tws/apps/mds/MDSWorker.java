@@ -85,10 +85,10 @@ public class MDSWorker extends TaskWorker {
 
         TaskGraphBuilder mdsDataProcessBuilder = TaskGraphBuilder.newBuilder(config);
         mdsDataProcessBuilder.setTaskGraphName("MDSDataProcessing");
-        mdsDataProcessBuilder.addSource("dataobjectsource", mdsDataObjectSource, 2);
+        mdsDataProcessBuilder.addSource("dataobjectsource", mdsDataObjectSource, parallel);
 
         ComputeConnection dataObjectComputeConnection = mdsDataProcessBuilder.addSink(
-                "dataobjectsink", mdsDataObjectSink, 2);
+                "dataobjectsink", mdsDataObjectSink, parallel);
         dataObjectComputeConnection.direct(
                 "dataobjectsource", Context.TWISTER2_DIRECT_EDGE, DataType.OBJECT);
         mdsDataProcessBuilder.setMode(OperationMode.BATCH);
