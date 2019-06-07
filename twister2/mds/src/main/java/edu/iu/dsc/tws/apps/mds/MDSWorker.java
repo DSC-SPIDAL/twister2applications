@@ -78,6 +78,8 @@ public class MDSWorker extends TaskWorker {
             matrixGen.generate(dataSize, matrixColumLength, directory, byteType);
         }
 
+        long startTime = System.currentTimeMillis();
+
         /** Task Graph to partition the generated matrix for MDS **/
         MDSDataObjectSource mdsDataObjectSource = new MDSDataObjectSource(Context.TWISTER2_DIRECT_EDGE, directory,
                 dataSize);
@@ -99,6 +101,8 @@ public class MDSWorker extends TaskWorker {
 
         //Actual execution for the first taskgraph
         taskExecutor.execute(dataObjectTaskGraph, plan);
+
+        long endTimeData = System.currentTimeMillis();
 
         //Retrieve the output of the first task graph
         DataObject<Object> dataPointsObject = taskExecutor.getOutput(dataObjectTaskGraph, plan, "dataobjectsink");
@@ -123,6 +127,12 @@ public class MDSWorker extends TaskWorker {
         taskExecutor.addInput(
                 mdsTaskGraph, executionPlan, "generator", "points", dataPointsObject);
         taskExecutor.execute(mdsTaskGraph, executionPlan);
+        long endTime = System.currentTimeMillis();
+        if (workerId == 0) {
+            LOG.info("Data Load time : " + (endTimeData - startTime) + "\n"
+                    + "Total Time : " + (endTime - startTime)
+                    + "Compute Time : " + (endTime - endTimeData));
+        }
     }
 
     private void readConfiguration(String filename) {
