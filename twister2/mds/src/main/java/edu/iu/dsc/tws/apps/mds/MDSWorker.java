@@ -20,6 +20,8 @@ import edu.iu.dsc.tws.common.config.Context;
 import edu.iu.dsc.tws.data.api.DataType;
 import edu.iu.dsc.tws.dataset.DataObject;
 import edu.iu.dsc.tws.dataset.DataPartition;
+import edu.iu.dsc.tws.examples.batch.mds.MDSDataObjectSink;
+import edu.iu.dsc.tws.examples.batch.mds.MDSDataObjectSource;
 import edu.iu.dsc.tws.executor.api.ExecutionPlan;
 import edu.iu.dsc.tws.task.api.BaseSink;
 import edu.iu.dsc.tws.task.api.BaseSource;
@@ -51,7 +53,7 @@ public class MDSWorker extends TaskWorker {
         MDSWorkerParameters mdsWorkerParameters = MDSWorkerParameters.build(config);
 
         int parallel = mdsWorkerParameters.getParallelismValue();
-        int dataSize = mdsWorkerParameters.getDsize();
+        int datasize = mdsWorkerParameters.getDsize();
         int matrixColumLength = mdsWorkerParameters.getDimension();
 
         String dataInput = mdsWorkerParameters.getDataInput();
@@ -75,27 +77,28 @@ public class MDSWorker extends TaskWorker {
         /** Generate the Matrix for the MDS if the user input is "generate" **/
         if (Context.TWISTER2_DATA_INPUT.equalsIgnoreCase(dataInput)) {
             MatrixGenerator matrixGen = new MatrixGenerator(config, workerId);
-            matrixGen.generate(dataSize, matrixColumLength, directory, byteType);
+            matrixGen.generate(datasize, matrixColumLength, directory, byteType);
         }
 
         long startTime = System.currentTimeMillis();
 
         /** Task Graph to partition the generated matrix for MDS **/
-        MDSDataObjectSource mdsDataObjectSource = new MDSDataObjectSource(Context.TWISTER2_DIRECT_EDGE, directory,
-                dataSize);
+        MDSDataObjectSource mdsDataObjectSource = new MDSDataObjectSource(Context.TWISTER2_DIRECT_EDGE,
+                directory, datasize);
         MDSDataObjectSink mdsDataObjectSink = new MDSDataObjectSink(matrixColumLength);
 
-        TaskGraphBuilder mdsDataProcessBuilder = TaskGraphBuilder.newBuilder(config);
-        mdsDataProcessBuilder.setTaskGraphName("MDSDataProcessing");
-        mdsDataProcessBuilder.addSource("dataobjectsource", mdsDataObjectSource, parallel);
+        TaskGraphBuilder mdsDataProcessingGraphBuilder = TaskGraphBuilder.newBuilder(config);
+        mdsDataProcessingGraphBuilder.setTaskGraphName("MDSDataProcessing");
+        mdsDataProcessingGraphBuilder.addSource("dataobjectsource", mdsDataObjectSource, parallel);
 
-        ComputeConnection dataObjectComputeConnection = mdsDataProcessBuilder.addSink(
+        ComputeConnection dataObjectComputeConnection = mdsDataProcessingGraphBuilder.addSink(
                 "dataobjectsink", mdsDataObjectSink, parallel);
-        dataObjectComputeConnection.direct(
-                "dataobjectsource", Context.TWISTER2_DIRECT_EDGE, DataType.OBJECT);
-        mdsDataProcessBuilder.setMode(OperationMode.BATCH);
+        dataObjectComputeConnection.direct("dataobjectsource")
+                .viaEdge(Context.TWISTER2_DIRECT_EDGE)
+                .withDataType(DataType.OBJECT);
+        mdsDataProcessingGraphBuilder.setMode(OperationMode.BATCH);
 
-        DataFlowTaskGraph dataObjectTaskGraph = mdsDataProcessBuilder.build();
+        DataFlowTaskGraph dataObjectTaskGraph = mdsDataProcessingGraphBuilder.build();
         //Get the execution plan for the first task graph
         ExecutionPlan plan = taskExecutor.plan(dataObjectTaskGraph);
 
@@ -111,14 +114,17 @@ public class MDSWorker extends TaskWorker {
         MDSSourceTask generatorTask = new MDSSourceTask();
         MDSReceiverTask receiverTask = new MDSReceiverTask();
 
-        TaskGraphBuilder mdsComputeGraphBuilder = TaskGraphBuilder.newBuilder(config);
-        mdsComputeGraphBuilder.setTaskGraphName("MDSCompute");
-        mdsComputeGraphBuilder.addSource("generator", generatorTask, parallel);
-        ComputeConnection computeConnection = mdsComputeGraphBuilder.addSink("receiver", receiverTask, parallel);
-        computeConnection.direct("generator", Context.TWISTER2_DIRECT_EDGE, DataType.OBJECT);
-        mdsComputeGraphBuilder.setMode(OperationMode.BATCH);
+        TaskGraphBuilder mdsComputeProcessingGraphBuilder = TaskGraphBuilder.newBuilder(config);
+        mdsComputeProcessingGraphBuilder.setTaskGraphName("MDSCompute");
+        mdsComputeProcessingGraphBuilder.addSource("generator", generatorTask, parallel);
+        ComputeConnection computeConnection = mdsComputeProcessingGraphBuilder.addSink("receiver",
+                receiverTask, parallel);
+        computeConnection.direct("generator")
+                .viaEdge(Context.TWISTER2_DIRECT_EDGE)
+                .withDataType(DataType.OBJECT);
+        mdsComputeProcessingGraphBuilder.setMode(OperationMode.BATCH);
 
-        DataFlowTaskGraph mdsTaskGraph = mdsComputeGraphBuilder.build();
+        DataFlowTaskGraph mdsTaskGraph = mdsComputeProcessingGraphBuilder.build();
 
         //Get the execution plan for the first task graph
         ExecutionPlan executionPlan = taskExecutor.plan(mdsTaskGraph);
