@@ -17,11 +17,9 @@ import edu.indiana.soic.spidal.configuration.section.DAMDSSection;
 import edu.iu.dsc.tws.api.task.*;
 import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.common.config.Context;
-import edu.iu.dsc.tws.data.api.DataType;
+import edu.iu.dsc.tws.comms.api.MessageTypes;
 import edu.iu.dsc.tws.dataset.DataObject;
 import edu.iu.dsc.tws.dataset.DataPartition;
-import edu.iu.dsc.tws.examples.batch.mds.MDSDataObjectSink;
-import edu.iu.dsc.tws.examples.batch.mds.MDSDataObjectSource;
 import edu.iu.dsc.tws.executor.api.ExecutionPlan;
 import edu.iu.dsc.tws.task.api.BaseSink;
 import edu.iu.dsc.tws.task.api.BaseSource;
@@ -86,7 +84,6 @@ public class MDSWorker extends TaskWorker {
         MDSDataObjectSource mdsDataObjectSource = new MDSDataObjectSource(Context.TWISTER2_DIRECT_EDGE,
                 directory, datasize);
         MDSDataObjectSink mdsDataObjectSink = new MDSDataObjectSink(matrixColumLength);
-
         TaskGraphBuilder mdsDataProcessingGraphBuilder = TaskGraphBuilder.newBuilder(config);
         mdsDataProcessingGraphBuilder.setTaskGraphName("MDSDataProcessing");
         mdsDataProcessingGraphBuilder.addSource("dataobjectsource", mdsDataObjectSource, parallel);
@@ -95,10 +92,10 @@ public class MDSWorker extends TaskWorker {
                 "dataobjectsink", mdsDataObjectSink, parallel);
         dataObjectComputeConnection.direct("dataobjectsource")
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
-                .withDataType(DataType.OBJECT);
+                .withDataType(MessageTypes.OBJECT);
         mdsDataProcessingGraphBuilder.setMode(OperationMode.BATCH);
-
         DataFlowTaskGraph dataObjectTaskGraph = mdsDataProcessingGraphBuilder.build();
+
         //Get the execution plan for the first task graph
         ExecutionPlan plan = taskExecutor.plan(dataObjectTaskGraph);
 
@@ -121,7 +118,7 @@ public class MDSWorker extends TaskWorker {
                 receiverTask, parallel);
         computeConnection.direct("generator")
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
-                .withDataType(DataType.OBJECT);
+                .withDataType(MessageTypes.OBJECT);
         mdsComputeProcessingGraphBuilder.setMode(OperationMode.BATCH);
 
         DataFlowTaskGraph mdsTaskGraph = mdsComputeProcessingGraphBuilder.build();
