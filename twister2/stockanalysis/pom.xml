@@ -2,51 +2,120 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
     <parent>
         <artifactId>twister2-app-root</artifactId>
         <groupId>twister2</groupId>
-	<version>0.2.2-SNAPSHOT</version>
+        <version>0.2.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>comms-benchmark</artifactId>
+    <artifactId>mds</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>habanero-java-lib</groupId>
+            <artifactId>habanero-java-lib</artifactId>
+            <version>0.1.4-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>18.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-cli</groupId>
+            <artifactId>commons-cli</artifactId>
+            <version>1.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>3.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ompi</groupId>
+            <artifactId>ompijavabinding</artifactId>
+            <version>3.1.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.indiana.soic.spidal</groupId>
+            <artifactId>common</artifactId>
+            <version>1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.openhft</groupId>
+            <artifactId>affinity</artifactId>
+            <version>3.0.6</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.openhft</groupId>
+            <artifactId>lang</artifactId>
+            <version>6.7.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.indiana.soic.spidal</groupId>
+            <artifactId>damds</artifactId>
+            <version>1.1</version>
+        </dependency>
+
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>comms-java</artifactId>
             <version>0.2.2</version>
-            <!--<scope>provided</scope>-->
         </dependency>
-        <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
-            <artifactId>proto-java</artifactId>
-            <version>0.2.2</version>
-        </dependency>
+
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>resource-scheduler-java</artifactId>
             <version>0.2.2</version>
-            <!-- <scope>provided</scope>-->
         </dependency>
+
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>common-java</artifactId>
             <version>0.2.2</version>
-            <!-- <scope>provided</scope>-->
         </dependency>
+
         <!--<dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>config-java</artifactId>
-            <version>0.1.0</version>
+            <version>0.2.2</version>
             <scope>provided</scope>
         </dependency>-->
+
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>api-java</artifactId>
             <version>0.2.2</version>
-            <!--<scope>provided</scope>-->
         </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>examples-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>twister2-storm</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
@@ -68,26 +137,20 @@
             <version>2.4</version>
         </dependency>
         <dependency>
-            <groupId>ompi</groupId>
-            <artifactId>ompijavabinding</artifactId>
-            <version>3.1.2</version>
-        </dependency>
-        <dependency>
             <groupId>com.esotericsoftware</groupId>
             <artifactId>kryo</artifactId>
             <version>4.0.0</version>
         </dependency>
-        <!--dependency>
-            <groupId>twister2</groupId>
-            <artifactId>twister2-app-common-utils</artifactId>
-            <version>0.2.1-SNAPSHOT</version>
-        </dependency-->
-        <dependency>
-            <groupId>com.esotericsoftware</groupId>
-            <artifactId>kryo</artifactId>
-            <version>3.0.3</version>
-        </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>rice-habanero</id>
+            <name>Habanero Repository - Rice University</name>
+            <url>https://www.cs.rice.edu/~vs3/hjlib/code/maven-repo</url>
+        </repository>
+    </repositories>
+
 
     <build>
         <plugins>
@@ -124,5 +187,7 @@
         </plugins>
     </build>
 
-
+    <properties>
+        <project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
+    </properties>
 </project>

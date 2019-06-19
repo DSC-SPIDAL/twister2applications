@@ -13,6 +13,7 @@
         <!--<module>kmeans</module>-->
         <!--module>comms-benchmark</module-->
         <module>mds</module>
+        <module>stockanalysis</module>
 
         <!--<module>slam</module>-->
     </modules>
