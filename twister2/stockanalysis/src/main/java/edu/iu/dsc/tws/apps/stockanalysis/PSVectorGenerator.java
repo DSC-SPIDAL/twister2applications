@@ -37,12 +37,14 @@ public class PSVectorGenerator {
 
   private Map<String, CleanMetric> metrics = new HashMap<String, CleanMetric>();
 
-  public PSVectorGenerator(String inFile, String outFile, int days, String startDate, String endDate, int mode) {
+  public PSVectorGenerator(String inFile, String outFile, int days, Date startdate, Date enddate, int mode) {
     this.days = days;
     this.inFolder = inFile;
     this.outFolder = outFile;
-    this.startDate = Utils.parseDateString(startDate);
-    this.endDate = Utils.parseDateString(endDate);
+    //this.startDate = Utils.parseDateString(startDate);
+    //this.endDate = Utils.parseDateString(endDate);
+    this.startDate = startdate;
+    this.endDate = enddate;
     this.mode = mode;
   }
 
@@ -70,7 +72,7 @@ public class PSVectorGenerator {
     return currentPoint;
   }
 
-  private Map<String, Map<Date, Integer>> findDates(String inFile) {
+  public Map<String, Map<Date, Integer>> findDates(String inFile) {
     FileReader input = null;
     // a map of datestring -> map <date string, index>
     Map<String, Map<Date, Integer>> outDates = new HashMap<String, Map<Date, Integer>>();
@@ -239,7 +241,7 @@ public class PSVectorGenerator {
       metric.stocksWithIncorrectDays = currentPoints.size();
       LOG.info("Metrics for file: " + outFileName + " " + metric.serialize());
       LOG.info("Current Points Value:" + currentPoints);
-      //currentPoints.clear();
+      currentPoints.clear();
       return currentPoints;
     } catch (IOException e) {
       throw new RuntimeException("Failed to open the file", e);
