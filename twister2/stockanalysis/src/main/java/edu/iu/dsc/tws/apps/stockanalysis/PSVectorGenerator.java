@@ -28,8 +28,6 @@ public class PSVectorGenerator {
   private final String outFolder;
   private Map<Integer, VectorPoint> currentPoints = new HashMap<Integer, VectorPoint>();
   private int days;
-  private boolean mpi = false;
-  //private MpiOps mpiOps;
   private Date startDate;
   private Date endDate;
   private int mode;
