@@ -46,36 +46,55 @@ public class DataPreProcessingSourceTask extends BaseSource {
         LOG.info("Task Id" + context.taskId() + "\t" + context.taskIndex());
         File inFolder = new File(this.dataInputFile);
         TreeMap<String, List<Date>> allDates = Utils.genDates(startDate, endDate, mode);
-        for (String dateString : allDates.keySet()) {
-            LOG.info(dateString + " ");
-        }
+        LOG.info("List of all dates:" + allDates.size());
+//        for (String dateString : allDates.keySet()) {
+//            LOG.info(dateString + " ");
+//        }
         // create the out directory
-        Utils.createDirectory(vectorDirectory + context.taskIndex());
+        Utils.createDirectory(vectorDirectory);
         this.dates = allDates;
 
-        Iterator<String> datesItr = allDates.keySet().iterator();
-        int i = 0;
-        while (datesItr.hasNext()) {
-            String next = datesItr.next();
-            LOG.info("%%% dates next:%%%" + next);
-            if (i == context.taskIndex()) {
-                this.dates.put(next, allDates.get(next));
-            }
-            i++;
-            LOG.info("i value:" + i);
-            if (i == context.getParallelism()) {
-                i = 0;
-            }
-        }
+//        Iterator<String> datesItr = allDates.keySet().iterator();
+//        int i = 0;
+//        while (datesItr.hasNext()) {
+//            String next = datesItr.next();
+//            LOG.info("%%% dates next:%%%" + next);
+//            if (i == context.taskIndex()) {
+//                this.dates.put(next, allDates.get(next));
+//            }
+//            i++;
+//            LOG.info("i value:" + i);
+//            if (i == context.getParallelism()) {
+//                i = 0;
+//            }
+//        }
 
         // now go through the file and figure out the dates that should be considered
         Map<String, Map<Date, Integer>> datesList = findDates(this.dataInputFile);
-
         for (Map.Entry<String, List<Date>> ed : this.dates.entrySet()) {
             Date start = ed.getValue().get(0);
             Date end = ed.getValue().get(1);
-            LOG.info("start and end data:" + start + "\t" + end);
+            LOG.fine("start and end data:" + start + "\t" + end);
+            LOG.info("key:" + ed.getKey() + "\t" + datesList.get(ed.getKey()).size());
+
+            int size = datesList.get(ed.getKey()).size();
+            int val = size / context.getParallelism();
             processFile(inFolder, start, end, ed.getKey(), datesList.get(ed.getKey()));
+
+            //NEWLY ADDED CODE FOR TESTING
+//            int startIndex = 0;
+//            LOG.info("divided value is:" + val);
+//            if (context.taskIndex() == 0) {
+//                for (int i = startIndex; i < val; i++) {
+//                    processFile(inFolder, start, end, ed.getKey(), datesList.get(ed.getKey()));
+//                }
+//            }
+//
+//            if (context.taskIndex() == 1) {
+//                for (int i = val; i < size; i++) {
+//                    processFile(inFolder, start, end, ed.getKey(), datesList.get(ed.getKey()));
+//                }
+//            }
         }
         context.write(Context.TWISTER2_DIRECT_EDGE, "DataProcessing");
         try {
@@ -140,6 +159,8 @@ public class DataPreProcessingSourceTask extends BaseSource {
             }
             LOG.info(ed.getKey() + ":" + sb.toString());
         }
+
+        LOG.info("Out dates size:" + outDates.size());
         return outDates;
     }
 
@@ -158,6 +179,8 @@ public class DataPreProcessingSourceTask extends BaseSource {
         int size = -1;
         vectorCounter = 0;
         int noOfDays = datesList.size();
+        int splitValue = noOfDays / context.getParallelism();
+        LOG.info("Number of days for task index:" + context.taskIndex() +"\t" + noOfDays);
         String outFileName = vectorDirectory + "/" + outFile + ".csv";
         int capCount = 0;
         CleanMetric metric = this.metrics.get(outFileName);
@@ -165,6 +188,7 @@ public class DataPreProcessingSourceTask extends BaseSource {
             metric = new CleanMetric();
             this.metrics.put(outFileName, metric);
         }
+
         try {
             FileReader input = new FileReader(inFile);
             FileOutputStream fos = new FileOutputStream(new File(outFileName));
@@ -233,35 +257,39 @@ public class DataPreProcessingSourceTask extends BaseSource {
             //write the constant vector at the end
             VectorPoint v = new VectorPoint(0, noOfDays, true);
             v.addCap(totalCap);
+            LOG.info("%%%% Vector Point:%%%%" + v.serialize());
             bufWriter.write(v.serialize());
             bufWriter.newLine();
 
             v = new VectorPoint(1, noOfDays, true);
             v.addCap(totalCap);
+            LOG.info("%%%% Vector Point:%%%%" + v.serialize());
             bufWriter.write(v.serialize());
             bufWriter.newLine();
 
             v = new VectorPoint(2, noOfDays, true);
             v.addCap(totalCap);
+            LOG.info("%%%% Vector Point:%%%%" + v.serialize());
             bufWriter.write(v.serialize());
             bufWriter.newLine();
 
             v = new VectorPoint(3, noOfDays, true);
             v.addCap(totalCap);
+            LOG.info("%%%% Vector Point:%%%%" + v.serialize());
             bufWriter.write(v.serialize());
             bufWriter.newLine();
 
             v = new VectorPoint(4, noOfDays, true);
             v.addCap(totalCap);
+            LOG.info("%%%% Vector Point:%%%%" + v.serialize());
             bufWriter.write(v.serialize());
             bufWriter.newLine();
-
 
             LOG.info("Total stocks: " + vectorCounter + " bad stocks: " + currentPoints.size());
             metric.stocksWithIncorrectDays = currentPoints.size();
             LOG.info("Metrics for file: " + outFileName + " " + metric.serialize());
             LOG.info("Current Points Value:" + currentPoints);
-            currentPoints.clear();
+            //currentPoints.clear();
             return currentPoints;
         } catch (IOException e) {
             throw new RuntimeException("Failed to open the file", e);

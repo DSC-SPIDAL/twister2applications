@@ -43,21 +43,27 @@ public class StockAnalysisWorker extends TaskWorker {
     String byteType = stockAnalysisWorkerParameters.getByteType();
 
     String datainputFile = stockAnalysisWorkerParameters.getDinputFile();
-    String VectorDirectory = stockAnalysisWorkerParameters.getOutputDirectory();
+    String vectorDirectory = stockAnalysisWorkerParameters.getOutputDirectory();
     String numberOfDays = stockAnalysisWorkerParameters.getNumberOfDays();
     String startDate = stockAnalysisWorkerParameters.getStartDate();
     String endDate = stockAnalysisWorkerParameters.getEndDate();
     String mode = stockAnalysisWorkerParameters.getMode();
     String distanceType = stockAnalysisWorkerParameters.getDistanceType();
 
-    LOG.info("Data Points to be generated or read," + distanceMatrixDirectory + "\t" + directory
-            + "\t" + byteType + "\t" + configFile);
+    //Sequential Vector Generation
+//    long startTime = System.currentTimeMillis();
+//    PSVectorGenerator psVectorGenerator = new PSVectorGenerator(datainputFile, vectorDirectory,
+//            Integer.parseInt(numberOfDays), Utils.parseDateString(startDate),
+//            Utils.parseDateString(endDate), Integer.parseInt(mode));
+//    psVectorGenerator.process();
+//    long endTime = System.currentTimeMillis();
+//    LOG.info("Compute Time : " + (endTime - startTime));
 
     /** Task Graph to do the preprocessing **/
     DataPreProcessingSourceTask preprocessingSourceTask = new DataPreProcessingSourceTask(
-            datainputFile, VectorDirectory, numberOfDays, startDate, endDate, mode);
+            datainputFile, vectorDirectory, numberOfDays, startDate, endDate, mode);
     DataPreprocessingSinkTask preprocessingSinkTask = new DataPreprocessingSinkTask(
-            VectorDirectory, distanceMatrixDirectory, distanceType);
+            vectorDirectory, distanceMatrixDirectory, distanceType);
     TaskGraphBuilder preprocessingTaskGraphBuilder = TaskGraphBuilder.newBuilder(config);
     preprocessingTaskGraphBuilder.setTaskGraphName("StockAnalysisDataPreProcessing");
     preprocessingTaskGraphBuilder.addSource("preprocessingsourcetask", preprocessingSourceTask, parallel);
@@ -67,7 +73,7 @@ public class StockAnalysisWorker extends TaskWorker {
     preprocessingComputeConnection.direct("preprocessingsourcetask")
             .viaEdge(Context.TWISTER2_DIRECT_EDGE)
             .withDataType(MessageTypes.OBJECT);
-    preprocessingTaskGraphBuilder.setMode(OperationMode.STREAMING);
+    preprocessingTaskGraphBuilder.setMode(OperationMode.BATCH);
     DataFlowTaskGraph preprocesingTaskGraph = preprocessingTaskGraphBuilder.build();
 
     //Get the execution plan for the first task graph

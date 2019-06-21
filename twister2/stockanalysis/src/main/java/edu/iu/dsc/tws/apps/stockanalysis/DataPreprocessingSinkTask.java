@@ -32,6 +32,6 @@ public class DataPreprocessingSinkTask extends BaseSink implements Collector {
         //DistanceCalculator distanceCalculator = new DistanceCalculator(vectorDirectory, distanceDirectory,
         //        Integer.parseInt(distanceType));
         //distanceCalculator.process();
-        return false;
+        return true;
     }
 }
