@@ -20,7 +20,6 @@ public class CollectiveDataFormat extends GenericInputFormat<CollectiveData> {
 
   @Override
   public CollectiveData nextRecord(CollectiveData collectiveData) throws IOException {
-    count++;
-    return new CollectiveData(size);
+    return null;
   }
 }

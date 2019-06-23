@@ -1,15 +1,22 @@
 package edu.iu.dsc.tws.flinkapps.batch;
 
-import edu.iu.dsc.tws.flinkapps.data.Generator;
+import edu.iu.dsc.tws.flinkapps.data.ByteArrayComparator;
+import edu.iu.dsc.tws.flinkapps.data.ByteInputFormat;
 import org.apache.flink.api.common.functions.Partitioner;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.io.FileOutputFormat;
-import org.apache.flink.api.java.DataSet;
+import org.apache.flink.api.common.io.OutputFormat;
+import org.apache.flink.api.common.operators.Order;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.api.java.operators.DataSource;
+import org.apache.flink.api.java.operators.PartitionOperator;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.util.Collector;
 
 import java.io.IOException;
+import java.io.Serializable;
+import java.util.*;
 
 public class TeraSort {
   private int size;
@@ -27,23 +34,71 @@ public class TeraSort {
     this.outFile = outFile;
   }
 
-  public void execute() {
-    DataSet<String> stringStream = Generator.generateStringSet(env, size, iterations);
-    stringStream.flatMap(new RichFlatMapFunction<String, Tuple2<byte[], byte[]>>() {
-      @Override
-      public void flatMap(String s, Collector<Tuple2<byte[], byte[]>> collector) throws Exception {
-        return;
-      }
-    }).partitionCustom(new Partitioner<Tuple2<byte[], byte[]>>() {
-      @Override
-      public int partition(Tuple2<byte[], byte[]> tuple2, int i) {
-        return 0;
-      }
-    }, 0).write(new FileOutputFormat<Tuple2<byte[], byte[]>>() {
-      @Override
-      public void writeRecord(Tuple2<byte[], byte[]> tuple2) throws IOException {
+  public static class Part implements Partitioner<byte[]> {
+    private int keysToOneTask;
 
+    private List<Integer> destinationsList;
+
+    private boolean initialized = false;
+
+    @Override
+    public int partition(byte[] bytes, int i) {
+      if (!initialized) {
+        Set<Integer> h = new HashSet<>();
+        for (int j = 0; j < i; j++) {
+          h.add(j);
+        }
+        prepare(h);
+        initialized = true;
       }
-    }, "/tmp");
+
+      return partition(bytes);
+    }
+
+    void prepare(Set<Integer> destinations) {
+      int totalPossibilities = 256 * 256; //considering only most significant bytes of array
+      this.keysToOneTask = (int) Math.ceil(totalPossibilities / (double) destinations.size());
+      this.destinationsList = new ArrayList<>(destinations);
+      Collections.sort(this.destinationsList);
+    }
+
+    int getIndex(byte[] array) {
+      int key = ((array[0] & 0xff) << 8) + (array[1] & 0xff);
+      return key / keysToOneTask;
+    }
+
+    int partition(byte[] data) {
+      return this.destinationsList.get(this.getIndex(data));
+    }
+  }
+
+  public static class Out implements OutputFormat<Tuple2<byte[], byte[]>>, Serializable {
+    byte[] previousKey = null;
+    @Override
+    public void configure(Configuration configuration) {
+    }
+
+    @Override
+    public void open(int i, int i1) throws IOException {
+    }
+
+    @Override
+    public void writeRecord(Tuple2<byte[], byte[]> tuple2) throws IOException {
+      if (previousKey != null
+          && ByteArrayComparator.INSTANCE.compare(previousKey, tuple2.f0) > 0) {
+        System.out.println("Un-ordered");
+      }
+      previousKey = tuple2.f0;
+    }
+
+    @Override
+    public void close() throws IOException {
+    }
+  }
+
+  public void execute() throws Exception {
+    DataSource<Tuple2<byte[], byte[]>> source = env.createInput(new ByteInputFormat()).setParallelism(2);
+    PartitionOperator<Tuple2<byte[], byte[]>> part = source.partitionCustom(new Part(), 0);
+    part.sortPartition(0, Order.ASCENDING).output(new Out());
   }
 }

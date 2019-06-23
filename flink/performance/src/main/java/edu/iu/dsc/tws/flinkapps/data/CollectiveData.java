@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class CollectiveData implements Serializable {
+public class CollectiveData {
   private int[] list;
 
   private Random random;

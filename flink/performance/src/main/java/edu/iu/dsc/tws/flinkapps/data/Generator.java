@@ -2,7 +2,6 @@ package edu.iu.dsc.tws.flinkapps.data;
 
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.io.CollectionInputFormat;
 
 import java.util.ArrayList;
 import java.util.List;
