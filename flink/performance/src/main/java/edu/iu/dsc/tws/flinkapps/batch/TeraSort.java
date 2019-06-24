@@ -77,7 +77,6 @@ public class TeraSort {
 
     int partition(byte[] data) {
       Integer integer = this.destinationsList.get(this.getIndex(data));
-      LOG.info("Returning: " + integer);
       return integer;
     }
   }
