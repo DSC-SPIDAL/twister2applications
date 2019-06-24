@@ -23,7 +23,8 @@ public class ByteInputFormat extends GenericInputFormat<Tuple2<byte[], byte[]>> 
     super.configure(parameters);
     keySize = parameters.getInteger("keySize", 10);
     valueSize = parameters.getInteger("valueSize", 90);
-    numTuples = parameters.getInteger("numTuples", 10);
+    numTuples = parameters.getInteger("numTuples", 10000);
+    random = new Random(System.nanoTime());
   }
 
   @Override
@@ -35,6 +36,8 @@ public class ByteInputFormat extends GenericInputFormat<Tuple2<byte[], byte[]>> 
   public Tuple2<byte[], byte[]> nextRecord(Tuple2<byte[], byte[]> tuple2) throws IOException {
     byte[] key = new byte[keySize];
     byte[] val = new byte[valueSize];
+    random.nextBytes(key);
+    random.nextBytes(val);
     count++;
     return new Tuple2<>(key, val);
   }
