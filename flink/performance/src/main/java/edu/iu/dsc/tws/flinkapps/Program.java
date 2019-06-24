@@ -60,7 +60,7 @@ public class Program {
       reduce.execute();
       env.execute();
     } else if (col == 6) {
-      TeraSort teraSort = new TeraSort(size, itr, env, outFile);
+      TeraSort teraSort = new TeraSort(size, params.getInt("numTuples", 1000), env, outFile);
       teraSort.execute();
       env.execute();
     }

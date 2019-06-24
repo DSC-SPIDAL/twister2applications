@@ -18,12 +18,18 @@ public class ByteInputFormat extends GenericInputFormat<Tuple2<byte[], byte[]>> 
 
   private int valueSize = 90;
 
+  public ByteInputFormat() {
+  }
+
+  public ByteInputFormat(int numTuples) {
+    this.numTuples = numTuples;
+  }
+
   @Override
   public void configure(Configuration parameters) {
     super.configure(parameters);
     keySize = parameters.getInteger("keySize", 10);
     valueSize = parameters.getInteger("valueSize", 90);
-    numTuples = parameters.getInteger("numTuples", 10000);
     random = new Random(System.nanoTime());
   }
 
@@ -40,5 +46,37 @@ public class ByteInputFormat extends GenericInputFormat<Tuple2<byte[], byte[]>> 
     random.nextBytes(val);
     count++;
     return new Tuple2<>(key, val);
+  }
+
+  public int getCount() {
+    return count;
+  }
+
+  public void setCount(int count) {
+    this.count = count;
+  }
+
+  public int getNumTuples() {
+    return numTuples;
+  }
+
+  public void setNumTuples(int numTuples) {
+    this.numTuples = numTuples;
+  }
+
+  public int getKeySize() {
+    return keySize;
+  }
+
+  public void setKeySize(int keySize) {
+    this.keySize = keySize;
+  }
+
+  public int getValueSize() {
+    return valueSize;
+  }
+
+  public void setValueSize(int valueSize) {
+    this.valueSize = valueSize;
   }
 }

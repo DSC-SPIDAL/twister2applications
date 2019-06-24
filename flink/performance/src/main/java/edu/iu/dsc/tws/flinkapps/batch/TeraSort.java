@@ -1,13 +1,9 @@
 package edu.iu.dsc.tws.flinkapps.batch;
 
-import edu.iu.dsc.tws.flinkapps.data.ByteArrayComparator;
 import edu.iu.dsc.tws.flinkapps.data.ByteInputFormat;
 import org.apache.flink.api.common.functions.Partitioner;
-import org.apache.flink.api.common.functions.RichFlatMapFunction;
-import org.apache.flink.api.common.io.FileOutputFormat;
 import org.apache.flink.api.common.io.OutputFormat;
 import org.apache.flink.api.common.operators.Order;
-import org.apache.flink.api.common.operators.Ordering;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.base.array.BytePrimitiveArrayComparator;
@@ -16,7 +12,6 @@ import org.apache.flink.api.java.operators.DataSource;
 import org.apache.flink.api.java.operators.PartitionOperator;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,11 +91,11 @@ public class TeraSort {
 
     @Override
     public void writeRecord(Tuple2<byte[], byte[]> tuple2) throws IOException {
-      if (previousKey != null
-          && bytePrimitiveArrayComparator.compare(previousKey, tuple2.f0) > 0) {
-        System.out.println("Un-ordered");
-      }
-      previousKey = tuple2.f0;
+//      if (previousKey != null
+//          && bytePrimitiveArrayComparator.compare(previousKey, tuple2.f0) > 0) {
+//        System.out.println("Un-ordered");
+//      }
+//      previousKey = tuple2.f0;
     }
 
     @Override
@@ -109,7 +104,7 @@ public class TeraSort {
   }
 
   public void execute() throws Exception {
-    DataSource<Tuple2<byte[], byte[]>> source = env.createInput(new ByteInputFormat());
+    DataSource<Tuple2<byte[], byte[]>> source = env.createInput(new ByteInputFormat(iterations));
     PartitionOperator<Tuple2<byte[], byte[]>> part = source.partitionCustom(new Part(), 0);
     TypeInformation<byte[]> info = TypeInformation.of(new TypeHint<byte[]>(){});
 
