@@ -4,8 +4,9 @@ import edu.iu.dsc.tws.apps.stockanalysis.utils.CleanMetric;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.Record;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.Utils;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.VectorPoint;
-import edu.iu.dsc.tws.common.config.Context;
-import edu.iu.dsc.tws.task.api.BaseSource;
+
+import edu.iu.dsc.tws.api.config.Context;
+import edu.iu.dsc.tws.api.task.nodes.BaseSource;
 
 import java.io.*;
 import java.util.*;
@@ -257,31 +258,31 @@ public class DataPreProcessingSourceTask extends BaseSource {
             //write the constant vector at the end
             VectorPoint v = new VectorPoint(0, noOfDays, true);
             v.addCap(totalCap);
-            LOG.info("%%%% Vector Point:%%%%" + v.serialize());
+            LOG.fine("%%%% Vector Point:%%%%" + v.getTotalCap());
             bufWriter.write(v.serialize());
             bufWriter.newLine();
 
             v = new VectorPoint(1, noOfDays, true);
             v.addCap(totalCap);
-            LOG.info("%%%% Vector Point:%%%%" + v.serialize());
+            LOG.fine("%%%% Vector Point:%%%%" + v.serialize());
             bufWriter.write(v.serialize());
             bufWriter.newLine();
 
             v = new VectorPoint(2, noOfDays, true);
             v.addCap(totalCap);
-            LOG.info("%%%% Vector Point:%%%%" + v.serialize());
+            LOG.fine("%%%% Vector Point:%%%%" + v.serialize());
             bufWriter.write(v.serialize());
             bufWriter.newLine();
 
             v = new VectorPoint(3, noOfDays, true);
             v.addCap(totalCap);
-            LOG.info("%%%% Vector Point:%%%%" + v.serialize());
+            LOG.fine("%%%% Vector Point:%%%%" + v.serialize());
             bufWriter.write(v.serialize());
             bufWriter.newLine();
 
             v = new VectorPoint(4, noOfDays, true);
             v.addCap(totalCap);
-            LOG.info("%%%% Vector Point:%%%%" + v.serialize());
+            LOG.fine("%%%% Vector Point:%%%%" + v.serialize());
             bufWriter.write(v.serialize());
             bufWriter.newLine();
 

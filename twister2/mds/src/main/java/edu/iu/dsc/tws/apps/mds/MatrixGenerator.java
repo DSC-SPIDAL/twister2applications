@@ -11,10 +11,11 @@
 //  limitations under the License.
 package edu.iu.dsc.tws.apps.mds;
 
-import edu.iu.dsc.tws.common.config.Config;
-import edu.iu.dsc.tws.data.fs.FSDataOutputStream;
-import edu.iu.dsc.tws.data.fs.FileSystem;
-import edu.iu.dsc.tws.data.fs.Path;
+import edu.iu.dsc.tws.api.config.Config;
+import edu.iu.dsc.tws.api.data.FSDataOutputStream;
+import edu.iu.dsc.tws.api.data.FileSystem;
+import edu.iu.dsc.tws.api.data.Path;
+import edu.iu.dsc.tws.data.utils.FileSystemUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 
 import java.io.IOException;
@@ -67,7 +68,7 @@ public class MatrixGenerator {
       shortOutputBuffer.put(input);
 
       Path path = new Path(directory);
-      FileSystem fs = FileSystem.get(path.toUri(), config);
+      FileSystem fs = FileSystemUtils.get(path.toUri(), config);
       if (fs.exists(path)) {
         fs.delete(path, true);
       }

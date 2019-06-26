@@ -10,39 +10,23 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>mds</artifactId>
-
+    <artifactId>stockanalysis</artifactId>
     <dependencies>
         <dependency>
             <groupId>habanero-java-lib</groupId>
             <artifactId>habanero-java-lib</artifactId>
             <version>0.1.4-SNAPSHOT</version>
         </dependency>
-
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>18.0</version>
         </dependency>
-
-        <dependency>
-            <groupId>commons-cli</groupId>
-            <artifactId>commons-cli</artifactId>
-            <version>1.2</version>
-        </dependency>
-
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>
             <version>3.2</version>
         </dependency>
-
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <version>2.4</version>
-        </dependency>
-
         <dependency>
             <groupId>ompi</groupId>
             <artifactId>ompijavabinding</artifactId>
@@ -75,7 +59,104 @@
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>api-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>api-utils-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>checkpointing-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>checkpointing-api-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>common-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>comms-api-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>comms-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>config-api-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>connector-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>data-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>data-api-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>dataset-api-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>exceptions-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>executor-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>master-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>network-api-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>proto-java</artifactId>
             <version>0.2.2</version>
         </dependency>
 
@@ -87,7 +168,43 @@
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
-            <artifactId>common-java</artifactId>
+            <artifactId>scheduler-api-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>task-api-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>task-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>taskscheduler-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>tset-api-java</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>twister2-storm</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.iu.dsc.tws</groupId>
+            <artifactId>examples-java</artifactId>
             <version>0.2.2</version>
         </dependency>
 
@@ -99,37 +216,9 @@
         </dependency>-->
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
-            <artifactId>api-java</artifactId>
-            <version>0.2.2</version>
-        </dependency>
-
-        <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
-            <artifactId>examples-java</artifactId>
-            <version>0.2.2</version>
-        </dependency>
-
-        <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
-            <artifactId>twister2-storm</artifactId>
-            <version>0.2.2</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>18.0</version>
-        </dependency>
-        <dependency>
             <groupId>commons-cli</groupId>
             <artifactId>commons-cli</artifactId>
             <version>1.3.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-math3</artifactId>
-            <version>3.2</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
