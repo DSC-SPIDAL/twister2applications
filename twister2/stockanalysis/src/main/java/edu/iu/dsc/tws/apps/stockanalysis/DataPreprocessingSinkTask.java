@@ -29,9 +29,9 @@ public class DataPreprocessingSinkTask extends BaseSink implements Collector {
     @Override
     public boolean execute(IMessage content) {
         LOG.info("Received message:" + content.getContent().toString());
-        //DistanceCalculator distanceCalculator = new DistanceCalculator(vectorDirectory, distanceDirectory,
-        //        Integer.parseInt(distanceType));
-        //distanceCalculator.process();
+        DistanceCalculator distanceCalculator = new DistanceCalculator(vectorDirectory, distanceDirectory,
+                Integer.parseInt(distanceType));
+        distanceCalculator.process();
         return true;
     }
 }

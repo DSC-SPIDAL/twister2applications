@@ -39,36 +39,19 @@ public class DataPreProcessingSourceTask extends BaseSource {
 
     @Override
     public void execute() {
-        //PSVectorGenerator psVectorGenerator = new PSVectorGenerator(dataInputFile, vectorDirectory, numberOfDays,
-        //        startDate, endDate, mode);
-        //Map<Integer, VectorPoint> currentPoints =  psVectorGenerator.process();
-        //LOG.info("Current Points Values:" + currentPoints.size() + "\t" + currentPoints);
-        //process();
-        LOG.info("Task Id" + context.taskId() + "\t" + context.taskIndex());
+        /*PSVectorGenerator psVectorGenerator = new PSVectorGenerator(dataInputFile, vectorDirectory, numberOfDays,
+                startDate, endDate, mode);
+        Map<Integer, VectorPoint> currentPoints =  psVectorGenerator.process();*/
+        LOG.info("Task Id:\t" + context.taskId() + "\ttask index:\t" + context.taskIndex());
         File inFolder = new File(this.dataInputFile);
         TreeMap<String, List<Date>> allDates = Utils.genDates(startDate, endDate, mode);
-        LOG.info("List of all dates:" + allDates.size());
-//        for (String dateString : allDates.keySet()) {
-//            LOG.info(dateString + " ");
-//        }
+        for (String dateString : allDates.keySet()) {
+            LOG.info(dateString + " ");
+        }
+
         // create the out directory
         Utils.createDirectory(vectorDirectory);
         this.dates = allDates;
-
-//        Iterator<String> datesItr = allDates.keySet().iterator();
-//        int i = 0;
-//        while (datesItr.hasNext()) {
-//            String next = datesItr.next();
-//            LOG.info("%%% dates next:%%%" + next);
-//            if (i == context.taskIndex()) {
-//                this.dates.put(next, allDates.get(next));
-//            }
-//            i++;
-//            LOG.info("i value:" + i);
-//            if (i == context.getParallelism()) {
-//                i = 0;
-//            }
-//        }
 
         // now go through the file and figure out the dates that should be considered
         Map<String, Map<Date, Integer>> datesList = findDates(this.dataInputFile);
@@ -289,8 +272,7 @@ public class DataPreProcessingSourceTask extends BaseSource {
             LOG.info("Total stocks: " + vectorCounter + " bad stocks: " + currentPoints.size());
             metric.stocksWithIncorrectDays = currentPoints.size();
             LOG.info("Metrics for file: " + outFileName + " " + metric.serialize());
-            LOG.info("Current Points Value:" + currentPoints);
-            //currentPoints.clear();
+            currentPoints.clear();
             return currentPoints;
         } catch (IOException e) {
             throw new RuntimeException("Failed to open the file", e);
