@@ -55,7 +55,7 @@ public class StockAnalysisWorker extends TaskWorker {
         String distanceType = stockAnalysisWorkerParameters.getDistanceType();
 
         //Sequential Vector Generation
-//    long startTime = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
         /** Task Graph to do the preprocessing **/
         DataPreProcessingSourceTask preprocessingSourceTask = new DataPreProcessingSourceTask(
                 datainputFile, vectorDirectory, numberOfDays, startDate, endDate, mode);
@@ -78,10 +78,8 @@ public class StockAnalysisWorker extends TaskWorker {
 
         //Actual execution for the first taskgraph
         taskExecutor.execute(preprocesingTaskGraph, preprocessExecutionPlan);
-
-//    long endTime = System.currentTimeMillis();
-//    LOG.info("Compute Time : " + (endTime - startTime));
-
+        long endTime = System.currentTimeMillis();
+        LOG.info("Compute Time : " + (endTime - startTime));
 
         /** Task Graph to run the MDS **/
         StockAnalysisSourceTask sourceTask = new StockAnalysisSourceTask();
@@ -101,7 +99,7 @@ public class StockAnalysisWorker extends TaskWorker {
         ExecutionPlan computeExecutionPlan = taskExecutor.plan(computeTaskGraph);
 
         //Actual execution for the first taskgraph
-        taskExecutor.execute(computeTaskGraph, computeExecutionPlan);
+        //taskExecutor.execute(computeTaskGraph, computeExecutionPlan);
     }
 
     private static class StockAnalysisSourceTask extends BaseSource implements Receptor {

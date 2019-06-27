@@ -32,7 +32,7 @@ public class DistanceCalculator {
     private static int INC = 7000;
 
     public void process() {
-        LOG.info("Starting Distance calculator...");
+        LOG.info("Starting Distance calculator..." + vectorFolder);
         File inFolder = new File(vectorFolder);
         if (!inFolder.isDirectory()) {
             LOG.info("In should be a folder: " + vectorFolder);

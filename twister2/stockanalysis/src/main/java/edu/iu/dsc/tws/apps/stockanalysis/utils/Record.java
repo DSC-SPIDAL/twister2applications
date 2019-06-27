@@ -77,13 +77,13 @@ public class Record {
         sb.append(symbolString).append(",");
         if (factorToAdjVolume > 0) {
             sb.append(factorToAdjVolume).append(",");
-            System.out.println("Writing factor to volume ============================= " + symbolString + " " + factorToAdjPrice);
+            //System.out.println("Writing factor to volume ============================= " + symbolString + " " + factorToAdjPrice);
         } else {
             sb.append(",");
         }
 
         if (factorToAdjPrice > 0) {
-            System.out.println("Writing factor to price ============================= " + symbolString + " " + factorToAdjPrice);
+            //System.out.println("Writing factor to price ============================= " + symbolString + " " + factorToAdjPrice);
             sb.append(factorToAdjPrice).append(",");
         } else {
             sb.append(",");
