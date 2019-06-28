@@ -56,6 +56,7 @@ public class StockAnalysisWorker extends TaskWorker {
 
         //Sequential Vector Generation
         long startTime = System.currentTimeMillis();
+
         /** Task Graph to do the preprocessing **/
         DataPreProcessingSourceTask preprocessingSourceTask = new DataPreProcessingSourceTask(
                 datainputFile, vectorDirectory, numberOfDays, startDate, endDate, mode);
@@ -70,7 +71,7 @@ public class StockAnalysisWorker extends TaskWorker {
         preprocessingComputeConnection.direct("preprocessingsourcetask")
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
                 .withDataType(MessageTypes.OBJECT);
-        preprocessingTaskGraphBuilder.setMode(OperationMode.BATCH);
+        preprocessingTaskGraphBuilder.setMode(OperationMode.STREAMING);
         DataFlowTaskGraph preprocesingTaskGraph = preprocessingTaskGraphBuilder.build();
 
         //Get the execution plan for the first task graph
@@ -78,6 +79,7 @@ public class StockAnalysisWorker extends TaskWorker {
 
         //Actual execution for the first taskgraph
         taskExecutor.execute(preprocesingTaskGraph, preprocessExecutionPlan);
+
         long endTime = System.currentTimeMillis();
         LOG.info("Compute Time : " + (endTime - startTime));
 
@@ -99,7 +101,7 @@ public class StockAnalysisWorker extends TaskWorker {
         ExecutionPlan computeExecutionPlan = taskExecutor.plan(computeTaskGraph);
 
         //Actual execution for the first taskgraph
-        //taskExecutor.execute(computeTaskGraph, computeExecutionPlan);
+        taskExecutor.execute(computeTaskGraph, computeExecutionPlan);
     }
 
     private static class StockAnalysisSourceTask extends BaseSource implements Receptor {

@@ -25,25 +25,27 @@ public class DataPreprocessingSinkTask extends BaseSink implements Collector {
     }
 
     @Override
-    public DataPartition<?> get() {
-        return null;
-    }
-
-    @Override
     public boolean execute(IMessage content) {
-        LOG.info("Received message:" + content.getContent().toString());
-        Map<Integer, VectorPoint> currentPoints = null;
-        while (((Iterator) content.getContent()).hasNext()) {
-            currentPoints = (Map<Integer, VectorPoint>) ((Iterator) content.getContent()).next();
-        }
-        LOG.info("current points size:" + currentPoints.size());
-        for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
+        Map<Integer, VectorPoint> currentPoints = (Map<Integer, VectorPoint>) content.getContent();
+        LOG.info("Received message:" + currentPoints);
+
+        for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext();) {
             Map.Entry<Integer, VectorPoint> entry = it.next();
             LOG.info("%%%%%%%%%%Entry Values:%%%%%%" + entry);
         }
         DistanceCalculator distanceCalculator = new DistanceCalculator(vectorDirectory, distanceDirectory,
                 Integer.parseInt(distanceType));
-        distanceCalculator.process();
+        //distanceCalculator.process();
         return true;
+    }
+
+    @Override
+    public DataPartition<?> get() {
+        return null;
+    }
+
+    @Override
+    public DataPartition<?> get(String name) {
+        return null;
     }
 }

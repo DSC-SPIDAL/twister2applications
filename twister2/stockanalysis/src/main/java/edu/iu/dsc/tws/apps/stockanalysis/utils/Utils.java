@@ -179,6 +179,7 @@ public class Utils {
     }
 
     public static List<VectorPoint> readVectors(File file, int startIndex, int endIndex) {
+        LOG.info("Start Index and End Index:" + startIndex + "\t" + endIndex);
         List<VectorPoint> vecs = new ArrayList<VectorPoint>();
         BufferedReader br = null;
         try {
