@@ -27,15 +27,15 @@ public class DataPreprocessingSinkTask extends BaseSink implements Collector {
     @Override
     public boolean execute(IMessage content) {
         Map<Integer, VectorPoint> currentPoints = (Map<Integer, VectorPoint>) content.getContent();
-        LOG.info("Received message:" + currentPoints);
-
+        LOG.info("Received size and message:" + currentPoints.size() + "\t" + currentPoints);
         for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext();) {
             Map.Entry<Integer, VectorPoint> entry = it.next();
             LOG.info("%%%%%%%%%%Entry Values:%%%%%%" + entry);
         }
+        LOG.info("Distance Directory:" + distanceDirectory);
         DistanceCalculator distanceCalculator = new DistanceCalculator(vectorDirectory, distanceDirectory,
                 Integer.parseInt(distanceType));
-        //distanceCalculator.process();
+        distanceCalculator.process();
         return true;
     }
 

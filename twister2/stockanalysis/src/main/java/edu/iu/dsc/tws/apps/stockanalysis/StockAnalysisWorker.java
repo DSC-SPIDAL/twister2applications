@@ -41,7 +41,7 @@ public class StockAnalysisWorker extends TaskWorker {
         StockAnalysisWorkerParameters stockAnalysisWorkerParameters = StockAnalysisWorkerParameters.build(config);
 
         int parallel = stockAnalysisWorkerParameters.getParallelismValue();
-        String distanceMatrixDirectory = stockAnalysisWorkerParameters.getDataInput();
+        String distanceMatrixDirectory = stockAnalysisWorkerParameters.getDatapointDirectory();
         String configFile = stockAnalysisWorkerParameters.getConfigFile();
         String directory = stockAnalysisWorkerParameters.getDatapointDirectory();
         String byteType = stockAnalysisWorkerParameters.getByteType();
@@ -53,6 +53,8 @@ public class StockAnalysisWorker extends TaskWorker {
         String endDate = stockAnalysisWorkerParameters.getEndDate();
         String mode = stockAnalysisWorkerParameters.getMode();
         String distanceType = stockAnalysisWorkerParameters.getDistanceType();
+
+        LOG.info("Distance Matrix Directory:" + distanceMatrixDirectory + "\t" + vectorDirectory);
 
         //Sequential Vector Generation
         long startTime = System.currentTimeMillis();

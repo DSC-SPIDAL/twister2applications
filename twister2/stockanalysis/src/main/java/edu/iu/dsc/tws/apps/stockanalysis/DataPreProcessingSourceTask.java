@@ -39,17 +39,9 @@ public class DataPreProcessingSourceTask extends BaseSource {
     @Override
     public void execute() {
         LOG.info("Task Id:\t" + context.taskId() + "\ttask index:\t" + context.taskIndex());
-
-//For Testing
-//        VectorPoint point = currentPoints.get(1);
-//        if (point == null) {
-//            point = new VectorPoint(1, 100, true);
-//            currentPoints.put(1, point);
-//        }
-//        context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
-
         File inFolder = new File(this.dataInputFile);
         TreeMap<String, List<Date>> allDates = Utils.genDates(startDate, endDate, mode);
+
         for (String dateString : allDates.keySet()) {
             LOG.fine(dateString + " ");
         }
@@ -66,9 +58,9 @@ public class DataPreProcessingSourceTask extends BaseSource {
             LOG.fine("start and end data:" + start + "\t" + end);
             LOG.info("key:" + ed.getKey() + "\t" + datesList.get(ed.getKey()).size());
             processFile(inFolder, start, end, ed.getKey(), datesList.get(ed.getKey()));
-            context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
         }
         try {
+            //context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
             Thread.sleep(50000);
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted Exception Occured");
@@ -76,6 +68,7 @@ public class DataPreProcessingSourceTask extends BaseSource {
     }
 
     public Map<String, Map<Date, Integer>> findDates(String inFile) {
+
         FileReader input = null;
         // a map of datestring -> map <date string, index>
         Map<String, Map<Date, Integer>> outDates = new HashMap<String, Map<Date, Integer>>();
@@ -146,7 +139,6 @@ public class DataPreProcessingSourceTask extends BaseSource {
         int size = -1;
         vectorCounter = 0;
         int noOfDays = datesList.size();
-        LOG.info("Number of days for task index:" + context.taskIndex() + "\t" + noOfDays);
         String outFileName = vectorDirectory + "/" + outFile + ".csv";
         int capCount = 0;
         CleanMetric metric = this.metrics.get(outFileName);
@@ -159,9 +151,8 @@ public class DataPreProcessingSourceTask extends BaseSource {
             FileReader input = new FileReader(inFile);
             FileOutputStream fos = new FileOutputStream(new File(outFileName));
             bufWriter = new BufferedWriter(new OutputStreamWriter(fos));
-
-            LOG.info("input file to read the data:" + inFile);
             bufRead = new BufferedReader(input);
+
             Record record;
             int count = 0;
             int fullCount = 0;
@@ -208,16 +199,16 @@ public class DataPreProcessingSourceTask extends BaseSource {
 
                 // now write the current vectors, also make sure we have the size determined correctly
                 if (currentPoints.size() > 1000 && size != -1 && fullCount > 750) {
-                    LOG.info("Processed: " + count);
+                    LOG.fine("Processed: " + count);
                     totalCap += writeVectors(bufWriter, noOfDays, metric);
                     capCount++;
                     fullCount = 0;
                 }
             }
-
             LOG.info("Size: " + size);
             LOG.info("Split count: " + inFile.getName() + " = " + splitCount);
-            // write the rest of the vectors in the map after finish reading the file
+
+            /*// write the rest of the vectors in the map after finish reading the file
             totalCap += writeVectors(bufWriter, size, metric);
             capCount++;
 
@@ -250,7 +241,7 @@ public class DataPreProcessingSourceTask extends BaseSource {
             v.addCap(totalCap);
             //LOG.info("%%%% Vector Point:%%%%" + v.serialize());
             bufWriter.write(v.serialize());
-            bufWriter.newLine();
+            bufWriter.newLine();*/
 
             LOG.info("Total stocks: " + vectorCounter + " bad stocks: " + currentPoints.size());
             metric.stocksWithIncorrectDays = currentPoints.size();
@@ -275,7 +266,8 @@ public class DataPreProcessingSourceTask extends BaseSource {
     private double writeVectors(BufferedWriter bufWriter, int size, CleanMetric metric) throws IOException {
         double capSum = 0;
         int count = 0;
-
+        LOG.info("Context Value:" + context.taskName() + "\tCurrent Points Size:" + currentPoints.size());
+        context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
         for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<Integer, VectorPoint> entry = it.next();
             VectorPoint v = entry.getValue();
@@ -287,15 +279,14 @@ public class DataPreProcessingSourceTask extends BaseSource {
                     it.remove();
                     continue;
                 }
-                String sv = v.serialize();
-                LOG.fine("%%%%%%% SV Value:" + sv);
 
+                String sv = v.serialize();
                 // if many points are missing, this can return null
                 if (sv != null) {
                     capSum += v.getTotalCap();
                     count++;
-                    //bufWriter.write(sv);
-                    //bufWriter.newLine();
+                    bufWriter.write(sv);
+                    bufWriter.newLine();
 
                     // remove it from map
                     vectorCounter++;
