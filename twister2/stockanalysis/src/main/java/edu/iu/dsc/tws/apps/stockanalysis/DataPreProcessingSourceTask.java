@@ -208,12 +208,12 @@ public class DataPreProcessingSourceTask extends BaseSource {
             LOG.info("Size: " + size);
             LOG.info("Split count: " + inFile.getName() + " = " + splitCount);
 
-            /*// write the rest of the vectors in the map after finish reading the file
+            // write the rest of the vectors in the map after finish reading the file
             totalCap += writeVectors(bufWriter, size, metric);
             capCount++;
 
             //write the constant vector at the end
-            VectorPoint v = new VectorPoint(0, noOfDays, true);
+            /*VectorPoint v = new VectorPoint(0, noOfDays, true);
             v.addCap(totalCap);
             //LOG.info("%%%% Vector Point:%%%%" + v.getTotalCap());
             bufWriter.write(v.serialize());
@@ -246,8 +246,8 @@ public class DataPreProcessingSourceTask extends BaseSource {
             LOG.info("Total stocks: " + vectorCounter + " bad stocks: " + currentPoints.size());
             metric.stocksWithIncorrectDays = currentPoints.size();
             LOG.info("Metrics for file: " + outFileName + " " + metric.serialize());
+            currentPoints.clear();
             return currentPoints;
-            //currentPoints.clear();
         } catch (IOException e) {
             throw new RuntimeException("Failed to open the file", e);
         } finally {

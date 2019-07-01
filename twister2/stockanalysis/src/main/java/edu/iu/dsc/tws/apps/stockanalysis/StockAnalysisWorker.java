@@ -52,7 +52,7 @@ public class StockAnalysisWorker extends TaskWorker {
         String startDate = stockAnalysisWorkerParameters.getStartDate();
         String endDate = stockAnalysisWorkerParameters.getEndDate();
         String mode = stockAnalysisWorkerParameters.getMode();
-        String distanceType = stockAnalysisWorkerParameters.getDistanceType();
+        int distanceType = Integer.parseInt(stockAnalysisWorkerParameters.getDistanceType());
 
         LOG.info("Distance Matrix Directory:" + distanceMatrixDirectory + "\t" + vectorDirectory);
 
