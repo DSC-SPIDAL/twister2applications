@@ -36,9 +36,10 @@ public class DataPreprocessingSinkTask extends BaseSink implements Collector {
         for (Map.Entry<Integer, VectorPoint> entry : currentPoints.entrySet()) {
             LOG.info("%%%%%%%%%%Entry Values:%%%%%%" + entry);
         }
+        process();
         DistanceCalculator distanceCalculator = new DistanceCalculator(vectorDirectory, distanceDirectory,
                 distanceType);
-        distanceCalculator.process();
+        //distanceCalculator.process();
         return true;
     }
 
