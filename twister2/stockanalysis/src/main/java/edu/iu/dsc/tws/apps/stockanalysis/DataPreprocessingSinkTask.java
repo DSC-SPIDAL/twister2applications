@@ -36,10 +36,12 @@ public class DataPreprocessingSinkTask extends BaseSink implements Collector {
         for (Map.Entry<Integer, VectorPoint> entry : currentPoints.entrySet()) {
             LOG.info("%%%%%%%%%%Entry Values:%%%%%%" + entry);
         }
-        process();
+
         DistanceCalculator distanceCalculator = new DistanceCalculator(vectorDirectory, distanceDirectory,
                 distanceType);
-        //distanceCalculator.process();
+        distanceCalculator.process();
+        /*DistanceCalculator distanceCalculator = new DistanceCalculator(currentPoints, distanceDirectory, distanceType);
+        distanceCalculator.process();*/
         return true;
     }
 
@@ -70,7 +72,7 @@ public class DataPreprocessingSinkTask extends BaseSink implements Collector {
         }
 
         int[] histogram = new int[100];
-        double[] chanegHisto = new double[100];
+        double[] changeHistogram = new double[100];
 
         double dmax = Double.MIN_VALUE;
         double dmin = Double.MAX_VALUE;
@@ -89,7 +91,7 @@ public class DataPreprocessingSinkTask extends BaseSink implements Collector {
             double v = VectorPoint.vectorLength(1, sv);
             for (int z = 0; z < 100; z++) {
                 if (v < (z + 1) * .1) {
-                    chanegHisto[z]++;
+                    changeHistogram[z]++;
                     break;
                 }
             }

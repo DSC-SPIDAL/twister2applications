@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
@@ -23,13 +24,22 @@ public class DistanceCalculator {
     private String distFolder;
     private int distanceType;
 
+    private static int INC = 7000;
+
+    private Map<Integer, VectorPoint> currentPoints;
+
     public DistanceCalculator(String vectorfolder, String distfolder, int distancetype) {
         this.vectorFolder = vectorfolder;
         this.distFolder = distfolder;
         this.distanceType = distancetype;
     }
 
-    private static int INC = 7000;
+
+    public DistanceCalculator(Map<Integer, VectorPoint> currentpoints, String distfolder, int distancetype) {
+        this.currentPoints = currentpoints;
+        this.distFolder = distfolder;
+        this.distanceType = distancetype;
+    }
 
     public void process() {
         LOG.info("Starting Distance calculator..." + vectorFolder);
@@ -48,6 +58,7 @@ public class DistanceCalculator {
             Collections.sort(list);
 
             files.addAll(list);
+            LOG.info("files are:" + files);
 
             //TODO: MODIFY THIS PART AND USE THE EXECUTOR
             List<Thread> threads = new ArrayList<Thread>();
@@ -55,6 +66,7 @@ public class DistanceCalculator {
             for (int i = 0; i < 1; i++) {
                 Thread t = new Thread(new Worker(files));
                 t.start();
+                LOG.info("%%%%% name:%%%%%%" + t.getName());
                 threads.add(t);
             }
 
@@ -83,6 +95,7 @@ public class DistanceCalculator {
             while (!queue.isEmpty()) {
                 try {
                     File f = queue.take();
+                    LOG.info("File Details Are:" + f);
                     processFile(f);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
@@ -93,7 +106,7 @@ public class DistanceCalculator {
     }
 
     private void processFile(File fileEntry) {
-        WriterWrapper writer = null;
+        WriterWrapper writer;
         if (fileEntry.isDirectory()) {
             return;
         }
@@ -103,11 +116,7 @@ public class DistanceCalculator {
         String smallOutFileName = smallValDir + "/" + fileEntry.getName();
 
         LOG.info("Calculator vector file: " + fileEntry.getAbsolutePath() + " Output: " + outFileName);
-        //File smallDirFile = new File(smallValDir);
-        //smallDirFile.mkdirs();
         writer = new WriterWrapper(outFileName, false);
-        //WriterWrapper smallWriter = new WriterWrapper(smallOutFileName, true);
-        // +1 to accomodate constant sctock
         int lineCount = countLines(fileEntry);
 
         // initialize the double arrays for this block
@@ -124,7 +133,7 @@ public class DistanceCalculator {
             }
         }
         int[] histogram = new int[100];
-        double[] chanegHisto = new double[100];
+        double[] changeHistogram = new double[100];
 
         double dmax = Double.MIN_VALUE;
         double dmin = Double.MAX_VALUE;
@@ -134,7 +143,6 @@ public class DistanceCalculator {
 
         List<VectorPoint> vectors;
 
-//        do {
         startIndex = endIndex + 1;
         endIndex = startIndex + INC - 1;
 
@@ -142,11 +150,7 @@ public class DistanceCalculator {
         int readEndIndex = INC - 1;
 
         vectors = Utils.readVectors(fileEntry, startIndex, endIndex);
-//            if (vectors.size() == 0) {
-//                break;
-//            }
 
-        // System.out.println("Processing block: " + startIndex + " : " + endIndex);
         // now start from the begining and go through the whole file
         List<VectorPoint> secondVectors = vectors;
         LOG.info("Reading second block: " + readStartIndex + " : " + readEndIndex + " read size: " + secondVectors.size());
@@ -155,7 +159,7 @@ public class DistanceCalculator {
             double v = VectorPoint.vectorLength(1, sv);
             for (int z = 0; z < 100; z++) {
                 if (v < (z + 1) * .1) {
-                    chanegHisto[z]++;
+                    changeHistogram[z]++;
                     break;
                 }
             }
@@ -183,6 +187,7 @@ public class DistanceCalculator {
         readStartIndex = readEndIndex + 1;
         readEndIndex = readStartIndex + INC - 1;
         LOG.info("MAX distance is: " + dmax + " MIN Distance is: " + dmin);
+
         // write the vectors to file
         for (int i = 0; i < vectors.size(); i++) {
             for (int j = 0; j < values[i].length; j++) {
@@ -205,26 +210,22 @@ public class DistanceCalculator {
             }
             writer.line();
         }
-//        } while (true);
+
         if (writer != null) {
             writer.close();
         }
         LOG.info("MAX: " + VectorPoint.maxChange + " MIN: " + VectorPoint.minChange);
-        LOG.info("Distance histo");
+        LOG.info("Distance history");
         for (int i = 0; i < 100; i++) {
             System.out.print(histogram[i] + ", ");
         }
         System.out.println();
 
-        LOG.info("Ratio histo");
+        LOG.info("Ratio history");
         for (int i = 0; i < 100; i++) {
-            System.out.print(chanegHisto[i] + ", ");
+            System.out.print(changeHistogram[i] + ", ");
         }
         System.out.println();
-
-//        if (smallWriter != null) {
-//            smallWriter.close();
-//        }
         System.out.println(dmax);
     }
 
