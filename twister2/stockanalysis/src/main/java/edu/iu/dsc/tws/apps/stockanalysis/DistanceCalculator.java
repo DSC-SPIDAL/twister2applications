@@ -60,38 +60,7 @@ public class DistanceCalculator {
             files.addAll(list);
             LOG.info("files are:" + files);
 
-            //TODO: MODIFY THIS PART AND USE THE EXECUTOR
-            List<Thread> threads = new ArrayList<Thread>();
-            // start 4 threads
-            for (int i = 0; i < 1; i++) {
-                Thread t = new Thread(new Worker(files));
-                t.start();
-                LOG.info("%%%%% name:%%%%%%" + t.getName());
-                threads.add(t);
-            }
-
-            for (Thread t : threads) {
-                try {
-                    t.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            LOG.info("Distance calculator finished...");
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
-    }
-    
-    private class Worker implements Runnable {
-        private BlockingQueue<File> queue;
-
-        private Worker(BlockingQueue<File> queue) {
-            this.queue = queue;
-        }
-
-        @Override
-        public void run() {
+            BlockingQueue<File> queue = files;
             while (!queue.isEmpty()) {
                 try {
                     File f = queue.take();
@@ -102,6 +71,9 @@ public class DistanceCalculator {
                 }
 
             }
+            LOG.info("Distance calculator finished...");
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -151,7 +123,7 @@ public class DistanceCalculator {
 
         vectors = Utils.readVectors(fileEntry, startIndex, endIndex);
 
-        // now start from the begining and go through the whole file
+        // now start from the beginning and go through the whole file
         List<VectorPoint> secondVectors = vectors;
         LOG.info("Reading second block: " + readStartIndex + " : " + readEndIndex + " read size: " + secondVectors.size());
         for (int i = 0; i < secondVectors.size(); i++) {
@@ -166,7 +138,7 @@ public class DistanceCalculator {
             for (int j = 0; j < vectors.size(); j++) {
                 VectorPoint fv = vectors.get(j);
                 double cor = 0;
-                // assume i,j is eqaul to j,i
+                // assume i,j is equal to j,i
                 if (cachedValues[readStartIndex + i][j] == -1) {
                     cor = sv.correlation(fv, distanceType);
                 } else {
