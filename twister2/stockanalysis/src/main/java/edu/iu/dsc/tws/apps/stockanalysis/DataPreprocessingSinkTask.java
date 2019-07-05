@@ -1,7 +1,9 @@
 package edu.iu.dsc.tws.apps.stockanalysis;
 
+import edu.iu.dsc.tws.api.config.Config;
 import edu.iu.dsc.tws.api.dataset.DataPartition;
 import edu.iu.dsc.tws.api.task.IMessage;
+import edu.iu.dsc.tws.api.task.TaskContext;
 import edu.iu.dsc.tws.api.task.modifiers.Collector;
 import edu.iu.dsc.tws.api.task.nodes.BaseSink;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.VectorPoint;
@@ -20,7 +22,9 @@ public class DataPreprocessingSinkTask extends BaseSink implements Collector {
     private int distanceType;
 
     private Map<Integer, VectorPoint> currentPoints;
-    private List<VectorPoint> vectorsList = new ArrayList<>();
+    //private List<VectorPoint> vectorsList = new ArrayList<>();
+    private List<String> vectorsList = new ArrayList<>();
+    List<Map<Integer, VectorPoint>> values = new ArrayList<>();
 
     public DataPreprocessingSinkTask(String vectordirectory, String distancedirectory, int distancetype) {
         this.vectorDirectory = vectordirectory;
@@ -30,8 +34,12 @@ public class DataPreprocessingSinkTask extends BaseSink implements Collector {
 
     @Override
     public boolean execute(IMessage content) {
-//        currentPoints = (Map<Integer, VectorPoint>) content.getContent();
-//        LOG.info("%%%% Current Points value size: %%%%" + currentPoints.size());
+        //currentPoints = (Map<Integer, VectorPoint>) content.getContent();
+        //LOG.info("%%%% Current Points value: %%%%" + content.getContent());
+
+        values.add((Map<Integer, VectorPoint>) content.getContent());
+        LOG.info("%%%% Current Points value: %%%%" + values.size());
+
 //        for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
 //            Map.Entry<Integer, VectorPoint> entry = it.next();
 //            VectorPoint v = entry.getValue();
@@ -40,26 +48,23 @@ public class DataPreprocessingSinkTask extends BaseSink implements Collector {
 //            vectorsList.add(v);
 //        }
 //        LOG.info("vector list size:" + vectorsList.size());
-
-        VectorPoint v = (VectorPoint) content.getContent();
-        vectorsList.add(v);
-        LOG.info("Vectors List Size:" + vectorsList.size());
-        DistanceCalculator distanceCalculator = new DistanceCalculator(vectorsList, vectorDirectory,
+        //vectorsList.add(String.valueOf(content.getContent()));
+        DistanceCalculator distanceCalculator = new DistanceCalculator(values, vectorDirectory,
                 distanceDirectory, distanceType);
-        distanceCalculator.process(true);
-
+        distanceCalculator.process();
+        //distanceCalculator.process(true);
         /*DistanceCalculator distanceCalculator = new DistanceCalculator(currentPoints, distanceDirectory, distanceType);
         distanceCalculator.process();*/
         return true;
     }
 
     @Override
-    public DataPartition<?> get() {
-        return null;
+    public void prepare(Config cfg, TaskContext context) {
+        super.prepare(cfg, context);
     }
 
     @Override
-    public DataPartition<?> get(String name) {
+    public DataPartition<?> get() {
         return null;
     }
 }

@@ -8,9 +8,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
@@ -24,8 +22,7 @@ public class DistanceCalculator {
     private int distanceType;
 
     private static int INC = 7000;
-
-    private List<VectorPoint> vectors;
+    private List<Map<Integer, VectorPoint>> vectors;
 
     public DistanceCalculator(String vectorfolder, String distfolder, int distancetype) {
         this.vectorFolder = vectorfolder;
@@ -33,14 +30,13 @@ public class DistanceCalculator {
         this.distanceType = distancetype;
     }
 
-    public DistanceCalculator(List<VectorPoint> currentpoints, String vectorfolder, String distfolder, int distancetype) {
+    public DistanceCalculator(List<Map<Integer, VectorPoint>> currentpoints, String vectorfolder, String distfolder, int distancetype) {
         this.vectors = currentpoints;
-        LOG.info("Current Points Values:" + currentpoints.size());
         this.vectorFolder = vectorfolder;
         this.distFolder = distfolder;
         this.distanceType = distancetype;
+        LOG.info("Current Points Values:" + currentpoints.size());
     }
-
 
     public void process(boolean flag) {
         File inFolder = new File(vectorFolder);
@@ -110,7 +106,18 @@ public class DistanceCalculator {
         //vectors = Utils.readVectors(fileEntry, startIndex, endIndex);
 
         // now start from the beginning and go through the whole file
-        List<VectorPoint> secondVectors = vectors;
+
+        List<VectorPoint> secondVectors = null;
+
+        for (int i = 0; i < vectors.size(); i++) {
+            Map<Integer, VectorPoint> vectorPointMap = vectors.get(i);
+            for (Iterator<Map.Entry<Integer, VectorPoint>> it = vectorPointMap.entrySet().iterator(); it.hasNext(); ) {
+                Map.Entry<Integer, VectorPoint> entry = it.next();
+                VectorPoint v = entry.getValue();
+                secondVectors.add(v);
+            }
+        }
+
         LOG.info("Reading second block: " + readStartIndex + " : " + readEndIndex + " read size: " + secondVectors.size());
         for (int i = 0; i < secondVectors.size(); i++) {
             VectorPoint sv = secondVectors.get(i);
@@ -122,24 +129,28 @@ public class DistanceCalculator {
                 }
             }
             for (int j = 0; j < vectors.size(); j++) {
-                VectorPoint fv = vectors.get(j);
-                double cor = 0;
-                // assume i,j is equal to j,i
-                if (cachedValues[readStartIndex + i][j] == -1) {
-                    cor = sv.correlation(fv, distanceType);
-                } else {
-                    cor = cachedValues[readStartIndex + i][j];
-                }
+                Map<Integer, VectorPoint> vectorPointMap = vectors.get(j);
+                for (Iterator<Map.Entry<Integer, VectorPoint>> it = vectorPointMap.entrySet().iterator(); it.hasNext(); ) {
+                    Map.Entry<Integer, VectorPoint> entry = it.next();
+                    VectorPoint fv = entry.getValue();
+                    double cor = 0;
+                    // assume i,j is equal to j,i
+                    if (cachedValues[readStartIndex + i][j] == -1) {
+                        cor = sv.correlation(fv, distanceType);
+                    } else {
+                        cor = cachedValues[readStartIndex + i][j];
+                    }
 
-                if (cor > dmax) {
-                    dmax = cor;
-                }
+                    if (cor > dmax) {
+                        dmax = cor;
+                    }
 
-                if (cor < dmin) {
-                    dmin = cor;
+                    if (cor < dmin) {
+                        dmin = cor;
+                    }
+                    values[j][readStartIndex + i] = cor;
+                    cachedValues[j][readStartIndex + i] = cor;
                 }
-                values[j][readStartIndex + i] = cor;
-                cachedValues[j][readStartIndex + i] = cor;
             }
         }
         readStartIndex = readEndIndex + 1;
@@ -234,6 +245,7 @@ public class DistanceCalculator {
         writer = new WriterWrapper(outFileName, false);
         int lineCount = countLines(fileEntry);
 
+        LOG.info("Total Line Count:" + lineCount);
         // initialize the double arrays for this block
         double values[][] = new double[INC][];
         double cachedValues[][] = new double[INC][];
