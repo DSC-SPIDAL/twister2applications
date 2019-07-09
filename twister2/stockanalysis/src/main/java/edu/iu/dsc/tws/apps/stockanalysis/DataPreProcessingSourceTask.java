@@ -61,11 +61,12 @@ public class DataPreProcessingSourceTask extends BaseSource {
             LOG.info("key:" + ed.getKey() + "\t" + datesList.get(ed.getKey()).size());
             processFile(inFolder, start, end, ed.getKey(), datesList.get(ed.getKey()));
         }
-        try {
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Interrupted Exception Occured");
-        }
+//        try {
+//            Thread.sleep(10000);
+//            LOG.info("Current Points size:" + currentPoints.size());
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException("Interrupted Exception Occured");
+//        }
     }
 
     public Map<String, Map<Date, Integer>> findDates(String inFile) {
@@ -130,7 +131,7 @@ public class DataPreProcessingSourceTask extends BaseSource {
     /**
      * Process a stock file and generate vectors for a month or year period
      */
-    private void processFile(File inFile, Date startDate, Date endDate, String outFile,
+    private Map<Integer, VectorPoint> processFile(File inFile, Date startDate, Date endDate, String outFile,
                                                   Map<Date, Integer> datesList) {
         LOG.info("Task Index:" + context.taskIndex() + "\tInput file:" + inFile
                 + "\tstartdate:" + startDate + "\tendDate:" + endDate);
@@ -202,22 +203,21 @@ public class DataPreProcessingSourceTask extends BaseSource {
                 if (currentPoints.size() > 1000 && size != -1 && fullCount > 750) {
                     LOG.info("Processed: " + count);
                     totalCap += writeVectors(bufWriter, noOfDays, metric);
+                    //context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
                     capCount++;
                     fullCount = 0;
                 }
             }
-            LOG.info("Before returrning Current Points Size:" + currentPoints.size());
-
-            //LOG.info("Split count: " + inFile.getName() + " = " + splitCount);
+            LOG.info("Split count: " + inFile.getName() + " = " + splitCount);
             // write the rest of the vectors in the map after finish reading the file
-            //totalCap += writeVectors(bufWriter, size, metric);
-            //capCount++;
+            totalCap += writeVectors(bufWriter, size, metric);
+            capCount++;
 
-            //metric.stocksWithIncorrectDays = currentPoints.size();
-            //LOG.info("Total stocks: " + vectorCounter + " bad stocks: " + currentPoints.size());
-            //LOG.info("Metrics for file: " + outFileName + " " + metric.serialize());
-            //currentPoints.clear();
-            //return currentPoints;
+            metric.stocksWithIncorrectDays = currentPoints.size();
+            LOG.info("Total stocks: " + vectorCounter + " bad stocks: " + currentPoints.size());
+            LOG.info("Metrics for file: " + outFileName + " " + metric.serialize());
+            currentPoints.clear();
+            return currentPoints;
         } catch (IOException e) {
             throw new RuntimeException("Failed to open the file", e);
         } finally {
@@ -238,7 +238,7 @@ public class DataPreProcessingSourceTask extends BaseSource {
         int count = 0;
         LOG.info("Context Value:" + context.taskName() + "\tCurrent Points Size:" + currentPoints.size());
         context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
-        /*for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
+        for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<Integer, VectorPoint> entry = it.next();
             VectorPoint v = entry.getValue();
             if (v.noOfElements() == size) {
@@ -255,8 +255,8 @@ public class DataPreProcessingSourceTask extends BaseSource {
                 if (sv != null) {
                     capSum += v.getTotalCap();
                     count++;
-                    //bufWriter.write(sv);
-                    //bufWriter.newLine();
+                    bufWriter.write(sv);
+                    bufWriter.newLine();
                     // remove it from map
                     vectorCounter++;
                     metric.writtenStocks++;
@@ -267,7 +267,7 @@ public class DataPreProcessingSourceTask extends BaseSource {
             } else {
                 metric.lenghtWrong++;
             }
-        }*/
+        }
         return capSum;
     }
 

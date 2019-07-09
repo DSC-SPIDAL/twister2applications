@@ -82,6 +82,11 @@ public class StockAnalysisWorker extends TaskWorker {
         //Actual execution for the first taskgraph
         taskExecutor.execute(preprocesingTaskGraph, preprocessExecutionPlan);
 
+        //Retrieve the output of the first task graph
+        DataObject<Object> dataPointsObject = taskExecutor.getOutput(preprocesingTaskGraph,
+                preprocessExecutionPlan, "preprocessingsinktask");
+
+        LOG.info("%%% DataPoints Object:%%%" + dataPointsObject + "\t" + dataPointsObject.getPartitions());
         long endTime = System.currentTimeMillis();
         LOG.info("Compute Time : " + (endTime - startTime));
 
