@@ -9,9 +9,7 @@ import edu.iu.dsc.tws.api.task.nodes.BaseSink;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.VectorPoint;
 import edu.iu.dsc.tws.dataset.impl.EntityPartition;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Logger;
 
 
@@ -23,9 +21,8 @@ public class DataPreprocessingSinkTask extends BaseSink implements Collector {
     private String distanceDirectory;
     private int distanceType;
 
-    private Map<Integer, VectorPoint> currentPoints;
-    private List<String> vectorsList = new ArrayList<>();
-    private List<Map<Integer, VectorPoint>> values = new ArrayList<>();
+    private Map<Integer, VectorPoint> currentPoints = new HashMap<>();
+    private List<Map<Integer, VectorPoint>> values;
 
     public DataPreprocessingSinkTask(String vectordirectory, String distancedirectory, int distancetype) {
         this.vectorDirectory = vectordirectory;
@@ -35,12 +32,21 @@ public class DataPreprocessingSinkTask extends BaseSink implements Collector {
 
     @Override
     public boolean execute(IMessage content) {
+        values = new ArrayList<>();
         values.add((Map<Integer, VectorPoint>) content.getContent());
         LOG.info("Values Size:" + values.size());
-
+        for (int i = 0; i < values.size(); i++) {
+            currentPoints = values.get(i);
+            LOG.info("%%% Current points:%%%" + currentPoints);
+            for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext();) {
+                Map.Entry<Integer, VectorPoint> entry = it.next();
+                VectorPoint v = entry.getValue();
+                LOG.info("Serialized Value:" + v.serialize());
+            }
+        }
         DistanceCalculator distanceCalculator = new DistanceCalculator(values, vectorDirectory,
                 distanceDirectory, distanceType);
-        distanceCalculator.process();
+        //distanceCalculator.process();
         //distanceCalculator.process(true);
         return true;
     }
@@ -52,6 +58,6 @@ public class DataPreprocessingSinkTask extends BaseSink implements Collector {
 
     @Override
     public DataPartition<List<Map<Integer, VectorPoint>>> get() {
-        return new EntityPartition<>(context.taskIndex(), null);
+        return new EntityPartition<>(context.taskIndex(), values);
     }
 }

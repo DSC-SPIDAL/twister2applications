@@ -59,14 +59,9 @@ public class DataPreProcessingSourceTask extends BaseSource {
             Date end = ed.getValue().get(1);
             LOG.fine("start and end data:" + start + "\t" + end);
             LOG.info("key:" + ed.getKey() + "\t" + datesList.get(ed.getKey()).size());
-            processFile(inFolder, start, end, ed.getKey(), datesList.get(ed.getKey()));
+            processedPoints = processFile(inFolder, start, end, ed.getKey(), datesList.get(ed.getKey()));
+            LOG.info("Processed Points:" + processedPoints);
         }
-//        try {
-//            Thread.sleep(10000);
-//            LOG.info("Current Points size:" + currentPoints.size());
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException("Interrupted Exception Occured");
-//        }
     }
 
     public Map<String, Map<Date, Integer>> findDates(String inFile) {
@@ -201,22 +196,21 @@ public class DataPreProcessingSourceTask extends BaseSource {
 
                 // now write the current vectors, also make sure we have the size determined correctly
                 if (currentPoints.size() > 1000 && size != -1 && fullCount > 750) {
-                    LOG.info("Processed: " + count);
-                    totalCap += writeVectors(bufWriter, noOfDays, metric);
-                    //context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
+                    LOG.info("Processed: " + count + "\tcurrent points size:" + currentPoints.size());
+                    context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
+                    //totalCap += writeVectors(bufWriter, noOfDays, metric);
                     capCount++;
                     fullCount = 0;
                 }
             }
             LOG.info("Split count: " + inFile.getName() + " = " + splitCount);
             // write the rest of the vectors in the map after finish reading the file
-            totalCap += writeVectors(bufWriter, size, metric);
+            //totalCap += writeVectors(bufWriter, size, metric);
             capCount++;
-
             metric.stocksWithIncorrectDays = currentPoints.size();
             LOG.info("Total stocks: " + vectorCounter + " bad stocks: " + currentPoints.size());
             LOG.info("Metrics for file: " + outFileName + " " + metric.serialize());
-            currentPoints.clear();
+            //currentPoints.clear();
             return currentPoints;
         } catch (IOException e) {
             throw new RuntimeException("Failed to open the file", e);
@@ -237,8 +231,9 @@ public class DataPreProcessingSourceTask extends BaseSource {
         double capSum = 0;
         int count = 0;
         LOG.info("Context Value:" + context.taskName() + "\tCurrent Points Size:" + currentPoints.size());
-        context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
-        for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
+        LOG.info("%%%%%%%% Current points values:%%%%%%%%%%%" + currentPoints);
+        //context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
+        /*for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<Integer, VectorPoint> entry = it.next();
             VectorPoint v = entry.getValue();
             if (v.noOfElements() == size) {
@@ -267,7 +262,7 @@ public class DataPreProcessingSourceTask extends BaseSource {
             } else {
                 metric.lenghtWrong++;
             }
-        }
+        }*/
         return capSum;
     }
 
