@@ -19,8 +19,7 @@ public class DataPreprocessingCompute extends BaseCompute {
     private int distanceType;
 
     private String edgeName;
-    private List<Map<Integer, VectorPoint>> values;
-
+    private List<Map<Integer, VectorPoint>> values = new ArrayList<>();
     public DataPreprocessingCompute(String vectordirectory, String distancedirectory, int distancetype,
                                     String edgename) {
         this.vectorDirectory = vectordirectory;
@@ -31,7 +30,7 @@ public class DataPreprocessingCompute extends BaseCompute {
 
     @Override
     public boolean execute(IMessage content) {
-        values = new ArrayList<>();
+        LOG.info("Received message:" + content.getContent());
         values.add((Map<Integer, VectorPoint>) content.getContent());
         context.write(edgeName, values);
         return true;

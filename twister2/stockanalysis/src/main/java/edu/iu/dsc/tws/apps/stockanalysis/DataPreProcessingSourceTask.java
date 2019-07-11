@@ -1,11 +1,14 @@
 package edu.iu.dsc.tws.apps.stockanalysis;
 
 import edu.iu.dsc.tws.api.config.Context;
+import edu.iu.dsc.tws.api.data.FileSystem;
+import edu.iu.dsc.tws.api.data.Path;
 import edu.iu.dsc.tws.api.task.nodes.BaseSource;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.CleanMetric;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.Record;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.Utils;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.VectorPoint;
+import edu.iu.dsc.tws.data.utils.FileSystemUtils;
 
 import java.io.*;
 import java.util.*;
@@ -148,6 +151,10 @@ public class DataPreProcessingSourceTask extends BaseSource {
             FileOutputStream fos = new FileOutputStream(new File(outFileName));
             bufWriter = new BufferedWriter(new OutputStreamWriter(fos));
             bufRead = new BufferedReader(input);
+
+            FileSystem fileSystem = FileSystemUtils.get(new Path(vectorDirectory));
+            LOG.info("File System:" + fileSystem);
+            //Retrieve the buffer reader and read it
 
             Record record;
             int count = 0;
