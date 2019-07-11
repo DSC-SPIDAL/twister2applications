@@ -1,5 +1,7 @@
 package edu.iu.dsc.tws.apps.stockanalysis;
 
+import edu.iu.dsc.tws.api.task.IMessage;
+import edu.iu.dsc.tws.api.task.nodes.BaseCompute;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.Utils;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.VectorPoint;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.WriterWrapper;
@@ -13,48 +15,47 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
-public class DistanceCalculator {
+public class DistanceCalculatorCompute extends BaseCompute {
 
-    private static final Logger LOG = Logger.getLogger(DistanceCalculator.class.getName());
+    private static final Logger LOG = Logger.getLogger(DistanceCalculatorCompute.class.getName());
 
     private String vectorFolder;
     private String distFolder;
     private int distanceType;
+    private String edgeName;
 
     private static int INC = 7000;
     private List<Map<Integer, VectorPoint>> vectors;
 
-    public DistanceCalculator(List<Map<Integer, VectorPoint>> currentpoints, String vectorfolder, String distfolder,
-                              int distancetype) {
+    public DistanceCalculatorCompute(List<Map<Integer, VectorPoint>> currentpoints, String vectorfolder,
+                                     String distfolder, int distancetype) {
         this.vectors = currentpoints;
         this.vectorFolder = vectorfolder;
         this.distFolder = distfolder;
         this.distanceType = distancetype;
-        LOG.info("Current Points Values:" + currentpoints.size());
     }
 
-    public void process(boolean flag) {
-        File inFolder = new File(vectorFolder);
-        try {
-            BlockingQueue<File> files = new LinkedBlockingQueue<File>();
-            List<File> list = new ArrayList<File>();
-            Collections.addAll(list, inFolder.listFiles());
-            Collections.sort(list);
-            files.addAll(list);
+    public DistanceCalculatorCompute(String vectorfolder, String distfolder, int distancetype, String edgename) {
+        this.vectorFolder = vectorfolder;
+        this.distFolder = distfolder;
+        this.distanceType = distancetype;
+        this.edgeName = edgename;
+    }
 
-            BlockingQueue<File> queue = files;
-            while (!queue.isEmpty()) {
-                try {
-                    File f = queue.take();
-                    processFile(f);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+    @Override
+    public boolean execute(IMessage content) {
+        LOG.info("Received message:" + content);
+        List<Map<Integer, VectorPoint>> values = (List<Map<Integer, VectorPoint>>) content.getContent();
+        for (Map<Integer, VectorPoint> currentPoints : values) {
+            LOG.info("%%% Received Points Size:%%%" + currentPoints);
+            for (Map.Entry<Integer, VectorPoint> entry : currentPoints.entrySet()) {
+                VectorPoint v = entry.getValue();
+                LOG.fine("Serialized Value:" + v.serialize());
             }
-            LOG.info("Distance calculator finished...");
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
         }
+        //process();
+        context.write(edgeName, "calculated distance");
+        return true;
     }
 
     public void process() {
@@ -82,7 +83,6 @@ public class DistanceCalculator {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-
             }
             LOG.info("Distance calculator finished...");
         } catch (Exception e) {
@@ -230,4 +230,30 @@ public class DistanceCalculator {
             throw new RuntimeException("Failed to read file");
         }
     }
+
+
+    public void process(boolean flag) {
+        File inFolder = new File(vectorFolder);
+        try {
+            BlockingQueue<File> files = new LinkedBlockingQueue<File>();
+            List<File> list = new ArrayList<File>();
+            Collections.addAll(list, inFolder.listFiles());
+            Collections.sort(list);
+            files.addAll(list);
+
+            BlockingQueue<File> queue = files;
+            while (!queue.isEmpty()) {
+                try {
+                    File f = queue.take();
+                    processFile(f);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            LOG.info("Distance calculator finished...");
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
 }

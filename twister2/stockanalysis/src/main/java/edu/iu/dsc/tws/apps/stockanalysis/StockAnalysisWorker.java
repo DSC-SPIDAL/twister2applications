@@ -62,18 +62,45 @@ public class StockAnalysisWorker extends TaskWorker {
         /** Task Graph to do the preprocessing **/
         DataPreProcessingSourceTask preprocessingSourceTask = new DataPreProcessingSourceTask(
                 datainputFile, vectorDirectory, numberOfDays, startDate, endDate, mode);
-        DataPreprocessingSinkTask preprocessingSinkTask = new DataPreprocessingSinkTask(
-                vectorDirectory, distanceMatrixDirectory, distanceType);
+        DataPreprocessingCompute dataPreprocessingCompute = new DataPreprocessingCompute(
+                vectorDirectory, distanceMatrixDirectory, distanceType, Context.TWISTER2_DIRECT_EDGE);
+        DistanceCalculatorCompute distanceCalculatorCompute  = new DistanceCalculatorCompute(
+                vectorDirectory, distanceMatrixDirectory, distanceType, Context.TWISTER2_DIRECT_EDGE);
+        MDSProgramWorkerCompute mdsProgramWorkerCompute = new MDSProgramWorkerCompute(Context.TWISTER2_DIRECT_EDGE);
+        StockAnalysisSinkTask dataanalysisSink = new StockAnalysisSinkTask();
+
         TaskGraphBuilder preprocessingTaskGraphBuilder = TaskGraphBuilder.newBuilder(config);
         preprocessingTaskGraphBuilder.setTaskGraphName("StockAnalysisDataPreProcessing");
+
         preprocessingTaskGraphBuilder.addSource("preprocessingsourcetask", preprocessingSourceTask, parallel);
 
-        ComputeConnection preprocessingComputeConnection = preprocessingTaskGraphBuilder.addSink(
-                "preprocessingsinktask", preprocessingSinkTask, parallel);
+        ComputeConnection preprocessingComputeConnection = preprocessingTaskGraphBuilder.addCompute(
+                "preprocessingcompute", dataPreprocessingCompute, parallel);
+        ComputeConnection distanceCalculatorConnection = preprocessingTaskGraphBuilder.addCompute(
+                "distancecalculatorcompute", distanceCalculatorCompute, parallel);
+        ComputeConnection mdsProgramWorkerConnection = preprocessingTaskGraphBuilder.addCompute(
+                "mdsprogramcompute", mdsProgramWorkerCompute, parallel);
+        ComputeConnection dataanalysisSinkConnection = preprocessingTaskGraphBuilder.addSink(
+                "preprocessingsink", dataanalysisSink, parallel);
+
         preprocessingComputeConnection.direct("preprocessingsourcetask")
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
                 .withDataType(MessageTypes.OBJECT);
+
+        distanceCalculatorConnection.direct("preprocessingcompute")
+                .viaEdge(Context.TWISTER2_DIRECT_EDGE)
+                .withDataType(MessageTypes.OBJECT);
+
+        mdsProgramWorkerConnection.direct("distancecalculatorcompute")
+                .viaEdge(Context.TWISTER2_DIRECT_EDGE)
+                .withDataType(MessageTypes.OBJECT);
+
+        dataanalysisSinkConnection.direct("mdsprogramcompute")
+                .viaEdge(Context.TWISTER2_DIRECT_EDGE)
+                .withDataType(MessageTypes.OBJECT);
+
         preprocessingTaskGraphBuilder.setMode(OperationMode.STREAMING);
+
         DataFlowTaskGraph preprocesingTaskGraph = preprocessingTaskGraphBuilder.build();
 
         //Get the execution plan for the first task graph
@@ -91,24 +118,24 @@ public class StockAnalysisWorker extends TaskWorker {
         LOG.info("Compute Time : " + (endTime - startTime));
 
         /** Task Graph to run the MDS **/
-        StockAnalysisSourceTask sourceTask = new StockAnalysisSourceTask();
-        StockAnalysisSinkTask sinkTask = new StockAnalysisSinkTask();
-        TaskGraphBuilder taskGraphBuilder = TaskGraphBuilder.newBuilder(config);
-        taskGraphBuilder.setTaskGraphName("StockAnalysisComputeProcessing");
-        taskGraphBuilder.addSource("sourcetask", sourceTask, parallel);
-
-        ComputeConnection dataObjectComputeConnection = taskGraphBuilder.addSink("sinktask", sinkTask, parallel);
-        dataObjectComputeConnection.direct("sourcetask")
-                .viaEdge(Context.TWISTER2_DIRECT_EDGE)
-                .withDataType(MessageTypes.OBJECT);
-        taskGraphBuilder.setMode(OperationMode.BATCH);
-        DataFlowTaskGraph computeTaskGraph = taskGraphBuilder.build();
-
-        //Get the execution plan for the first task graph
-        ExecutionPlan computeExecutionPlan = taskExecutor.plan(computeTaskGraph);
-
-        //Actual execution for the first taskgraph
-        taskExecutor.execute(computeTaskGraph, computeExecutionPlan);
+//        StockAnalysisSourceTask sourceTask = new StockAnalysisSourceTask();
+//        StockAnalysisSinkTask sinkTask = new StockAnalysisSinkTask();
+//        TaskGraphBuilder taskGraphBuilder = TaskGraphBuilder.newBuilder(config);
+//        taskGraphBuilder.setTaskGraphName("StockAnalysisComputeProcessing");
+//        taskGraphBuilder.addSource("sourcetask", sourceTask, parallel);
+//
+//        ComputeConnection dataObjectComputeConnection = taskGraphBuilder.addSink("sinktask", sinkTask, parallel);
+//        dataObjectComputeConnection.direct("sourcetask")
+//                .viaEdge(Context.TWISTER2_DIRECT_EDGE)
+//                .withDataType(MessageTypes.OBJECT);
+//        taskGraphBuilder.setMode(OperationMode.BATCH);
+//        DataFlowTaskGraph computeTaskGraph = taskGraphBuilder.build();
+//
+//        //Get the execution plan for the first task graph
+//        ExecutionPlan computeExecutionPlan = taskExecutor.plan(computeTaskGraph);
+//
+//        //Actual execution for the first taskgraph
+//        taskExecutor.execute(computeTaskGraph, computeExecutionPlan);
     }
 
     private static class StockAnalysisSourceTask extends BaseSource implements Receptor {

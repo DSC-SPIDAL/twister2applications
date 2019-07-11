@@ -57,10 +57,9 @@ public class DataPreProcessingSourceTask extends BaseSource {
         for (Map.Entry<String, List<Date>> ed : this.dates.entrySet()) {
             Date start = ed.getValue().get(0);
             Date end = ed.getValue().get(1);
-            LOG.fine("start and end data:" + start + "\t" + end);
+            LOG.info("start and end data:" + start + "\t" + end);
             LOG.info("key:" + ed.getKey() + "\t" + datesList.get(ed.getKey()).size());
             processedPoints = processFile(inFolder, start, end, ed.getKey(), datesList.get(ed.getKey()));
-            LOG.info("Processed Points:" + processedPoints);
         }
     }
 
@@ -204,13 +203,14 @@ public class DataPreProcessingSourceTask extends BaseSource {
                 }
             }
             LOG.info("Split count: " + inFile.getName() + " = " + splitCount);
+
             // write the rest of the vectors in the map after finish reading the file
             //totalCap += writeVectors(bufWriter, size, metric);
             capCount++;
             metric.stocksWithIncorrectDays = currentPoints.size();
             LOG.info("Total stocks: " + vectorCounter + " bad stocks: " + currentPoints.size());
             LOG.info("Metrics for file: " + outFileName + " " + metric.serialize());
-            //currentPoints.clear();
+            currentPoints.clear();
             return currentPoints;
         } catch (IOException e) {
             throw new RuntimeException("Failed to open the file", e);
@@ -231,9 +231,7 @@ public class DataPreProcessingSourceTask extends BaseSource {
         double capSum = 0;
         int count = 0;
         LOG.info("Context Value:" + context.taskName() + "\tCurrent Points Size:" + currentPoints.size());
-        LOG.info("%%%%%%%% Current points values:%%%%%%%%%%%" + currentPoints);
-        //context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
-        /*for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
+        for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<Integer, VectorPoint> entry = it.next();
             VectorPoint v = entry.getValue();
             if (v.noOfElements() == size) {
@@ -262,7 +260,7 @@ public class DataPreProcessingSourceTask extends BaseSource {
             } else {
                 metric.lenghtWrong++;
             }
-        }*/
+        }
         return capSum;
     }
 
