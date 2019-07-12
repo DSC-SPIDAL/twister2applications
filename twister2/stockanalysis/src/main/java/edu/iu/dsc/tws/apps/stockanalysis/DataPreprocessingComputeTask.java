@@ -36,15 +36,18 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         if (content.getContent() != null) {
             values.add((Map<Integer, VectorPoint>) content.getContent());
             for (Map<Integer, VectorPoint> currentPoints : values) {
+                LOG.info("Current Points Size:" + currentPoints.size());
                 for (Map.Entry<Integer, VectorPoint> entry : currentPoints.entrySet()) {
                     VectorPoint v = entry.getValue();
-                    LOG.fine("%%% Serialized Value: %%%" + v.serialize());
+                    LOG.info("%%% Serialized Value: %%%" + v.serialize());
                 }
             }
         } else {
             LOG.info("Content values are null");
         }
-        context.write(edgeName, values);
+        if (!values.isEmpty()) {
+            context.write(edgeName, values);
+        }
         return true;
     }
 

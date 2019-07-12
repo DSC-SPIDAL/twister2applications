@@ -219,6 +219,7 @@ public class Utils {
                     break;
                 }
             }
+            LOG.info("Total read count value:" + count);
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
