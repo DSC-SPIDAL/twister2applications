@@ -15,9 +15,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
-public class DistanceCalculatorCompute extends BaseCompute {
+public class DistanceCalculatorComputeTask extends BaseCompute {
 
-    private static final Logger LOG = Logger.getLogger(DistanceCalculatorCompute.class.getName());
+    private static final Logger LOG = Logger.getLogger(DistanceCalculatorComputeTask.class.getName());
 
     private String vectorFolder;
     private String distFolder;
@@ -27,15 +27,7 @@ public class DistanceCalculatorCompute extends BaseCompute {
     private static int INC = 7000;
     private List<Map<Integer, VectorPoint>> vectors;
 
-    public DistanceCalculatorCompute(List<Map<Integer, VectorPoint>> currentpoints, String vectorfolder,
-                                     String distfolder, int distancetype) {
-        this.vectors = currentpoints;
-        this.vectorFolder = vectorfolder;
-        this.distFolder = distfolder;
-        this.distanceType = distancetype;
-    }
-
-    public DistanceCalculatorCompute(String vectorfolder, String distfolder, int distancetype, String edgename) {
+    public DistanceCalculatorComputeTask(String vectorfolder, String distfolder, int distancetype, String edgename) {
         this.vectorFolder = vectorfolder;
         this.distFolder = distfolder;
         this.distanceType = distancetype;
@@ -45,15 +37,7 @@ public class DistanceCalculatorCompute extends BaseCompute {
     @Override
     public boolean execute(IMessage content) {
         LOG.info("Received message:" + content);
-        List<Map<Integer, VectorPoint>> values = (List<Map<Integer, VectorPoint>>) content.getContent();
-        for (Map<Integer, VectorPoint> currentPoints : values) {
-            LOG.info("%%% Received Points Size:%%%" + currentPoints);
-            for (Map.Entry<Integer, VectorPoint> entry : currentPoints.entrySet()) {
-                VectorPoint v = entry.getValue();
-                LOG.fine("Serialized Value:" + v.serialize());
-            }
-        }
-        //process();
+        process();
         context.write(edgeName, "calculated distance");
         return true;
     }
@@ -104,7 +88,6 @@ public class DistanceCalculatorCompute extends BaseCompute {
         writer = new WriterWrapper(outFileName, false);
         int lineCount = countLines(fileEntry);
 
-        LOG.info("Total Line Count:" + lineCount);
         // initialize the double arrays for this block
         double values[][] = new double[INC][];
         double cachedValues[][] = new double[INC][];

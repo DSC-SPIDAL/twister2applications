@@ -14,8 +14,8 @@ import java.io.*;
 import java.util.*;
 import java.util.logging.Logger;
 
-public class DataPreProcessingSourceTask extends BaseSource {
-    private static final Logger LOG = Logger.getLogger(DataPreProcessingSourceTask.class.getName());
+public class DataPreprocessingSourceTask extends BaseSource {
+    private static final Logger LOG = Logger.getLogger(DataPreprocessingSourceTask.class.getName());
 
     private String dataInputFile;
     private String vectorDirectory;
@@ -30,7 +30,7 @@ public class DataPreProcessingSourceTask extends BaseSource {
 
     private Map<Integer, VectorPoint> processedPoints = new HashMap<Integer, VectorPoint>();
 
-    public DataPreProcessingSourceTask(String datainputfile, String vectordirectory,
+    public DataPreprocessingSourceTask(String datainputfile, String vectordirectory,
                                        String numberofdays, String startdate,
                                        String enddate, String mode) {
         this.dataInputFile = datainputfile;
@@ -48,7 +48,7 @@ public class DataPreProcessingSourceTask extends BaseSource {
         TreeMap<String, List<Date>> allDates = Utils.genDates(startDate, endDate, mode);
 
         for (String dateString : allDates.keySet()) {
-            LOG.fine(dateString + " ");
+            LOG.info(dateString + " ");
         }
 
         // create the out directory
@@ -62,7 +62,7 @@ public class DataPreProcessingSourceTask extends BaseSource {
             Date end = ed.getValue().get(1);
             LOG.info("start and end data:" + start + "\t" + end);
             LOG.info("key:" + ed.getKey() + "\t" + datesList.get(ed.getKey()).size());
-            processedPoints = processFile(inFolder, start, end, ed.getKey(), datesList.get(ed.getKey()));
+            processFile(inFolder, start, end, ed.getKey(), datesList.get(ed.getKey()));
         }
     }
 
@@ -128,7 +128,7 @@ public class DataPreProcessingSourceTask extends BaseSource {
     /**
      * Process a stock file and generate vectors for a month or year period
      */
-    private Map<Integer, VectorPoint> processFile(File inFile, Date startDate, Date endDate, String outFile,
+    private void processFile(File inFile, Date startDate, Date endDate, String outFile,
                                                   Map<Date, Integer> datesList) {
         LOG.info("Task Index:" + context.taskIndex() + "\tInput file:" + inFile
                 + "\tstartdate:" + startDate + "\tendDate:" + endDate);
@@ -171,7 +171,7 @@ public class DataPreProcessingSourceTask extends BaseSource {
                 if (record.getFactorToAdjPrice() > 0) {
                     splitCount++;
                 }
-                // check weather we already have the vector seen
+                // check whether we already have the vector seen
                 VectorPoint point = currentPoints.get(key);
                 if (point == null) {
                     point = new VectorPoint(key, noOfDays, true);
@@ -217,8 +217,7 @@ public class DataPreProcessingSourceTask extends BaseSource {
             metric.stocksWithIncorrectDays = currentPoints.size();
             LOG.info("Total stocks: " + vectorCounter + " bad stocks: " + currentPoints.size());
             LOG.info("Metrics for file: " + outFileName + " " + metric.serialize());
-            currentPoints.clear();
-            return currentPoints;
+            //currentPoints.clear();
         } catch (IOException e) {
             throw new RuntimeException("Failed to open the file", e);
         } finally {

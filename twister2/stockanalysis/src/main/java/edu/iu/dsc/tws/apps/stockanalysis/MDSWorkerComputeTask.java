@@ -5,13 +5,13 @@ import edu.iu.dsc.tws.api.task.nodes.BaseCompute;
 
 import java.util.logging.Logger;
 
-public class MDSProgramWorkerCompute extends BaseCompute {
+public class MDSWorkerComputeTask extends BaseCompute {
 
-    private static final Logger LOG = Logger.getLogger(MDSProgramWorkerCompute.class.getName());
+    private static final Logger LOG = Logger.getLogger(MDSWorkerComputeTask.class.getName());
 
     private String edgeName;
 
-    public MDSProgramWorkerCompute(String edgename) {
+    public MDSWorkerComputeTask(String edgename) {
        this.edgeName = edgename;
     }
 
