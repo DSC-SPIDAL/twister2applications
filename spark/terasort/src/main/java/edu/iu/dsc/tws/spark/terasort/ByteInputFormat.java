@@ -12,17 +12,7 @@ public class ByteInputFormat extends InputFormat<byte[], byte[]> {
   public List<InputSplit> getSplits(JobContext jobContext) throws IOException, InterruptedException {
     List<InputSplit> splits = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
-      splits.add(new InputSplit() {
-        @Override
-        public long getLength() throws IOException, InterruptedException {
-          return 100 * 10000;
-        }
-
-        @Override
-        public String[] getLocations() throws IOException, InterruptedException {
-          return new String[0];
-        }
-      });
+      splits.add(new ByteInputSplit());
     }
     return splits;
   }
