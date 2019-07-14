@@ -14,9 +14,8 @@ public class ByteRecordReader extends RecordReader<byte[], byte[]> {
 
   private Random random;
 
-  public ByteRecordReader(int numRecords) {
+  public ByteRecordReader() {
     random = new Random(System.nanoTime());
-    this.numRecords = numRecords;
   }
 
   @Override

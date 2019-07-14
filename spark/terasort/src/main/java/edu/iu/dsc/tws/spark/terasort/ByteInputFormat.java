@@ -16,7 +16,7 @@ public class ByteInputFormat extends InputFormat<byte[], byte[]> {
   public List<InputSplit> getSplits(JobContext jobContext) throws IOException, InterruptedException {
     List<InputSplit> splits = new ArrayList<>();
     for (int i = 0; i < parallel; i++) {
-      splits.add(new ByteInputSplit(elements));
+      splits.add(new ByteInputSplit());
     }
     return splits;
   }
@@ -25,6 +25,6 @@ public class ByteInputFormat extends InputFormat<byte[], byte[]> {
   public RecordReader<byte[], byte[]> createRecordReader(InputSplit inputSplit,
                                                          TaskAttemptContext taskAttemptContext)
       throws IOException, InterruptedException {
-    return new ByteRecordReader(elements);
+    return new ByteRecordReader();
   }
 }
