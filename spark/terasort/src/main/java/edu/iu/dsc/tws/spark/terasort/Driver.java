@@ -10,7 +10,7 @@ import java.util.*;
 
 public class Driver {
   public static void main(String[] args) {
-    SparkConf conf = new SparkConf().setAppName("terasort").setMaster("spark://supun-ThinkPad-X1-Carbon-6th:7077");
+    SparkConf conf = new SparkConf().setAppName("terasort");
     Configuration configuration = new Configuration();
     JavaSparkContext sc = new JavaSparkContext(conf);
     JavaPairRDD<byte[], byte[]> input = sc.newAPIHadoopRDD(configuration, ByteInputFormat.class, byte[].class, byte[].class);
