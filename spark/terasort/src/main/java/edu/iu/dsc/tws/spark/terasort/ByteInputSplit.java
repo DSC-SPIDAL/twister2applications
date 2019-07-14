@@ -9,9 +9,15 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 public class ByteInputSplit extends InputSplit implements Writable {
+    private int elements;
+
+    public ByteInputSplit(int elements) {
+        this.elements = elements;
+    }
+
     @Override
     public long getLength() throws IOException, InterruptedException {
-        return 10000 * 100;
+        return elements * 100;
     }
 
     @Override

@@ -20,6 +20,6 @@ public class Driver {
     JavaPairRDD<byte[], byte[]> sorted = partition.sortByKey(new ByteComparator());
 
 
-    sorted.saveAsTextFile("out.txt");
+    sorted.saveAsTextFile("out");
   }
 }

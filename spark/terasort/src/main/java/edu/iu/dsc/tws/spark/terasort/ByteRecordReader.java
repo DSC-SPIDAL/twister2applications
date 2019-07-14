@@ -8,14 +8,15 @@ import java.io.IOException;
 import java.util.Random;
 
 public class ByteRecordReader extends RecordReader<byte[], byte[]> {
-  private int numRecords = 100;
+  private int numRecords = 100000;
 
   private int currentRead = 0;
 
   private Random random;
 
-  public ByteRecordReader() {
+  public ByteRecordReader(int numRecords) {
     random = new Random(System.nanoTime());
+    this.numRecords = numRecords;
   }
 
   @Override
