@@ -19,6 +19,5 @@ public class Driver {
 
     sorted.saveAsHadoopFile("out", byte[].class, byte[].class, ByteOutputFormat.class);
 //    sorted.saveAsTextFile("out");
-    sc.stop();
   }
 }
