@@ -1,12 +1,9 @@
 package edu.iu.dsc.tws.spark.terasort;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.spark.Partitioner;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-
-import java.util.*;
 
 public class Driver {
   public static void main(String[] args) {
@@ -20,6 +17,8 @@ public class Driver {
     JavaPairRDD<byte[], byte[]> sorted = partition.sortByKey(new ByteComparator());
 
 
-    sorted.saveAsTextFile("out");
+    sorted.saveAsHadoopFile("out", byte[].class, byte[].class, ByteOutputFormat.class);
+//    sorted.saveAsTextFile("out");
+    sc.stop();
   }
 }
