@@ -10,7 +10,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
@@ -27,6 +30,8 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
     private static int INC = 7000;
     private List<Map<Integer, VectorPoint>> vectors;
 
+    private List<Map<Integer, VectorPoint>> values;
+
     public DistanceCalculatorComputeTask(String vectorfolder, String distfolder, int distancetype, String edgename) {
         this.vectorFolder = vectorfolder;
         this.distFolder = distfolder;
@@ -37,18 +42,9 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
     @Override
     public boolean execute(IMessage content) {
         LOG.info("Received message:" + content);
-        List<Map<Integer, VectorPoint>> values
-                = (List<Map<Integer, VectorPoint>>) content.getContent();
-        if (content.getContent() != null) {
-            for (Map<Integer, VectorPoint> currentPoints : values) {
-                for (Map.Entry<Integer, VectorPoint> entry : currentPoints.entrySet()) {
-                    VectorPoint v = entry.getValue();
-                    LOG.info("%%% Serialized Value: %%%" + v.serialize());
-                }
-            }
-        }
+        values = (List<Map<Integer, VectorPoint>>) content.getContent();
         process();
-        context.write(edgeName, "calculated distance");
+        context.write(edgeName, values);
         return true;
     }
 
@@ -76,50 +72,57 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
 
     public void process() {
         LOG.info("Starting Distance calculator..." + vectorFolder);
-        File inFolder = new File(vectorFolder);
-        if (!inFolder.isDirectory()) {
-            LOG.info("In should be a folder: " + vectorFolder);
-            return;
+        for (Map<Integer, VectorPoint> currentPoints : values) {
+            for (Map.Entry<Integer, VectorPoint> entry : currentPoints.entrySet()) {
+                VectorPoint v = entry.getValue();
+                LOG.info("%%% Serialized Value: %%%" + v.serialize());
+            }
         }
 
-        // create the out directory
-        Utils.createDirectory(distFolder);
-        try {
-            BlockingQueue<File> files = new LinkedBlockingQueue<File>();
-            List<File> list = new ArrayList<File>();
-            Collections.addAll(list, inFolder.listFiles());
-            Collections.sort(list);
-            files.addAll(list);
-
-            /*BlockingQueue<File> queue = files;
-            while (!queue.isEmpty()) {
-                try {
-                    File f = queue.take();
-                    processFile(f);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }*/
-
-            List<Thread> threads = new ArrayList<Thread>();
-            // start 4 threads
-            for (int i = 0; i < 1; i++) {
-                Thread t = new Thread(new Worker(files));
-                t.start();
-                threads.add(t);
-            }
-
-            for (Thread t : threads) {
-                try {
-                    t.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            LOG.info("Distance calculator finished...");
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
+//        File inFolder = new File(vectorFolder);
+//        if (!inFolder.isDirectory()) {
+//            LOG.info("In should be a folder: " + vectorFolder);
+//            return;
+//        }
+//
+//        // create the out directory
+//        Utils.createDirectory(distFolder);
+//        try {
+//            BlockingQueue<File> files = new LinkedBlockingQueue<File>();
+//            List<File> list = new ArrayList<File>();
+//            Collections.addAll(list, inFolder.listFiles());
+//            Collections.sort(list);
+//            files.addAll(list);
+//
+//            /*BlockingQueue<File> queue = files;
+//            while (!queue.isEmpty()) {
+//                try {
+//                    File f = queue.take();
+//                    processFile(f);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//            }*/
+//
+//            List<Thread> threads = new ArrayList<Thread>();
+//            // start 4 threads
+//            for (int i = 0; i < 1; i++) {
+//                Thread t = new Thread(new Worker(files));
+//                t.start();
+//                threads.add(t);
+//            }
+//
+//            for (Thread t : threads) {
+//                try {
+//                    t.join();
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//            LOG.info("Distance calculator finished...");
+//        } catch (Exception e) {
+//            throw new RuntimeException(e.getMessage());
+//        }
     }
 
     private void processFile(File fileEntry) {

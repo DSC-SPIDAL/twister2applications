@@ -204,7 +204,7 @@ public class DataPreprocessingSourceTask extends BaseSource {
                 if (currentPoints.size() > 1000 && size != -1 && fullCount > 750) {
                     LOG.info("Processed: " + count + "\tcurrent points size:" + currentPoints.size());
                     context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
-                    totalCap += writeVectors(bufWriter, noOfDays, metric);
+                    //totalCap += writeVectors(bufWriter, noOfDays, metric);
                     capCount++;
                     fullCount = 0;
                 }
