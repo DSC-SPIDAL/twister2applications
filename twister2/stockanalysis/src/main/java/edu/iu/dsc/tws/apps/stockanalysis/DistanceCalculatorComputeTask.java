@@ -73,56 +73,58 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
     public void process() {
         LOG.info("Starting Distance calculator..." + vectorFolder);
         for (Map<Integer, VectorPoint> currentPoints : values) {
-            for (Map.Entry<Integer, VectorPoint> entry : currentPoints.entrySet()) {
+            LOG.info("Currentpoints size:" + currentPoints.size());
+            /*for (Map.Entry<Integer, VectorPoint> entry : currentPoints.entrySet()) {
                 VectorPoint v = entry.getValue();
                 LOG.info("%%% Serialized Value: %%%" + v.serialize());
-            }
+            }*/
         }
 
-//        File inFolder = new File(vectorFolder);
-//        if (!inFolder.isDirectory()) {
-//            LOG.info("In should be a folder: " + vectorFolder);
-//            return;
-//        }
-//
-//        // create the out directory
-//        Utils.createDirectory(distFolder);
-//        try {
-//            BlockingQueue<File> files = new LinkedBlockingQueue<File>();
-//            List<File> list = new ArrayList<File>();
-//            Collections.addAll(list, inFolder.listFiles());
-//            Collections.sort(list);
-//            files.addAll(list);
-//
-//            /*BlockingQueue<File> queue = files;
-//            while (!queue.isEmpty()) {
-//                try {
-//                    File f = queue.take();
-//                    processFile(f);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//            }*/
-//
-//            List<Thread> threads = new ArrayList<Thread>();
-//            // start 4 threads
-//            for (int i = 0; i < 1; i++) {
-//                Thread t = new Thread(new Worker(files));
-//                t.start();
-//                threads.add(t);
-//            }
-//
-//            for (Thread t : threads) {
-//                try {
-//                    t.join();
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//            LOG.info("Distance calculator finished...");
-//        } catch (Exception e) {
-//            throw new RuntimeException(e.getMessage());
-//        }
+
+        File inFolder = new File(vectorFolder);
+        if (!inFolder.isDirectory()) {
+            LOG.info("In should be a folder: " + vectorFolder);
+            return;
+        }
+
+        // create the out directory
+        Utils.createDirectory(distFolder);
+        try {
+            BlockingQueue<File> files = new LinkedBlockingQueue<File>();
+            List<File> list = new ArrayList<File>();
+            Collections.addAll(list, inFolder.listFiles());
+            Collections.sort(list);
+            files.addAll(list);
+
+            /*BlockingQueue<File> queue = files;
+            while (!queue.isEmpty()) {
+                try {
+                    File f = queue.take();
+                    processFile(f);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }*/
+
+            List<Thread> threads = new ArrayList<Thread>();
+            // start 4 threads
+            for (int i = 0; i < 1; i++) {
+                Thread t = new Thread(new Worker(files));
+                t.start();
+                threads.add(t);
+            }
+
+            for (Thread t : threads) {
+                try {
+                    t.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            LOG.info("Distance calculator finished...");
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
 
     private void processFile(File fileEntry) {
