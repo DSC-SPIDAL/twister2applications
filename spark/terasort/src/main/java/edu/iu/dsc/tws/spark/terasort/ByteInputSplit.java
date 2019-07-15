@@ -9,7 +9,9 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 public class ByteInputSplit extends InputSplit implements Writable {
-    private int elements = 10000;
+    private int elements = 10000000;
+
+    private String node;
 
     @Override
     public long getLength() throws IOException, InterruptedException {
@@ -18,7 +20,17 @@ public class ByteInputSplit extends InputSplit implements Writable {
 
     @Override
     public String[] getLocations() throws IOException, InterruptedException {
-        return new String[0];
+        String[] ret = new String[1];
+        ret[0] = node;
+        return ret;
+    }
+
+    public String getNode() {
+        return node;
+    }
+
+    public void setNode(String node) {
+        this.node = node;
     }
 
     @Override

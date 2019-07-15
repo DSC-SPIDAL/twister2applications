@@ -8,15 +8,22 @@ import java.util.List;
 
 public class ByteInputFormat extends InputFormat<byte[], byte[]> {
 
-  private static final int elements = 10000;
-
   private int parallel = 10;
 
   @Override
   public List<InputSplit> getSplits(JobContext jobContext) throws IOException, InterruptedException {
     List<InputSplit> splits = new ArrayList<>();
     for (int i = 0; i < parallel; i++) {
-      splits.add(new ByteInputSplit());
+      ByteInputSplit e = new ByteInputSplit();
+      String node = "v-0";
+      int index = i % 16;
+      if (index >= 10) {
+        node += index;
+      } else {
+        node += "0" + index;
+      }
+      e.setNode(node);
+      splits.add(e);
     }
     return splits;
   }

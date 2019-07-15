@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.util.Random;
 
 public class ByteRecordReader extends RecordReader<byte[], byte[]> {
-  private int numRecords = 100000;
+  private int numRecords = 10000000;
 
   private int currentRead = 0;
 
