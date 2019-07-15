@@ -13,9 +13,7 @@ public class Driver {
     JavaPairRDD<byte[], byte[]> input = sc.newAPIHadoopRDD(configuration, ByteInputFormat.class, byte[].class, byte[].class);
 
     JavaPairRDD<byte[], byte[]> partition = input.partitionBy(new TeraSortPartitioner());
-
-    JavaPairRDD<byte[], byte[]> sorted = partition.sortByKey(new ByteComparator());
-
+    JavaPairRDD<byte[], byte[]> sorted = partition.repartitionAndSortWithinPartitions(new TeraSortPartitioner(), new ByteComparator());
 
     sorted.saveAsHadoopFile("out", byte[].class, byte[].class, ByteOutputFormat.class);
 //    sorted.saveAsTextFile("out");
