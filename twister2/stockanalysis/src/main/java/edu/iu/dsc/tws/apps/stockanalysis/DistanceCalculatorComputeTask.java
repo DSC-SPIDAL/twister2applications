@@ -24,13 +24,14 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
 
     private String vectorFolder;
     private String distFolder;
-    private int distanceType;
     private String edgeName;
 
+    private int distanceType;
     private static int INC = 7000;
-    private List<Map<Integer, VectorPoint>> vectors;
 
+    private List<Map<Integer, VectorPoint>> vectors;
     private List<Map<Integer, VectorPoint>> values;
+    private List<String> vectorPoints = new ArrayList<>();
 
     public DistanceCalculatorComputeTask(String vectorfolder, String distfolder, int distancetype, String edgename) {
         this.vectorFolder = vectorfolder;
@@ -41,10 +42,15 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
 
     @Override
     public boolean execute(IMessage content) {
-        LOG.info("Received message:" + content);
-        values = (List<Map<Integer, VectorPoint>>) content.getContent();
-        process();
-        context.write(edgeName, values);
+        //values = (List<Map<Integer, VectorPoint>>) content.getContent();
+        //process();
+        //LOG.info("Received message:" + values.size());
+        //context.write(edgeName, values);
+
+        vectorPoints = (List<String>) content.getContent();
+        LOG.info("Vector points size in distance calculator:" + vectorPoints.size());
+        //process();
+        context.write(edgeName, vectorPoints);
         return true;
     }
 
@@ -72,14 +78,17 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
 
     public void process() {
         LOG.info("Starting Distance calculator..." + vectorFolder);
-        for (Map<Integer, VectorPoint> currentPoints : values) {
+        /*for (Map<Integer, VectorPoint> currentPoints : values) {
             LOG.info("Currentpoints size:" + currentPoints.size());
-            /*for (Map.Entry<Integer, VectorPoint> entry : currentPoints.entrySet()) {
+            for (Map.Entry<Integer, VectorPoint> entry : currentPoints.entrySet()) {
                 VectorPoint v = entry.getValue();
                 LOG.info("%%% Serialized Value: %%%" + v.serialize());
-            }*/
-        }
+            }
+        }*/
 
+        for (String vectorPoint : vectorPoints) {
+            LOG.info("Vector point value:" + vectorPoint);
+        }
 
         File inFolder = new File(vectorFolder);
         if (!inFolder.isDirectory()) {

@@ -21,6 +21,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
 
     private String edgeName;
     private List<Map<Integer, VectorPoint>> values;
+    private List<String> vectorPoints;
 
     public DataPreprocessingComputeTask(String vectordirectory, String distancedirectory,
                                     int distancetype, String edgename) {
@@ -32,22 +33,22 @@ public class DataPreprocessingComputeTask extends BaseCompute {
 
     @Override
     public boolean execute(IMessage content) {
-        values = new ArrayList<>();
+        /*values = new ArrayList<>();
         if (content.getContent() != null) {
             values.add((Map<Integer, VectorPoint>) content.getContent());
-//            for (Map<Integer, VectorPoint> currentPoints : values) {
-//                LOG.info("Current Points Size:" + currentPoints.size());
-//                for (Map.Entry<Integer, VectorPoint> entry : currentPoints.entrySet()) {
-//                    VectorPoint v = entry.getValue();
-//                    LOG.info("%%% Serialized Value: %%%" + v.serialize());
-//                }
-//            }
         } else {
             LOG.info("Content values are null");
         }
         if (!values.isEmpty()) {
             context.write(edgeName, values);
+        }*/
+
+        vectorPoints = new ArrayList<>();
+        if (content.getContent() != null) {
+            vectorPoints.add(String.valueOf(content.getContent()));
         }
+        LOG.info("vector points:" + vectorPoints.size());
+        context.write(edgeName, vectorPoints);
         return true;
     }
 

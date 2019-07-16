@@ -446,6 +446,7 @@ public class Utils {
                 dateList.add(key);
             } while (lastDate.before(endDate));
         }
+        LOG.info("Splitted Dates List for startdate and enddate:" + dateList.size() + "\t" + startDate + "\t" + endDate);
         return dateList;
     }
 

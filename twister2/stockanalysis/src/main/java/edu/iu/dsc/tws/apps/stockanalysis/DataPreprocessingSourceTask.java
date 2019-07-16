@@ -63,6 +63,12 @@ public class DataPreprocessingSourceTask extends BaseSource {
             LOG.info("start and end data:" + start + "\t" + end);
             LOG.info("key:" + ed.getKey() + "\t" + datesList.get(ed.getKey()).size());
             processFile(inFolder, start, end, ed.getKey(), datesList.get(ed.getKey()));
+
+            try {
+                Thread.sleep(20000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -130,8 +136,7 @@ public class DataPreprocessingSourceTask extends BaseSource {
      */
     private void processFile(File inFile, Date startDate, Date endDate, String outFile,
                                                   Map<Date, Integer> datesList) {
-        LOG.info("Task Index:" + context.taskIndex() + "\tInput file:" + inFile
-                + "\tstartdate:" + startDate + "\tendDate:" + endDate);
+        LOG.info("Task Index:" + context.taskIndex() + "\tstartdate:" + startDate + "\tendDate:" + endDate);
         BufferedWriter bufWriter = null;
         BufferedReader bufRead = null;
         LOG.info("Calc: " + outFile + Utils.formatter.format(startDate) + ":" + Utils.formatter.format(endDate));
@@ -203,8 +208,8 @@ public class DataPreprocessingSourceTask extends BaseSource {
                 // now write the current vectors, also make sure we have the size determined correctly
                 if (currentPoints.size() > 1000 && size != -1 && fullCount > 750) {
                     LOG.info("Processed: " + count + "\tcurrent points size:" + currentPoints.size());
-                    context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
-                    //totalCap += writeVectors(bufWriter, noOfDays, metric);
+                    //context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
+                    totalCap += writeVectors(bufWriter, noOfDays, metric);
                     capCount++;
                     fullCount = 0;
                 }
@@ -254,8 +259,10 @@ public class DataPreprocessingSourceTask extends BaseSource {
                 if (sv != null) {
                     capSum += v.getTotalCap();
                     count++;
-                    bufWriter.write(sv);
-                    bufWriter.newLine();
+
+                    context.write(Context.TWISTER2_DIRECT_EDGE, sv);
+                    //bufWriter.write(sv);
+                    //bufWriter.newLine();
                     // remove it from map
                     vectorCounter++;
                     metric.writtenStocks++;
@@ -267,6 +274,7 @@ public class DataPreprocessingSourceTask extends BaseSource {
                 metric.lenghtWrong++;
             }
         }
+        LOG.info("Vector counter value:" + vectorCounter);
         return capSum;
     }
 
