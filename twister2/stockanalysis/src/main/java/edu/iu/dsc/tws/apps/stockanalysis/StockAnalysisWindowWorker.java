@@ -38,7 +38,7 @@ import java.util.logging.Logger;
 
 public class StockAnalysisWindowWorker extends TaskWorker {
 
-    private static final Logger LOG = Logger.getLogger(edu.iu.dsc.tws.examples.stockanalysis.StockAnalysisWindowWorker.class.getName());
+    private static final Logger LOG = Logger.getLogger(StockAnalysisWindowWorker.class.getName());
 
     protected static final String SOURCE = "source";
     protected static final String SINK = "sink";
