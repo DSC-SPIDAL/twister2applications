@@ -1,14 +1,11 @@
 package edu.iu.dsc.tws.apps.stockanalysis;
 
 import edu.iu.dsc.tws.api.config.Context;
-import edu.iu.dsc.tws.api.data.FileSystem;
-import edu.iu.dsc.tws.api.data.Path;
 import edu.iu.dsc.tws.api.task.nodes.BaseSource;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.CleanMetric;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.Record;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.Utils;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.VectorPoint;
-import edu.iu.dsc.tws.data.utils.FileSystemUtils;
 
 import java.io.*;
 import java.util.*;
@@ -19,16 +16,17 @@ public class DataPreprocessingSourceTask extends BaseSource {
 
     private String dataInputFile;
     private String vectorDirectory;
-    private int numberOfDays;
+
     private Date startDate;
     private Date endDate;
+
     private int mode;
+    private int numberOfDays;
+    private int vectorCounter = 0;
 
     private Map<Integer, VectorPoint> currentPoints = new HashMap<Integer, VectorPoint>();
-    private TreeMap<String, List<Date>> dates = new TreeMap<String, List<Date>>();
     private Map<String, CleanMetric> metrics = new HashMap<String, CleanMetric>();
-
-    private Map<Integer, VectorPoint> processedPoints = new HashMap<Integer, VectorPoint>();
+    private TreeMap<String, List<Date>> dates = new TreeMap<String, List<Date>>();
 
     public DataPreprocessingSourceTask(String datainputfile, String vectordirectory,
                                        String numberofdays, String startdate,
@@ -44,6 +42,10 @@ public class DataPreprocessingSourceTask extends BaseSource {
     @Override
     public void execute() {
         LOG.info("Task Id:\t" + context.taskId() + "\ttask index:\t" + context.taskIndex());
+        initiateProcess();
+    }
+
+    private void initiateProcess() {
         File inFolder = new File(this.dataInputFile);
         TreeMap<String, List<Date>> allDates = Utils.genDates(startDate, endDate, mode);
 
@@ -51,24 +53,20 @@ public class DataPreprocessingSourceTask extends BaseSource {
             LOG.info(dateString + " ");
         }
 
-        // create the out directory
+        // create the out directory for generating the vector
         Utils.createDirectory(vectorDirectory);
         this.dates = allDates;
 
+        LOG.fine("Print all dates:" + this.dates);
         // now go through the file and figure out the dates that should be considered
         Map<String, Map<Date, Integer>> datesList = findDates(this.dataInputFile);
+        LOG.fine("Print dates list:" + datesList);
         for (Map.Entry<String, List<Date>> ed : this.dates.entrySet()) {
             Date start = ed.getValue().get(0);
             Date end = ed.getValue().get(1);
             LOG.info("start and end data:" + start + "\t" + end);
             LOG.info("key:" + ed.getKey() + "\t" + datesList.get(ed.getKey()).size());
             processFile(inFolder, start, end, ed.getKey(), datesList.get(ed.getKey()));
-
-            try {
-                Thread.sleep(20000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
         }
     }
 
@@ -129,7 +127,7 @@ public class DataPreprocessingSourceTask extends BaseSource {
         return outDates;
     }
 
-    private int vectorCounter = 0;
+
 
     /**
      * Process a stock file and generate vectors for a month or year period
@@ -152,14 +150,15 @@ public class DataPreprocessingSourceTask extends BaseSource {
         }
 
         try {
+            //TODO: Later, it will be enabled to read the input file using FileSystem API
+            //FileSystem fileSystem = FileSystemUtils.get(new Path(vectorDirectory));
+            //LOG.info("File System:" + fileSystem);
+            //Retrieve the buffer reader and read it
+
             FileReader input = new FileReader(inFile);
             FileOutputStream fos = new FileOutputStream(new File(outFileName));
             bufWriter = new BufferedWriter(new OutputStreamWriter(fos));
             bufRead = new BufferedReader(input);
-
-            FileSystem fileSystem = FileSystemUtils.get(new Path(vectorDirectory));
-            LOG.info("File System:" + fileSystem);
-            //Retrieve the buffer reader and read it
 
             Record record;
             int count = 0;
@@ -208,8 +207,8 @@ public class DataPreprocessingSourceTask extends BaseSource {
                 // now write the current vectors, also make sure we have the size determined correctly
                 if (currentPoints.size() > 1000 && size != -1 && fullCount > 750) {
                     LOG.info("Processed: " + count + "\tcurrent points size:" + currentPoints.size());
-                    //context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
-                    totalCap += writeVectors(bufWriter, noOfDays, metric);
+                    //totalCap += writeVectors(bufWriter, noOfDays, metric);
+                    totalCap += writeVectors(noOfDays, metric);
                     capCount++;
                     fullCount = 0;
                 }
@@ -238,6 +237,47 @@ public class DataPreprocessingSourceTask extends BaseSource {
         }
     }
 
+    private double writeVectors(int size, CleanMetric metric) {
+        double capSum = 0;
+        int count = 0;
+        LOG.info("Context Value:" + context.taskName() + "\tCurrent Points Size:" + currentPoints.size());
+        List<String> vectorPoints = new ArrayList<>();
+        for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<Integer, VectorPoint> entry = it.next();
+            VectorPoint v = entry.getValue();
+            if (v.noOfElements() == size) {
+                metric.totalStocks++;
+
+                if (!v.cleanVector(metric)) {
+                    metric.invalidStocks++;
+                    it.remove();
+                    continue;
+                }
+
+                String sv = v.serialize();
+                // if many points are missing, this can return null
+                if (sv != null) {
+                    capSum += v.getTotalCap();
+                    count++;
+                    vectorPoints.add(sv);
+
+                    // remove it from map
+                    vectorCounter++;
+                    metric.writtenStocks++;
+                } else {
+                    metric.invalidStocks++;
+                }
+                it.remove();
+            } else {
+                metric.lenghtWrong++;
+            }
+        }
+        LOG.info("Vector counter value:" + vectorCounter);
+        LOG.info("Writing Vector Points Size:" + vectorPoints.size());
+        context.write(Context.TWISTER2_DIRECT_EDGE, vectorPoints);
+        return capSum;
+    }
+
     private double writeVectors(BufferedWriter bufWriter, int size, CleanMetric metric) throws IOException {
         double capSum = 0;
         int count = 0;
@@ -260,7 +300,6 @@ public class DataPreprocessingSourceTask extends BaseSource {
                     capSum += v.getTotalCap();
                     count++;
 
-                    context.write(Context.TWISTER2_DIRECT_EDGE, sv);
                     //bufWriter.write(sv);
                     //bufWriter.newLine();
                     // remove it from map
@@ -282,6 +321,7 @@ public class DataPreprocessingSourceTask extends BaseSource {
         if (compare == null) {
             System.out.println("Comapre null*****************");
         }
+        //LOG.info("Start:" + start + "\tend:" + end + "\tcompare:" + compare);
         return (compare.equals(start) || compare.after(start)) && compare.before(end);
     }
 

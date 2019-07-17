@@ -28,34 +28,68 @@ import java.util.logging.Logger;
 public class StockAnalysisWorker extends TaskWorker {
     private static final Logger LOG = Logger.getLogger(StockAnalysisWorker.class.getName());
 
+    private int parallel;
+    private String distanceMatrixDirectory;
+    private String directory;
+    private String byteType;
+    private String vectorDirectory;
+    private String datainputFile;
+    private String configFile;
+    private String numberOfDays;
+    private String startDate;
+    private String endDate;
+    private String mode;
+    private int distanceType;
+
     @Override
     public void execute() {
         LOG.log(Level.FINE, "Task worker starting: " + workerId);
 
         StockAnalysisWorkerParameters stockAnalysisWorkerParameters = StockAnalysisWorkerParameters.build(config);
 
-        int parallel = stockAnalysisWorkerParameters.getParallelismValue();
-        String distanceMatrixDirectory = stockAnalysisWorkerParameters.getDatapointDirectory();
-        String configFile = stockAnalysisWorkerParameters.getConfigFile();
-        String directory = stockAnalysisWorkerParameters.getDatapointDirectory();
-        String byteType = stockAnalysisWorkerParameters.getByteType();
+        parallel = stockAnalysisWorkerParameters.getParallelismValue();
+        distanceMatrixDirectory = stockAnalysisWorkerParameters.getDatapointDirectory();
+        configFile = stockAnalysisWorkerParameters.getConfigFile();
+        directory = stockAnalysisWorkerParameters.getDatapointDirectory();
+        byteType = stockAnalysisWorkerParameters.getByteType();
 
-        String datainputFile = stockAnalysisWorkerParameters.getDinputFile();
-        String vectorDirectory = stockAnalysisWorkerParameters.getOutputDirectory();
-        String numberOfDays = stockAnalysisWorkerParameters.getNumberOfDays();
-        String startDate = stockAnalysisWorkerParameters.getStartDate();
-        String endDate = stockAnalysisWorkerParameters.getEndDate();
-        String mode = stockAnalysisWorkerParameters.getMode();
-        int distanceType = Integer.parseInt(stockAnalysisWorkerParameters.getDistanceType());
+        datainputFile = stockAnalysisWorkerParameters.getDinputFile();
+        vectorDirectory = stockAnalysisWorkerParameters.getOutputDirectory();
+        numberOfDays = stockAnalysisWorkerParameters.getNumberOfDays();
+        startDate = stockAnalysisWorkerParameters.getStartDate();
+        endDate = stockAnalysisWorkerParameters.getEndDate();
+        mode = stockAnalysisWorkerParameters.getMode();
+        distanceType = Integer.parseInt(stockAnalysisWorkerParameters.getDistanceType());
 
         LOG.info("Distance Matrix Directory:" + distanceMatrixDirectory + "\t" + vectorDirectory);
 
         //Sequential Vector Generation
         long startTime = System.currentTimeMillis();
 
+        DataFlowTaskGraph preprocesingTaskGraph = buildStockAnalysisDataflowGraph();
+
+        //Get the execution plan for the first task graph
+        ExecutionPlan preprocessExecutionPlan = taskExecutor.plan(preprocesingTaskGraph);
+
+        //Actual execution for the first taskgraph
+        taskExecutor.execute(preprocesingTaskGraph, preprocessExecutionPlan);
+
+        //Retrieve the output of the first task graph
+        DataObject<Object> dataPointsObject = taskExecutor.getOutput(preprocesingTaskGraph,
+                preprocessExecutionPlan, "preprocessingsinktask");
+
+        LOG.info("%%% DataPoints Object:%%%" + dataPointsObject + "\t" + dataPointsObject.getPartitions());
+        long endTime = System.currentTimeMillis();
+        LOG.info("Compute Time : " + (endTime - startTime));
+    }
+
+    private DataFlowTaskGraph buildStockAnalysisDataflowGraph() {
+
         /** Task Graph to do the preprocessing **/
         DataPreprocessingSourceTask preprocessingSourceTask = new DataPreprocessingSourceTask(
                 datainputFile, vectorDirectory, numberOfDays, startDate, endDate, mode);
+        //DataPreprocessingWindowComputeTask dataPreprocessingWindowComputeTask =
+        //        new DataPreprocessingWindowComputeTask();
         DataPreprocessingComputeTask dataPreprocessingCompute = new DataPreprocessingComputeTask(
                 vectorDirectory, distanceMatrixDirectory, distanceType, Context.TWISTER2_DIRECT_EDGE);
         DistanceCalculatorComputeTask distanceCalculatorCompute = new DistanceCalculatorComputeTask(
@@ -64,7 +98,7 @@ public class StockAnalysisWorker extends TaskWorker {
         StockAnalysisSinkTask stockAnalysisSinkTask = new StockAnalysisSinkTask();
 
         TaskGraphBuilder preprocessingTaskGraphBuilder = TaskGraphBuilder.newBuilder(config);
-        preprocessingTaskGraphBuilder.setTaskGraphName("StockAnalysisDataPreProcessing");
+        preprocessingTaskGraphBuilder.setTaskGraphName("StockAnalysisTaskGraph");
         preprocessingTaskGraphBuilder.addSource("preprocessingsourcetask", preprocessingSourceTask, parallel);
 
         ComputeConnection preprocessingComputeConnection = preprocessingTaskGraphBuilder.addCompute(
@@ -90,19 +124,7 @@ public class StockAnalysisWorker extends TaskWorker {
 
         preprocessingTaskGraphBuilder.setMode(OperationMode.STREAMING);
         DataFlowTaskGraph preprocesingTaskGraph = preprocessingTaskGraphBuilder.build();
-
-        //Get the execution plan for the first task graph
-        ExecutionPlan preprocessExecutionPlan = taskExecutor.plan(preprocesingTaskGraph);
-
-        //Actual execution for the first taskgraph
-        taskExecutor.execute(preprocesingTaskGraph, preprocessExecutionPlan);
-
-        //Retrieve the output of the first task graph
-        DataObject<Object> dataPointsObject = taskExecutor.getOutput(preprocesingTaskGraph,
-                preprocessExecutionPlan, "preprocessingsinktask");
-
-        LOG.info("%%% DataPoints Object:%%%" + dataPointsObject + "\t" + dataPointsObject.getPartitions());
-        long endTime = System.currentTimeMillis();
-        LOG.info("Compute Time : " + (endTime - startTime));
+        return preprocesingTaskGraph;
     }
+
 }

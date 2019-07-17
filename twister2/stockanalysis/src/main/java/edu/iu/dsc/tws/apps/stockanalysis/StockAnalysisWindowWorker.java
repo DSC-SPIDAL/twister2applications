@@ -90,7 +90,6 @@ public class StockAnalysisWindowWorker extends TaskWorker {
         private String edgeName;
         private int count = 0;
         private int iterations;
-        private boolean timingCondition;
         private boolean keyed = false;
         private boolean endNotified = false;
 
@@ -106,6 +105,7 @@ public class StockAnalysisWindowWorker extends TaskWorker {
 
         @Override
         public void execute() {
+            inputDataArray = new int[] {1, 2};
             if (count < iterations) {
                 if ((this.keyed && context.write(this.edgeName, context.taskIndex(), inputDataArray))
                         || (!this.keyed && context.write(this.edgeName, inputDataArray))) {
