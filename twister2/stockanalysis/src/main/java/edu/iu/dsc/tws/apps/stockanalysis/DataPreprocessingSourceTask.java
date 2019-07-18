@@ -25,7 +25,7 @@ public class DataPreprocessingSourceTask extends BaseSource {
     private int vectorCounter = 0;
 
     private Map<Integer, VectorPoint> currentPoints = new HashMap<Integer, VectorPoint>();
-    private Map<String, CleanMetric> metrics = new HashMap<String, CleanMetric>();
+    private Map<String, CleanMetric> metrics = new HashMap<>();
     private TreeMap<String, List<Date>> dates = new TreeMap<String, List<Date>>();
 
     public DataPreprocessingSourceTask(String datainputfile, String vectordirectory,
@@ -71,7 +71,6 @@ public class DataPreprocessingSourceTask extends BaseSource {
     }
 
     public Map<String, Map<Date, Integer>> findDates(String inFile) {
-
         FileReader input = null;
         // a map of datestring -> map <date string, index>
         Map<String, Map<Date, Integer>> outDates = new HashMap<String, Map<Date, Integer>>();
@@ -126,8 +125,6 @@ public class DataPreprocessingSourceTask extends BaseSource {
         }
         return outDates;
     }
-
-
 
     /**
      * Process a stock file and generate vectors for a month or year period
@@ -208,7 +205,7 @@ public class DataPreprocessingSourceTask extends BaseSource {
                 if (currentPoints.size() > 1000 && size != -1 && fullCount > 750) {
                     LOG.info("Processed: " + count + "\tcurrent points size:" + currentPoints.size());
                     //totalCap += writeVectors(bufWriter, noOfDays, metric);
-                    totalCap += writeVectors(noOfDays, metric);
+                    //totalCap += writeVectors(noOfDays, metric);
                     capCount++;
                     fullCount = 0;
                 }

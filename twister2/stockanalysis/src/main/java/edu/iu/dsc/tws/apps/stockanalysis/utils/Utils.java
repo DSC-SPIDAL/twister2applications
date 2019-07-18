@@ -533,6 +533,7 @@ public class Utils {
                 list.add(lastDate);
 
                 lastDate = addDays(lastDate, 7);
+                LOG.info("list size for start and end:" + list.size() + "\tstart:" + start + "\tend:" + end);
                 dates.put(start + "_" + end, list);
             } while (lastDate.before(endDate));
         }

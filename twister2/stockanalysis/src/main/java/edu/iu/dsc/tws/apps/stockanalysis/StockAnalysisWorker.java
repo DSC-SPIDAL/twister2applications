@@ -86,10 +86,11 @@ public class StockAnalysisWorker extends TaskWorker {
     private DataFlowTaskGraph buildStockAnalysisDataflowGraph() {
 
         /** Task Graph to do the preprocessing **/
-        DataPreprocessingSourceTask preprocessingSourceTask = new DataPreprocessingSourceTask(
-                datainputFile, vectorDirectory, numberOfDays, startDate, endDate, mode);
-        //DataPreprocessingWindowComputeTask dataPreprocessingWindowComputeTask =
-        //        new DataPreprocessingWindowComputeTask();
+        //DataPreprocessingSourceTask preprocessingSourceTask = new DataPreprocessingSourceTask(
+        //        datainputFile, vectorDirectory, numberOfDays, startDate, endDate, mode);
+
+        DataProcessingSourceTask preprocessingSourceTask = new DataProcessingSourceTask(datainputFile, vectorDirectory);
+
         DataPreprocessingComputeTask dataPreprocessingCompute = new DataPreprocessingComputeTask(
                 vectorDirectory, distanceMatrixDirectory, distanceType, Context.TWISTER2_DIRECT_EDGE);
         DistanceCalculatorComputeTask distanceCalculatorCompute = new DistanceCalculatorComputeTask(
@@ -126,5 +127,4 @@ public class StockAnalysisWorker extends TaskWorker {
         DataFlowTaskGraph preprocesingTaskGraph = preprocessingTaskGraphBuilder.build();
         return preprocesingTaskGraph;
     }
-
 }
