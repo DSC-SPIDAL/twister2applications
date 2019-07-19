@@ -14,13 +14,19 @@ package edu.iu.dsc.tws.apps.stockanalysis;
 import edu.iu.dsc.tws.api.comms.messaging.types.MessageTypes;
 import edu.iu.dsc.tws.api.config.Context;
 import edu.iu.dsc.tws.api.dataset.DataObject;
+import edu.iu.dsc.tws.api.task.IMessage;
 import edu.iu.dsc.tws.api.task.executor.ExecutionPlan;
 import edu.iu.dsc.tws.api.task.graph.DataFlowTaskGraph;
 import edu.iu.dsc.tws.api.task.graph.OperationMode;
 import edu.iu.dsc.tws.task.impl.ComputeConnection;
 import edu.iu.dsc.tws.task.impl.TaskGraphBuilder;
 import edu.iu.dsc.tws.task.impl.TaskWorker;
+import edu.iu.dsc.tws.task.window.api.IWindowMessage;
+import edu.iu.dsc.tws.task.window.constant.WindowType;
+import edu.iu.dsc.tws.task.window.core.BaseWindowedSink;
+import edu.iu.dsc.tws.task.window.function.ProcessWindowedFunction;
 
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -41,11 +47,13 @@ public class StockAnalysisWorker extends TaskWorker {
     private String mode;
     private int distanceType;
 
+    private StockAnalysisWorkerParameters stockAnalysisWorkerParameters;
+
     @Override
     public void execute() {
         LOG.log(Level.FINE, "Task worker starting: " + workerId);
 
-        StockAnalysisWorkerParameters stockAnalysisWorkerParameters = StockAnalysisWorkerParameters.build(config);
+        stockAnalysisWorkerParameters = StockAnalysisWorkerParameters.build(config);
 
         parallel = stockAnalysisWorkerParameters.getParallelismValue();
         distanceMatrixDirectory = stockAnalysisWorkerParameters.getDatapointDirectory();
@@ -86,11 +94,9 @@ public class StockAnalysisWorker extends TaskWorker {
     private DataFlowTaskGraph buildStockAnalysisDataflowGraph() {
 
         /** Task Graph to do the preprocessing **/
-        //DataPreprocessingSourceTask preprocessingSourceTask = new DataPreprocessingSourceTask(
-        //        datainputFile, vectorDirectory, numberOfDays, startDate, endDate, mode);
-
-        DataProcessingSourceTask preprocessingSourceTask = new DataProcessingSourceTask(datainputFile, vectorDirectory);
-
+        DataProcessingSourceTask preprocessingSourceTask = new DataProcessingSourceTask(datainputFile, vectorDirectory,
+                startDate);
+        BaseWindowedSink baseWindowedSink = getWindowSinkInstance();
         DataPreprocessingComputeTask dataPreprocessingCompute = new DataPreprocessingComputeTask(
                 vectorDirectory, distanceMatrixDirectory, distanceType, Context.TWISTER2_DIRECT_EDGE);
         DistanceCalculatorComputeTask distanceCalculatorCompute = new DistanceCalculatorComputeTask(
@@ -100,7 +106,10 @@ public class StockAnalysisWorker extends TaskWorker {
 
         TaskGraphBuilder preprocessingTaskGraphBuilder = TaskGraphBuilder.newBuilder(config);
         preprocessingTaskGraphBuilder.setTaskGraphName("StockAnalysisTaskGraph");
+
         preprocessingTaskGraphBuilder.addSource("preprocessingsourcetask", preprocessingSourceTask, parallel);
+
+        ComputeConnection windowComputeConnection = preprocessingTaskGraphBuilder.addCompute("windowsink", baseWindowedSink, parallel);
 
         ComputeConnection preprocessingComputeConnection = preprocessingTaskGraphBuilder.addCompute(
                 "preprocessingcompute", dataPreprocessingCompute, parallel);
@@ -111,7 +120,10 @@ public class StockAnalysisWorker extends TaskWorker {
         ComputeConnection stockAnalysisSinkConnection = preprocessingTaskGraphBuilder.addSink(
                 "dataanalysissink", stockAnalysisSinkTask, parallel);
 
-        preprocessingComputeConnection.direct("preprocessingsourcetask").viaEdge(Context.TWISTER2_DIRECT_EDGE)
+        windowComputeConnection.direct("preprocessingsourcetask").viaEdge(Context.TWISTER2_DIRECT_EDGE)
+                .withDataType(MessageTypes.OBJECT);
+
+        preprocessingComputeConnection.direct("windowsink").viaEdge(Context.TWISTER2_DIRECT_EDGE)
                 .withDataType(MessageTypes.OBJECT);
 
         distanceCalculatorComputeConnection.direct("preprocessingcompute").viaEdge(Context.TWISTER2_DIRECT_EDGE)
@@ -127,4 +139,102 @@ public class StockAnalysisWorker extends TaskWorker {
         DataFlowTaskGraph preprocesingTaskGraph = preprocessingTaskGraphBuilder.build();
         return preprocesingTaskGraph;
     }
+
+    private BaseWindowedSink getWindowSinkInstance() {
+        BaseWindowedSink baseWindowedSink = new DataProcessingStreamingWindowCompute(new ProcessWindowFunctionImpl(),
+                OperationMode.STREAMING);
+        WindowingParameters windowParameters = this.stockAnalysisWorkerParameters.getWindowingParameters();
+        TimeUnit timeUnit = TimeUnit.MICROSECONDS;
+        if (windowParameters != null) {
+            WindowType windowType = windowParameters.getWindowType();
+            if (windowParameters.isDuration()) {
+                if (windowType.equals(WindowType.TUMBLING)) {
+                    baseWindowedSink
+                            .withTumblingDurationWindow(windowParameters.getWindowLength(), timeUnit);
+                }
+                if (windowType.equals(WindowType.SLIDING)) {
+                    baseWindowedSink
+                            .withSlidingDurationWindow(windowParameters.getWindowLength(), timeUnit,
+                                    windowParameters.getSlidingLength(), timeUnit);
+                }
+            } else {
+                if (windowType.equals(WindowType.TUMBLING)) {
+                    baseWindowedSink
+                            .withTumblingCountWindow(windowParameters.getWindowLength());
+                }
+                if (windowType.equals(WindowType.SLIDING)) {
+                    baseWindowedSink
+                            .withSlidingCountWindow(windowParameters.getWindowLength(),
+                                    windowParameters.getSlidingLength());
+                }
+            }
+        }
+        return baseWindowedSink;
+    }
+
+    protected static class ProcessWindowFunctionImpl implements ProcessWindowedFunction {
+
+        private static final long serialVersionUID = 8517840191276879034L;
+
+        private static final Logger LOG = Logger.getLogger(ProcessWindowFunctionImpl.class.getName());
+
+        @Override
+        public IWindowMessage process(IWindowMessage windowMessage) {
+            LOG.info("Received Message:" + windowMessage);
+            return windowMessage;
+        }
+
+        @Override
+        public IMessage processLateMessage(IMessage lateMessage) {
+            return lateMessage;
+        }
+
+        @Override
+        public Object onMessage(Object object1, Object object2) {
+            return null;
+        }
+    }
+
+
+//    private DataFlowTaskGraph buildStockAnalysisDataflowGraph() {
+//
+//        /** Task Graph to do the preprocessing **/
+//        DataPreprocessingSourceTask preprocessingSourceTask = new DataPreprocessingSourceTask(
+//                datainputFile, vectorDirectory, numberOfDays, startDate, endDate, mode);
+//        DataPreprocessingComputeTask dataPreprocessingCompute = new DataPreprocessingComputeTask(
+//                vectorDirectory, distanceMatrixDirectory, distanceType, Context.TWISTER2_DIRECT_EDGE);
+//        DistanceCalculatorComputeTask distanceCalculatorCompute = new DistanceCalculatorComputeTask(
+//                vectorDirectory, distanceMatrixDirectory, distanceType, Context.TWISTER2_DIRECT_EDGE);
+//        MDSWorkerComputeTask mdsProgramWorkerCompute = new MDSWorkerComputeTask(Context.TWISTER2_DIRECT_EDGE);
+//        StockAnalysisSinkTask stockAnalysisSinkTask = new StockAnalysisSinkTask();
+//
+//        TaskGraphBuilder preprocessingTaskGraphBuilder = TaskGraphBuilder.newBuilder(config);
+//        preprocessingTaskGraphBuilder.setTaskGraphName("StockAnalysisTaskGraph");
+//        preprocessingTaskGraphBuilder.addSource("preprocessingsourcetask", preprocessingSourceTask, parallel);
+//
+//        ComputeConnection preprocessingComputeConnection = preprocessingTaskGraphBuilder.addCompute(
+//                "preprocessingcompute", dataPreprocessingCompute, parallel);
+//        ComputeConnection distanceCalculatorComputeConnection = preprocessingTaskGraphBuilder.addCompute(
+//                "distancecalculatorcompute", distanceCalculatorCompute, parallel);
+//        ComputeConnection mdsComputeConnection = preprocessingTaskGraphBuilder.addCompute(
+//                "mdsprogramcompute", mdsProgramWorkerCompute, parallel);
+//        ComputeConnection stockAnalysisSinkConnection = preprocessingTaskGraphBuilder.addSink(
+//                "dataanalysissink", stockAnalysisSinkTask, parallel);
+//
+//        preprocessingComputeConnection.direct("preprocessingsourcetask").viaEdge(Context.TWISTER2_DIRECT_EDGE)
+//                .withDataType(MessageTypes.OBJECT);
+//
+//        distanceCalculatorComputeConnection.direct("preprocessingcompute").viaEdge(Context.TWISTER2_DIRECT_EDGE)
+//                .withDataType(MessageTypes.OBJECT);
+//
+//        mdsComputeConnection.direct("distancecalculatorcompute").viaEdge(Context.TWISTER2_DIRECT_EDGE)
+//                .withDataType(MessageTypes.OBJECT);
+//
+//        stockAnalysisSinkConnection.direct("mdsprogramcompute").viaEdge(Context.TWISTER2_DIRECT_EDGE)
+//                .withDataType(MessageTypes.OBJECT);
+//
+//        preprocessingTaskGraphBuilder.setMode(OperationMode.STREAMING);
+//        DataFlowTaskGraph preprocesingTaskGraph = preprocessingTaskGraphBuilder.build();
+//        return preprocesingTaskGraph;
+//    }
 }

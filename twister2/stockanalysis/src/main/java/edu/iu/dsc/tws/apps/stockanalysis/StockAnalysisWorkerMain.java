@@ -59,6 +59,21 @@ public class StockAnalysisWorkerMain {
     options.addOption(Utils.createOption(StockAnalysisConstants.CONFIG_FILE,
         true, "config File", true));
 
+
+    options.addOption(Utils.createOption(WindowingConstants.WINDOW_TYPE,
+            true, "Windowing Type : tumbling, sliding, global (not supported), "
+                    + "session (not supported)", false));
+    options.addOption(Utils.createOption(WindowingConstants.WINDOW_LENGTH,
+            true, "Length of the window (needed for all kinds of window types)",
+            false));
+    options.addOption(Utils.createOption(WindowingConstants.SLIDING_WINDOW_LENGTH,
+            true, "Length of the slide in windowing (needed for only sliding windows"
+                    + "for other windows the slide equals to window length)",
+            false));
+    options.addOption(WindowingConstants.WINDOW_CAPACITY_TYPE, false,
+            "time (if time the time based window is used else count based window is used)");
+
+
     @SuppressWarnings("deprecation")
     CommandLineParser commandLineParser = new DefaultParser();
     CommandLine cmd = commandLineParser.parse(options, args);
@@ -105,6 +120,15 @@ public class StockAnalysisWorkerMain {
     jobConfig.put(StockAnalysisConstants.END_DATE, endDate);
     jobConfig.put(StockAnalysisConstants.NUMBER_OF_DAYS, numberOfDays);
     jobConfig.put(StockAnalysisConstants.DISTANCE_TYPE, distanceType);
+
+    jobConfig.put(WindowingConstants.WINDOW_TYPE,
+            cmd.getOptionValue(WindowingConstants.WINDOW_TYPE));
+    jobConfig.put(WindowingConstants.WINDOW_LENGTH,
+            cmd.getOptionValue(WindowingConstants.WINDOW_LENGTH));
+    jobConfig.put(WindowingConstants.SLIDING_WINDOW_LENGTH,
+            cmd.getOptionValue(WindowingConstants.SLIDING_WINDOW_LENGTH));
+    jobConfig.put(WindowingConstants.WINDOW_CAPACITY_TYPE,
+            cmd.hasOption(WindowingConstants.WINDOW_CAPACITY_TYPE));
 
     // build JobConfig
     Twister2Job.Twister2JobBuilder jobBuilder = Twister2Job.newBuilder();

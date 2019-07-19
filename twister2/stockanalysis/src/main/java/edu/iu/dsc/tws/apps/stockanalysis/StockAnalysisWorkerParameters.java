@@ -12,6 +12,7 @@
 package edu.iu.dsc.tws.apps.stockanalysis;
 
 import edu.iu.dsc.tws.api.config.Config;
+import edu.iu.dsc.tws.task.window.constant.WindowType;
 
 public final class StockAnalysisWorkerParameters {
 
@@ -66,6 +67,8 @@ public final class StockAnalysisWorkerParameters {
   private String mode;
   private String distanceType;
 
+  private WindowingParameters windowingParameters;
+
   private StockAnalysisWorkerParameters(int workerId) {
     this.workers = workerId;
   }
@@ -111,6 +114,23 @@ public final class StockAnalysisWorkerParameters {
     jobParameters.endDate = enddate;
     jobParameters.numberOfDays = days;
     jobParameters.distanceType = distancetype;
+
+
+    //set up window params
+    WindowType windowType = cfg.getStringValue(WindowingConstants.WINDOW_TYPE)
+            .equalsIgnoreCase("tumbling") ? WindowType.TUMBLING : WindowType.SLIDING;
+    long windowLength = Long.parseLong(cfg.getStringValue(WindowingConstants.WINDOW_LENGTH));
+    long slidingLength = 0;
+    if (cfg.getStringValue(WindowingConstants
+            .SLIDING_WINDOW_LENGTH) != null) {
+      slidingLength = Long.parseLong(cfg.getStringValue(WindowingConstants
+              .SLIDING_WINDOW_LENGTH));
+    }
+
+    WindowingParameters windowingParameters = new WindowingParameters(windowType, windowLength, slidingLength,
+            cfg.getBooleanValue(WindowingConstants.WINDOW_CAPACITY_TYPE));
+    jobParameters.windowingParameters = windowingParameters;
+
     return jobParameters;
   }
 
@@ -176,6 +196,14 @@ public final class StockAnalysisWorkerParameters {
 
   public String getMode() {
     return mode;
+  }
+
+  public WindowingParameters getWindowingParameters() {
+    return windowingParameters;
+  }
+
+  public void setWindowingParameters(WindowingParameters windowingParameters) {
+    this.windowingParameters = windowingParameters;
   }
 
   @Override

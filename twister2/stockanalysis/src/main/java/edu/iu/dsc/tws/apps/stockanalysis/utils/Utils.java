@@ -205,7 +205,7 @@ public class Utils {
                         if (key < 10) {
                             p = new VectorPoint(key, globalVectorLength, true);
                             p.setConstantVector(true);
-                        } else if (globalVectorLength < 0){
+                        } else if (globalVectorLength < 0) {
                             globalVectorLength = vectorLength;
                         }
                         p.addCap(cap);
@@ -278,12 +278,12 @@ public class Utils {
     }
 
     public static SectorRecord readSectorRecord(String line) {
-        String []splits = line.split("\",\"");
+        String[] splits = line.split("\",\"");
         return new SectorRecord(splits[5].replaceAll("^\"|\"$", ""), splits[0].replaceAll("^\"|\"$", ""));
     }
 
     public static Bin readBin(String line) {
-        String []parts = line.split(",");
+        String[] parts = line.split(",");
         double start = Double.parseDouble(parts[1]);
         double end = Double.parseDouble(parts[2]);
         Bin bin = new Bin();
@@ -320,7 +320,7 @@ public class Utils {
         return maps;
     }
 
-    public static short[][] readRowRange(String fname, Range rows, int globalColCount, ByteOrder endianness){
+    public static short[][] readRowRange(String fname, Range rows, int globalColCount, ByteOrder endianness) {
         try (FileChannel fc = (FileChannel) Files
                 .newByteChannel(Paths.get(fname), StandardOpenOption.READ)) {
             int dataTypeSize = Short.BYTES;
@@ -333,10 +333,10 @@ public class Utils {
 
             int rowCount = rows.getLength();
             short[][] rowBlock = new short[rowCount][];
-            for (int i = 0; i < rowCount; ++i){
-                short [] rowBlockRow = rowBlock[i] = new short[globalColCount];
-                for (int j = 0; j < globalColCount; ++j){
-                    int procLocalPnum =  i * globalColCount + j;
+            for (int i = 0; i < rowCount; ++i) {
+                short[] rowBlockRow = rowBlock[i] = new short[globalColCount];
+                for (int j = 0; j < globalColCount; ++j) {
+                    int procLocalPnum = i * globalColCount + j;
                     int bytePosition = procLocalPnum * dataTypeSize;
                     short tmp = mappedBytes.getShort(bytePosition);
                     // -1.0 indicates missing values
@@ -344,8 +344,7 @@ public class Utils {
                 }
             }
             return rowBlock;
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return null;
@@ -432,7 +431,8 @@ public class Utils {
                 dateList.add(key);
             } while (lastDate.before(endDate));
         } else if (mode == 7) {
-            Date lastDate = addYear(currentDate);;
+            Date lastDate = addYear(currentDate);
+            ;
             do {
                 String start = getDateString(currentDate);
                 String end = getDateString(lastDate);
@@ -446,7 +446,6 @@ public class Utils {
                 dateList.add(key);
             } while (lastDate.before(endDate));
         }
-        LOG.info("Splitted Dates List for startdate and enddate:" + dateList.size() + "\t" + startDate + "\t" + endDate);
         return dateList;
     }
 
@@ -524,7 +523,8 @@ public class Utils {
                 dates.put(start + "_" + end, list);
             } while (lastDate.before(endDate));
         } else if (mode == 7) {
-            Date lastDate = addYear(currentDate);;
+            Date lastDate = addYear(currentDate);
+            ;
             do {
                 String start = getDateString(currentDate);
                 String end = getDateString(lastDate);
@@ -533,7 +533,6 @@ public class Utils {
                 list.add(lastDate);
 
                 lastDate = addDays(lastDate, 7);
-                LOG.info("list size for start and end:" + list.size() + "\tstart:" + start + "\tend:" + end);
                 dates.put(start + "_" + end, list);
             } while (lastDate.before(endDate));
         }
@@ -548,8 +547,9 @@ public class Utils {
 
     /**
      * Load the mapping from permno to point
+     *
      * @param pointFile the point file
-     * @param keys keys
+     * @param keys      keys
      * @return map
      */
     public static Map<Integer, Point> loadPoints(File pointFile, List<Integer> keys) {
@@ -568,7 +568,7 @@ public class Utils {
                 index++;
             }
             if (index != keys.size()) {
-                throw new RuntimeException("Keys are not read fully: " + index +  " != " + keys.size() + " " + pointFile.getAbsolutePath());
+                throw new RuntimeException("Keys are not read fully: " + index + " != " + keys.size() + " " + pointFile.getAbsolutePath());
             }
             return points;
         } catch (Exception e) {
@@ -578,6 +578,7 @@ public class Utils {
 
     /**
      * Load the mapping from permno to point
+     *
      * @param vectorFile the vector file
      * @return map
      */
@@ -599,24 +600,24 @@ public class Utils {
         }
     }
 
-   /* public static void savePlotViz(String outFileName, Plotviz plotviz) throws FileNotFoundException, JAXBException {
-        FileOutputStream fileOutputStream = null;
-        try {
-            fileOutputStream = new FileOutputStream(outFileName);
-            JAXBContext ctx = JAXBContext.newInstance(Plotviz.class);
-            Marshaller ma = ctx.createMarshaller();
-            ma.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-            ma.marshal(plotviz, fileOutputStream);
-        } finally {
-            if (fileOutputStream != null) {
-                try {
-                    fileOutputStream.close();
-                } catch (IOException ignore) {
-                }
-            }
-        }
-    }
-*/
+    /* public static void savePlotViz(String outFileName, Plotviz plotviz) throws FileNotFoundException, JAXBException {
+         FileOutputStream fileOutputStream = null;
+         try {
+             fileOutputStream = new FileOutputStream(outFileName);
+             JAXBContext ctx = JAXBContext.newInstance(Plotviz.class);
+             Marshaller ma = ctx.createMarshaller();
+             ma.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+             ma.marshal(plotviz, fileOutputStream);
+         } finally {
+             if (fileOutputStream != null) {
+                 try {
+                     fileOutputStream.close();
+                 } catch (IOException ignore) {
+                 }
+             }
+         }
+     }
+ */
     public static void main(String[] args) {
         try {
             TreeMap<String, List<Date>> dates = genDates(formatter.parse("20040101"), formatter.parse("20050130"), 6);

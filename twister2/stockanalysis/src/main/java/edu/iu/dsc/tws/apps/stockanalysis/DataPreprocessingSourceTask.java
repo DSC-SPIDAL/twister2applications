@@ -50,17 +50,15 @@ public class DataPreprocessingSourceTask extends BaseSource {
         TreeMap<String, List<Date>> allDates = Utils.genDates(startDate, endDate, mode);
 
         for (String dateString : allDates.keySet()) {
-            LOG.info(dateString + " ");
+            LOG.fine(dateString + " ");
         }
 
         // create the out directory for generating the vector
         Utils.createDirectory(vectorDirectory);
         this.dates = allDates;
 
-        LOG.fine("Print all dates:" + this.dates);
         // now go through the file and figure out the dates that should be considered
         Map<String, Map<Date, Integer>> datesList = findDates(this.dataInputFile);
-        LOG.fine("Print dates list:" + datesList);
         for (Map.Entry<String, List<Date>> ed : this.dates.entrySet()) {
             Date start = ed.getValue().get(0);
             Date end = ed.getValue().get(1);
@@ -121,8 +119,8 @@ public class DataPreprocessingSourceTask extends BaseSource {
             for (Date d : ed.getValue()) {
                 sb.append(Utils.formatter.format(d)).append(" ");
             }
-            LOG.info(ed.getKey() + ":" + sb.toString());
         }
+        LOG.info("entry value size:" + outDates.entrySet().size());
         return outDates;
     }
 
@@ -138,6 +136,7 @@ public class DataPreprocessingSourceTask extends BaseSource {
         int size = -1;
         vectorCounter = 0;
         int noOfDays = datesList.size();
+        LOG.info("no of days:" + noOfDays);
         String outFileName = vectorDirectory + "/" + outFile + ".csv";
         int capCount = 0;
         CleanMetric metric = this.metrics.get(outFileName);
@@ -151,7 +150,6 @@ public class DataPreprocessingSourceTask extends BaseSource {
             //FileSystem fileSystem = FileSystemUtils.get(new Path(vectorDirectory));
             //LOG.info("File System:" + fileSystem);
             //Retrieve the buffer reader and read it
-
             FileReader input = new FileReader(inFile);
             FileOutputStream fos = new FileOutputStream(new File(outFileName));
             bufWriter = new BufferedWriter(new OutputStreamWriter(fos));
@@ -175,7 +173,7 @@ public class DataPreprocessingSourceTask extends BaseSource {
                 // check whether we already have the vector seen
                 VectorPoint point = currentPoints.get(key);
                 if (point == null) {
-                    point = new VectorPoint(key, noOfDays, true);
+                    point = new VectorPoint(key, noOfDays, false);
                     currentPoints.put(key, point);
                 }
 
@@ -183,7 +181,7 @@ public class DataPreprocessingSourceTask extends BaseSource {
                 int index = datesList.get(record.getDate());
                 if (!point.add(record.getPrice(), record.getFactorToAdjPrice(), record.getFactorToAdjVolume(), metric, index)) {
                     metric.dupRecords++;
-                    LOG.fine("dup: " + record.serialize());
+                    LOG.info("dup: " + record.serialize());
                 }
                 point.addCap(record.getVolume() * record.getPrice());
 
