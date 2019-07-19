@@ -18,6 +18,7 @@ import edu.iu.dsc.tws.api.task.IMessage;
 import edu.iu.dsc.tws.api.task.executor.ExecutionPlan;
 import edu.iu.dsc.tws.api.task.graph.DataFlowTaskGraph;
 import edu.iu.dsc.tws.api.task.graph.OperationMode;
+import edu.iu.dsc.tws.apps.stockanalysis.utils.Record;
 import edu.iu.dsc.tws.task.impl.ComputeConnection;
 import edu.iu.dsc.tws.task.impl.TaskGraphBuilder;
 import edu.iu.dsc.tws.task.impl.TaskWorker;
@@ -144,7 +145,7 @@ public class StockAnalysisWorker extends TaskWorker {
         BaseWindowedSink baseWindowedSink = new DataProcessingStreamingWindowCompute(new ProcessWindowFunctionImpl(),
                 OperationMode.STREAMING);
         WindowingParameters windowParameters = this.stockAnalysisWorkerParameters.getWindowingParameters();
-        TimeUnit timeUnit = TimeUnit.MICROSECONDS;
+        TimeUnit timeUnit = TimeUnit.DAYS;
         if (windowParameters != null) {
             WindowType windowType = windowParameters.getWindowType();
             if (windowParameters.isDuration()) {
@@ -172,25 +173,26 @@ public class StockAnalysisWorker extends TaskWorker {
         return baseWindowedSink;
     }
 
-    protected static class ProcessWindowFunctionImpl implements ProcessWindowedFunction {
+    protected static class ProcessWindowFunctionImpl implements ProcessWindowedFunction<Record> {
 
         private static final long serialVersionUID = 8517840191276879034L;
 
         private static final Logger LOG = Logger.getLogger(ProcessWindowFunctionImpl.class.getName());
 
         @Override
-        public IWindowMessage process(IWindowMessage windowMessage) {
-            LOG.info("Received Message:" + windowMessage);
+        public IWindowMessage<Record> process(IWindowMessage<Record> windowMessage) {
+            LOG.info("Received Message:" + windowMessage + "\t" + windowMessage.getWindow().size());
             return windowMessage;
         }
 
         @Override
-        public IMessage processLateMessage(IMessage lateMessage) {
+        public IMessage<Record> processLateMessage(IMessage<Record> lateMessage) {
             return lateMessage;
         }
 
+
         @Override
-        public Object onMessage(Object object1, Object object2) {
+        public Record onMessage(Record object1, Record object2) {
             return null;
         }
     }

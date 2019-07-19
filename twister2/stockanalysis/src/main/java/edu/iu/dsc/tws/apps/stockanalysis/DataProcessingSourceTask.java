@@ -48,7 +48,6 @@ public class DataProcessingSourceTask extends BaseWindowSource {
                 LOG.info("Record to write:" + record);
                 context.write(Context.TWISTER2_DIRECT_EDGE, record);
             }
-            context.end(Context.TWISTER2_DIRECT_EDGE);
         } catch (IOException ioe) {
             throw new RuntimeException("IO Exception Occured" + ioe.getMessage());
         }
