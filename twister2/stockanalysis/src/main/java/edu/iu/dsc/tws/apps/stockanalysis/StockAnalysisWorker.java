@@ -97,7 +97,10 @@ public class StockAnalysisWorker extends TaskWorker {
         /** Task Graph to do the preprocessing **/
         DataProcessingSourceTask preprocessingSourceTask = new DataProcessingSourceTask(datainputFile, vectorDirectory,
                 startDate);
-        BaseWindowedSink baseWindowedSink = getWindowSinkInstance();
+        //BaseWindowedSink baseWindowedSink = getWindowSinkInstance();
+        BaseWindowedSink baseWindowedSink
+                = new DataProcessingStreamingWindowCompute(new ProcessWindowFunctionImpl(),
+                OperationMode.STREAMING).withSlidingCountWindow(10, 7);
         DataPreprocessingComputeTask dataPreprocessingCompute = new DataPreprocessingComputeTask(
                 vectorDirectory, distanceMatrixDirectory, distanceType, Context.TWISTER2_DIRECT_EDGE);
         DistanceCalculatorComputeTask distanceCalculatorCompute = new DistanceCalculatorComputeTask(
@@ -109,9 +112,8 @@ public class StockAnalysisWorker extends TaskWorker {
         preprocessingTaskGraphBuilder.setTaskGraphName("StockAnalysisTaskGraph");
 
         preprocessingTaskGraphBuilder.addSource("preprocessingsourcetask", preprocessingSourceTask, parallel);
-
-        ComputeConnection windowComputeConnection = preprocessingTaskGraphBuilder.addCompute("windowsink", baseWindowedSink, parallel);
-
+        ComputeConnection windowComputeConnection = preprocessingTaskGraphBuilder.addCompute(
+                "windowsink", baseWindowedSink, parallel);
         ComputeConnection preprocessingComputeConnection = preprocessingTaskGraphBuilder.addCompute(
                 "preprocessingcompute", dataPreprocessingCompute, parallel);
         ComputeConnection distanceCalculatorComputeConnection = preprocessingTaskGraphBuilder.addCompute(

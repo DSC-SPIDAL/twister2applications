@@ -1,6 +1,7 @@
 package edu.iu.dsc.tws.apps.stockanalysis;
 
 public final class WindowingConstants {
+
     private WindowingConstants() {
     }
 
@@ -11,5 +12,4 @@ public final class WindowingConstants {
     public static final String WINDOW_LENGTH = "window_length";
 
     public static final String WINDOW_CAPACITY_TYPE = "time";
-
 }

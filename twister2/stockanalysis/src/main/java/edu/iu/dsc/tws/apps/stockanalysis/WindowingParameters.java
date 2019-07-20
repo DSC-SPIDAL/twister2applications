@@ -8,6 +8,7 @@ import java.util.Objects;
 public class WindowingParameters implements Serializable {
 
     private static final long serialVersionUID = 7215545889817090308L;
+
     private WindowType windowType;
 
     private long windowLength;
@@ -16,8 +17,7 @@ public class WindowingParameters implements Serializable {
 
     private boolean isDuration;
 
-    public WindowingParameters(WindowType windowType, long windowLength, long slidingLength,
-                               boolean isDuration) {
+    public WindowingParameters(WindowType windowType, long windowLength, long slidingLength, boolean isDuration) {
         this.windowType = windowType;
         this.windowLength = windowLength;
         this.slidingLength = slidingLength;

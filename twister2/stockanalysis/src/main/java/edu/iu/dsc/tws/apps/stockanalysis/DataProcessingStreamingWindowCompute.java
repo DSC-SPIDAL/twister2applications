@@ -49,7 +49,7 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
     @Override
     public boolean process(IWindowMessage<Record> windowMessage) {
         messageList = windowMessage.getWindow();
-        LOG.fine("Received Message:" + messageList + "and its size:" + messageList.size());
+        LOG.info("Received Message:" + messageList + "and its size:" + messageList.size());
         processRecords(messageList);
         return true;
     }
@@ -104,7 +104,7 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
             }
             writeVectors(0, metric);
         }
-        //context.write(Context.TWISTER2_DIRECT_EDGE, recordList);
+        context.write(Context.TWISTER2_DIRECT_EDGE, recordList);
     }
 
     private double writeVectors(int size, CleanMetric metric) {

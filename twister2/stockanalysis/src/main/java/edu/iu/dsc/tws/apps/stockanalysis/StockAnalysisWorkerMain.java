@@ -59,7 +59,6 @@ public class StockAnalysisWorkerMain {
     options.addOption(Utils.createOption(StockAnalysisConstants.CONFIG_FILE,
         true, "config File", true));
 
-
     options.addOption(Utils.createOption(WindowingConstants.WINDOW_TYPE,
             true, "Windowing Type : tumbling, sliding, global (not supported), "
                     + "session (not supported)", false));
@@ -72,7 +71,6 @@ public class StockAnalysisWorkerMain {
             false));
     options.addOption(WindowingConstants.WINDOW_CAPACITY_TYPE, false,
             "time (if time the time based window is used else count based window is used)");
-
 
     @SuppressWarnings("deprecation")
     CommandLineParser commandLineParser = new DefaultParser();
