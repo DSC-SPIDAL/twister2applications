@@ -39,17 +39,6 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         return true;
     }
 
-//    @Override
-//    public boolean execute(IMessage content) {
-//        LOG.info("message content:" + content.getContent());
-//        vectorPoints = new ArrayList<>();
-//        if (content.getContent() != null) {
-//            vectorPoints.add(String.valueOf(content.getContent()));
-//        }
-//        context.write(edgeName, vectorPoints);
-//        return true;
-//    }
-
     @Override
     public void prepare(Config cfg, TaskContext context) {
         super.prepare(cfg, context);

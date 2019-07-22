@@ -100,7 +100,7 @@ public class StockAnalysisWorker extends TaskWorker {
         //BaseWindowedSink baseWindowedSink = getWindowSinkInstance();
         BaseWindowedSink baseWindowedSink
                 = new DataProcessingStreamingWindowCompute(new ProcessWindowFunctionImpl(),
-                OperationMode.STREAMING).withSlidingCountWindow(10, 7);
+                OperationMode.STREAMING).withSlidingCountWindow(100, 7);
         DataPreprocessingComputeTask dataPreprocessingCompute = new DataPreprocessingComputeTask(
                 vectorDirectory, distanceMatrixDirectory, distanceType, Context.TWISTER2_DIRECT_EDGE);
         DistanceCalculatorComputeTask distanceCalculatorCompute = new DistanceCalculatorComputeTask(

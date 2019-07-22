@@ -24,7 +24,7 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
     private OperationMode operationMode;
     private List<IMessage<Record>> messageList;
 
-    private Map<Integer, VectorPoint> currentPoints = new HashMap();
+    private Map<Integer, VectorPoint> currentPoints;
     private Map<String, CleanMetric> metrics = new HashMap();
 
     private int vectorCounter = 0;
@@ -56,7 +56,9 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
 
     public void processRecords(List<IMessage<Record>> recordList) {
 
-        int noOfDays = recordList.size();
+        //int noOfDays = recordList.size();
+
+        int noOfDays;
 
         int splitCount = 0;
         int count = 0;
@@ -67,11 +69,32 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
         int index = 0;
         int size = -1;
 
+        currentPoints = new HashMap();
+
         String outFileName = "/home/kannan/out.csv";
         CleanMetric metric = this.metrics.get(outFileName);
         if (metric == null) {
             metric = new CleanMetric();
             this.metrics.put(outFileName, metric);
+        }
+
+        LOG.info("RECORD LIST SIZE:" + recordList.size());
+
+        Date startDate = null;
+        Date endDate = null;
+
+        int rsize = recordList.size();
+        noOfDays = recordList.size();
+        for (int i = 0; i < recordList.size(); i++) {
+            Record record = recordList.get(0).getContent();
+            startDate = record.getDate();
+
+            LOG.info("ith value:" + i);
+            if (i == rsize - 1) {
+                record = recordList.get(i).getContent();
+                endDate = record.getDate();
+            }
+            LOG.info("start date:" + startDate + "\t" + endDate + "\t" + noOfDays);
         }
 
         for (int i = 0; i < recordList.size(); i++) {
@@ -91,6 +114,7 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
 
             // figure out the index
             //int index = datesList.get(record.getDate());
+            //index = recordList.size();
 
             if (!point.add(record.getPrice(), record.getFactorToAdjPrice(), record.getFactorToAdjVolume(), metric, index)) {
                 metric.dupRecords++;
@@ -104,7 +128,7 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
             }
             writeVectors(0, metric);
         }
-        context.write(Context.TWISTER2_DIRECT_EDGE, recordList);
+        //context.write(Context.TWISTER2_DIRECT_EDGE, recordList);
     }
 
     private double writeVectors(int size, CleanMetric metric) {
