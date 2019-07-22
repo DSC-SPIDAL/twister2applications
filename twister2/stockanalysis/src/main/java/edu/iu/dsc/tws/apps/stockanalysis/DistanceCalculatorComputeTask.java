@@ -20,6 +20,8 @@ import java.util.logging.Logger;
 
 public class DistanceCalculatorComputeTask extends BaseCompute {
 
+    private static final long serialVersionUID = -5190777711234234L;
+
     private static final Logger LOG = Logger.getLogger(DistanceCalculatorComputeTask.class.getName());
 
     private String vectorFolder;

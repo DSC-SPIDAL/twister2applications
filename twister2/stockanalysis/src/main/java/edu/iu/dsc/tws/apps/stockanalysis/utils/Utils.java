@@ -15,7 +15,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Logger;
 
-public class Utils {
+public class Utils implements Serializable {
 
     private static final Logger LOG = Logger.getLogger(Utils.class.getName());
     public static SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");

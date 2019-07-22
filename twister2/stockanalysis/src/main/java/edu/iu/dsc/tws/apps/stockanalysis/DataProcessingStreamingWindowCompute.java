@@ -21,14 +21,14 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
 
     private static final Logger LOG = Logger.getLogger(DataProcessingStreamingWindowCompute.class.getName());
 
+    private int vectorCounter = 0;
+
     private OperationMode operationMode;
-    private List<IMessage<Record>> messageList;
 
     private Map<Integer, VectorPoint> currentPoints;
     private Map<String, CleanMetric> metrics = new HashMap();
 
-    private int vectorCounter = 0;
-
+    private List<IMessage<Record>> messageList;
     private List<String> vectorPointsList = new ArrayList<>();
 
     public DataProcessingStreamingWindowCompute(ProcessWindowedFunction<Record> processWindowedFunction) {
@@ -48,9 +48,12 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
 
     @Override
     public boolean process(IWindowMessage<Record> windowMessage) {
+        LOG.info("window size:" + windowMessage.getWindow().size());
         messageList = windowMessage.getWindow();
         LOG.info("Received Message:" + messageList + "and its size:" + messageList.size());
-        processRecords(messageList);
+        if (messageList != null) {
+            processRecords(messageList);
+        }
         return true;
     }
 
@@ -59,16 +62,14 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
         //int noOfDays = recordList.size();
 
         int noOfDays;
-
         int splitCount = 0;
         int count = 0;
         int fullCount = 0;
-
-        double totalCap = 0;
-
+        int capCount = 0;
         int index = 0;
         int size = -1;
 
+        double totalCap = 0;
         currentPoints = new HashMap();
 
         String outFileName = "/home/kannan/out.csv";
@@ -85,21 +86,13 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
 
         int rsize = recordList.size();
         noOfDays = recordList.size();
-        for (int i = 0; i < recordList.size(); i++) {
-            Record record = recordList.get(0).getContent();
-            startDate = record.getDate();
 
-            LOG.info("ith value:" + i);
-            if (i == rsize - 1) {
-                record = recordList.get(i).getContent();
-                endDate = record.getDate();
-            }
-            LOG.info("start date:" + startDate + "\t" + endDate + "\t" + noOfDays);
-        }
+        startDate = recordList.get(0).getContent().getDate();
+        endDate = recordList.get(0 + 6).getContent().getDate(); //10
 
         for (int i = 0; i < recordList.size(); i++) {
             Record record = recordList.get(i).getContent();
-            LOG.info("Received record value is:" + record + "\tand its date:" + record.getDate()
+            LOG.fine("Received record value is:" + record + "\tand its date:" + record.getDate()
             + "\t" + "Number Of Days:" + noOfDays);
 
             int key = record.getSymbol();
@@ -118,7 +111,7 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
 
             if (!point.add(record.getPrice(), record.getFactorToAdjPrice(), record.getFactorToAdjVolume(), metric, index)) {
                 metric.dupRecords++;
-                LOG.info("dup: " + record.serialize());
+                LOG.fine("dup: " + record.serialize());
                 index++;
             }
             point.addCap(record.getVolume() * record.getPrice());
@@ -126,9 +119,42 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
             if (point.noOfElements() == size) {
                 fullCount++;
             }
-            writeVectors(0, metric);
+
+            if (currentPoints.size() > 2000 && size == -1) {
+                List<Integer> pointSizes = new ArrayList<Integer>();
+                for (VectorPoint v : currentPoints.values()) {
+                    pointSizes.add(v.noOfElements());
+                }
+                size = mostCommon(pointSizes);
+                //System.out.println("Number of stocks per period: " + size);
+            }
+
+            if (currentPoints.size() > 1000 && size != -1 && fullCount > 750) {
+                System.out.println("Processed: " + count);
+                totalCap += writeVectors(noOfDays, metric);
+                capCount++;
+                fullCount = 0;
+            }
         }
-        //context.write(Context.TWISTER2_DIRECT_EDGE, recordList);
+        if (recordList != null) {
+            context.write(Context.TWISTER2_DIRECT_EDGE, recordList);
+        }
+        LOG.info("I finished processing");
+    }
+
+
+    public static <T> T mostCommon(List<T> list) {
+        Map<T, Integer> map = new HashMap<T, Integer>();
+        for (T t : list) {
+            Integer val = map.get(t);
+            map.put(t, val == null ? 1 : val + 1);
+        }
+        Map.Entry<T, Integer> max = null;
+        for (Map.Entry<T, Integer> e : map.entrySet()) {
+            if (max == null || e.getValue() > max.getValue())
+                max = e;
+        }
+        return max.getKey();
     }
 
     private double writeVectors(int size, CleanMetric metric) {
@@ -167,7 +193,7 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
         }
         LOG.info("Vector counter value:" + vectorCounter);
         LOG.info("Writing Vector Points Size:" + vectorPointsList.size());
-        context.write(Context.TWISTER2_DIRECT_EDGE, vectorPointsList);
+        //context.write(Context.TWISTER2_DIRECT_EDGE, vectorPointsList);
         return capSum;
     }
 
