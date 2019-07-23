@@ -15,7 +15,7 @@ public class StockAnalysisSinkTask extends BaseSink implements Collector {
     private static final Logger LOG = Logger.getLogger(StockAnalysisSinkTask.class.getName());
     @Override
     public boolean execute(IMessage content) {
-        LOG.info("message content:" + content.getContent());
+        LOG.fine("message content:" + content.getContent());
         return true;
     }
 

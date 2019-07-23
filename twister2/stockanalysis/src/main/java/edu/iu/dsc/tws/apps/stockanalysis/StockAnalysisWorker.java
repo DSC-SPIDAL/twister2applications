@@ -15,25 +15,32 @@ import edu.iu.dsc.tws.api.comms.messaging.types.MessageTypes;
 import edu.iu.dsc.tws.api.config.Context;
 import edu.iu.dsc.tws.api.dataset.DataObject;
 import edu.iu.dsc.tws.api.task.IMessage;
+import edu.iu.dsc.tws.api.task.TaskMessage;
 import edu.iu.dsc.tws.api.task.executor.ExecutionPlan;
 import edu.iu.dsc.tws.api.task.graph.DataFlowTaskGraph;
 import edu.iu.dsc.tws.api.task.graph.OperationMode;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.Record;
+import edu.iu.dsc.tws.apps.stockanalysis.utils.RecordTimestampExtractor;
 import edu.iu.dsc.tws.task.impl.ComputeConnection;
 import edu.iu.dsc.tws.task.impl.TaskGraphBuilder;
 import edu.iu.dsc.tws.task.impl.TaskWorker;
 import edu.iu.dsc.tws.task.window.api.IWindowMessage;
-import edu.iu.dsc.tws.task.window.constant.WindowType;
+import edu.iu.dsc.tws.task.window.api.WindowMessageImpl;
 import edu.iu.dsc.tws.task.window.core.BaseWindowedSink;
 import edu.iu.dsc.tws.task.window.function.ProcessWindowedFunction;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
 public class StockAnalysisWorker extends TaskWorker {
+
     private static final Logger LOG = Logger.getLogger(StockAnalysisWorker.class.getName());
+
+    private static final long serialVersionUID = -254264120110286748L;
 
     private int parallel;
     private String distanceMatrixDirectory;
@@ -74,14 +81,10 @@ public class StockAnalysisWorker extends TaskWorker {
         distanceType = Integer.parseInt(stockAnalysisWorkerParameters.getDistanceType());
 
         WindowingParameters windowParameters = this.stockAnalysisWorkerParameters.getWindowingParameters();
-        TimeUnit timeUnit = TimeUnit.DAYS;
         if (windowParameters != null) {
-            if (!windowParameters.isDuration()) {
-                windowLength = windowParameters.getWindowLength();
-                slidingLength = windowParameters.getSlidingLength();
-            }
+            windowLength = windowParameters.getWindowLength();
+            slidingLength = windowParameters.getSlidingLength();
         }
-
         LOG.info("Distance Matrix Directory:" + distanceMatrixDirectory + "\t" + vectorDirectory);
 
         //Sequential Vector Generation
@@ -107,11 +110,13 @@ public class StockAnalysisWorker extends TaskWorker {
     private DataFlowTaskGraph buildStockAnalysisDataflowGraph() {
 
         /** Task Graph to do the preprocessing **/
-        DataProcessingSourceTask preprocessingSourceTask = new DataProcessingSourceTask(datainputFile, vectorDirectory,
-                startDate);
+        DataProcessingSourceTask preprocessingSourceTask = new DataProcessingSourceTask(
+                datainputFile, vectorDirectory, startDate);
+        LOG.info("Window length:" + windowLength + "\t" + slidingLength);
         BaseWindowedSink baseWindowedSink
                 = new DataProcessingStreamingWindowCompute(new ProcessWindowFunctionImpl(),
-                OperationMode.STREAMING).withSlidingCountWindow(windowLength, slidingLength);
+                OperationMode.STREAMING).withSlidingDurationWindow(windowLength, TimeUnit.DAYS,
+                slidingLength, TimeUnit.DAYS).withCustomTimestampExtractor(new RecordTimestampExtractor());
         DataPreprocessingComputeTask dataPreprocessingCompute = new DataPreprocessingComputeTask(
                 vectorDirectory, distanceMatrixDirectory, distanceType, Context.TWISTER2_DIRECT_EDGE);
         DistanceCalculatorComputeTask distanceCalculatorCompute = new DistanceCalculatorComputeTask(
@@ -136,54 +141,18 @@ public class StockAnalysisWorker extends TaskWorker {
 
         windowComputeConnection.direct("preprocessingsourcetask").viaEdge(Context.TWISTER2_DIRECT_EDGE)
                 .withDataType(MessageTypes.OBJECT);
-
         preprocessingComputeConnection.direct("windowsink").viaEdge(Context.TWISTER2_DIRECT_EDGE)
                 .withDataType(MessageTypes.OBJECT);
-
         distanceCalculatorComputeConnection.direct("preprocessingcompute").viaEdge(Context.TWISTER2_DIRECT_EDGE)
                 .withDataType(MessageTypes.OBJECT);
-
         mdsComputeConnection.direct("distancecalculatorcompute").viaEdge(Context.TWISTER2_DIRECT_EDGE)
                 .withDataType(MessageTypes.OBJECT);
-
         stockAnalysisSinkConnection.direct("mdsprogramcompute").viaEdge(Context.TWISTER2_DIRECT_EDGE)
                 .withDataType(MessageTypes.OBJECT);
 
         preprocessingTaskGraphBuilder.setMode(OperationMode.STREAMING);
         DataFlowTaskGraph preprocesingTaskGraph = preprocessingTaskGraphBuilder.build();
         return preprocesingTaskGraph;
-    }
-
-    private BaseWindowedSink getWindowSinkInstance() {
-        BaseWindowedSink baseWindowedSink = new DataProcessingStreamingWindowCompute(new ProcessWindowFunctionImpl(),
-                OperationMode.STREAMING);
-        WindowingParameters windowParameters = this.stockAnalysisWorkerParameters.getWindowingParameters();
-        TimeUnit timeUnit = TimeUnit.DAYS;
-        if (windowParameters != null) {
-            WindowType windowType = windowParameters.getWindowType();
-            if (windowParameters.isDuration()) {
-                if (windowType.equals(WindowType.TUMBLING)) {
-                    baseWindowedSink
-                            .withTumblingDurationWindow(windowParameters.getWindowLength(), timeUnit);
-                }
-                if (windowType.equals(WindowType.SLIDING)) {
-                    baseWindowedSink
-                            .withSlidingDurationWindow(windowParameters.getWindowLength(), timeUnit,
-                                    windowParameters.getSlidingLength(), timeUnit);
-                }
-            } else {
-                if (windowType.equals(WindowType.TUMBLING)) {
-                    baseWindowedSink
-                            .withTumblingCountWindow(windowParameters.getWindowLength());
-                }
-                if (windowType.equals(WindowType.SLIDING)) {
-                    baseWindowedSink
-                            .withSlidingCountWindow(windowParameters.getWindowLength(),
-                                    windowParameters.getSlidingLength());
-                }
-            }
-        }
-        return baseWindowedSink;
     }
 
     protected static class ProcessWindowFunctionImpl implements ProcessWindowedFunction<Record> {
@@ -194,8 +163,41 @@ public class StockAnalysisWorker extends TaskWorker {
 
         @Override
         public IWindowMessage<Record> process(IWindowMessage<Record> windowMessage) {
-            LOG.info("Received Message:" + windowMessage + "\t" + windowMessage.getWindow().size());
-            return windowMessage;
+            LOG.info("Received Message:" + windowMessage   + "\twindow size" + windowMessage.getWindow().size());
+            Record current = null;
+            List<IMessage<Record>> messages = new ArrayList<>(); //windowMessage.getWindow().size()
+            for (IMessage<Record> message : windowMessage.getWindow()) {
+                Record record = message.getContent();
+                LOG.info("Record values are:" + record.getSymbol() + "\t" + record.getDate());
+                if (current == null) {
+                    current = record;
+                } else {
+                    //current = add(current, record);
+                    messages.add(new TaskMessage<>(current));
+                }
+            }
+            WindowMessageImpl<Record> windowMessage1 = new WindowMessageImpl<>(messages);
+            return windowMessage1;
+
+//            List<Record> current = new ArrayList<>();
+//            List<IMessage<Record>> messages = new ArrayList();
+//
+//            Iterator iterator = windowMessage.getWindow().iterator();
+//            while(iterator.hasNext()) {
+//                IMessage<Record> msg = (IMessage) iterator.next();
+//                Record value = msg.getContent();
+//                LOG.info("Record values are:" + value.getSymbol() + "\t" + value.getDate());
+//                if (current.size() == 0) {
+//                    current.add(value);
+//                } else {
+//                    current = this.add(current, value);
+//                    messages.add(new TaskMessage(current));
+//                }
+//            }
+//
+//            LOG.info("message size:" + messages.size());
+//            WindowMessageImpl<Record> wMessage = new WindowMessageImpl(messages);
+//            return wMessage;
         }
 
         @Override
@@ -203,53 +205,14 @@ public class StockAnalysisWorker extends TaskWorker {
             return lateMessage;
         }
 
-
         @Override
         public Record onMessage(Record object1, Record object2) {
             return null;
         }
+
+        private List<Record> add(List<Record> record1, Record record2) {
+            record1.add(record1.size(), record2);
+            return record1;
+        }
     }
-
-
-//    private DataFlowTaskGraph buildStockAnalysisDataflowGraph() {
-//
-//        /** Task Graph to do the preprocessing **/
-//        DataPreprocessingSourceTask preprocessingSourceTask = new DataPreprocessingSourceTask(
-//                datainputFile, vectorDirectory, numberOfDays, startDate, endDate, mode);
-//        DataPreprocessingComputeTask dataPreprocessingCompute = new DataPreprocessingComputeTask(
-//                vectorDirectory, distanceMatrixDirectory, distanceType, Context.TWISTER2_DIRECT_EDGE);
-//        DistanceCalculatorComputeTask distanceCalculatorCompute = new DistanceCalculatorComputeTask(
-//                vectorDirectory, distanceMatrixDirectory, distanceType, Context.TWISTER2_DIRECT_EDGE);
-//        MDSWorkerComputeTask mdsProgramWorkerCompute = new MDSWorkerComputeTask(Context.TWISTER2_DIRECT_EDGE);
-//        StockAnalysisSinkTask stockAnalysisSinkTask = new StockAnalysisSinkTask();
-//
-//        TaskGraphBuilder preprocessingTaskGraphBuilder = TaskGraphBuilder.newBuilder(config);
-//        preprocessingTaskGraphBuilder.setTaskGraphName("StockAnalysisTaskGraph");
-//        preprocessingTaskGraphBuilder.addSource("preprocessingsourcetask", preprocessingSourceTask, parallel);
-//
-//        ComputeConnection preprocessingComputeConnection = preprocessingTaskGraphBuilder.addCompute(
-//                "preprocessingcompute", dataPreprocessingCompute, parallel);
-//        ComputeConnection distanceCalculatorComputeConnection = preprocessingTaskGraphBuilder.addCompute(
-//                "distancecalculatorcompute", distanceCalculatorCompute, parallel);
-//        ComputeConnection mdsComputeConnection = preprocessingTaskGraphBuilder.addCompute(
-//                "mdsprogramcompute", mdsProgramWorkerCompute, parallel);
-//        ComputeConnection stockAnalysisSinkConnection = preprocessingTaskGraphBuilder.addSink(
-//                "dataanalysissink", stockAnalysisSinkTask, parallel);
-//
-//        preprocessingComputeConnection.direct("preprocessingsourcetask").viaEdge(Context.TWISTER2_DIRECT_EDGE)
-//                .withDataType(MessageTypes.OBJECT);
-//
-//        distanceCalculatorComputeConnection.direct("preprocessingcompute").viaEdge(Context.TWISTER2_DIRECT_EDGE)
-//                .withDataType(MessageTypes.OBJECT);
-//
-//        mdsComputeConnection.direct("distancecalculatorcompute").viaEdge(Context.TWISTER2_DIRECT_EDGE)
-//                .withDataType(MessageTypes.OBJECT);
-//
-//        stockAnalysisSinkConnection.direct("mdsprogramcompute").viaEdge(Context.TWISTER2_DIRECT_EDGE)
-//                .withDataType(MessageTypes.OBJECT);
-//
-//        preprocessingTaskGraphBuilder.setMode(OperationMode.STREAMING);
-//        DataFlowTaskGraph preprocesingTaskGraph = preprocessingTaskGraphBuilder.build();
-//        return preprocesingTaskGraph;
-//    }
 }

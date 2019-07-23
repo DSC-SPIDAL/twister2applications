@@ -29,13 +29,18 @@ public class DataPreprocessingComputeTask extends BaseCompute {
     }
 
     @Override
-    public boolean execute(IMessage content) {
-        LOG.info("message content:" + content.getContent());
-        vectorPoints = new ArrayList<>();
-        if (content.getContent() != null) {
-            vectorPoints.add(String.valueOf(content.getContent()));
+    public boolean execute(IMessage message) {
+        if (message.getContent() != null) {
+            LOG.fine("message content:" + message.getContent());
+            vectorPoints = new ArrayList<>();
+            if (message.getContent() != null) {
+                vectorPoints.add(String.valueOf(message.getContent()));
+            }
         }
-        context.write(edgeName, vectorPoints);
+
+        if (vectorPoints != null) {
+            context.write(edgeName, vectorPoints);
+        }
         return true;
     }
 

@@ -19,7 +19,6 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.text.ParseException;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -52,51 +51,19 @@ public class DataProcessingSourceTask extends BaseSource {
 
     @Override
     public void execute() {
-        /*inputSplit = source.getNextSplit(context.taskIndex());
-        while (inputSplit != null) {
-            try {
-                while (!inputSplit.reachedEnd()) {
-                    String value = String.valueOf(inputSplit.nextRecord(null));
-                    if ((record = getRecord(value, null, false)) != null) {
-                        LOG.info("Received Record Value:" + record + "\t" + record.getDate());
-                        context.write(Context.TWISTER2_DIRECT_EDGE, record);
-                    }
-                }
-                inputSplit = source.getNextSplit(context.taskIndex());
-            } catch (IOException e) {
-                LOG.log(Level.SEVERE, "Failed to read the input", e);
-            }
-        }*/
-
-//        String value;
-//
-//        inputSplit = source.getNextSplit(context.taskIndex());
-//        if (inputSplit != null) {
-//            try {
-//                if (inputSplit.nextRecord(null) != null) {
-//                    value = String.valueOf(inputSplit.nextRecord(null));
-//                    writeRecord(value);
-//                }
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//        inputSplit = source.getNextSplit(context.taskIndex());
-
-        readFile();
-        //initiateProcess();
-    }
-
-    private void readFile() {
         try {
             Record record;
             if ((record = Utils.parseFile(bufRead, null, false)) != null) {
-                LOG.info("Record to write:" + record);
-                context.write(Context.TWISTER2_DIRECT_EDGE, record);
+                LOG.fine("Record to write:" + record);
+                writeToComputeTask(record);
             }
         } catch (IOException ioe) {
             throw new RuntimeException("IO Exception Occured" + ioe.getMessage());
         }
+    }
+
+    private void writeToComputeTask(Record record) {
+        context.write(Context.TWISTER2_DIRECT_EDGE, record);
     }
 
     public void prepare(Config cfg, TaskContext context) {
@@ -111,58 +78,5 @@ public class DataProcessingSourceTask extends BaseSource {
         } catch (FileNotFoundException e) {
             throw new RuntimeException("IOException Occured:" + e.getMessage());
         }
-    }
-
-    private Record getRecord(String value, CleanMetric metric, boolean convert) {
-        try {
-            if (value != null) {
-                String[] array = value.trim().split(",");
-                if (array.length >= 3) {
-                    int permNo = Integer.parseInt(array[0]);
-                    Date date = Utils.formatter.parse(array[1]);
-                    if (date == null) {
-                        LOG.info("Date null...............................");
-                    }
-                    String stringSymbol = array[2];
-                    if (array.length >= 7) {
-                        double price = -1;
-                        if (!array[5].equals("")) {
-                            price = Double.parseDouble(array[5]);
-                            if (convert) {
-                                if (price < 0) {
-                                    price *= -1;
-                                    if (metric != null) {
-                                        metric.negativeCount++;
-                                    }
-                                }
-                            }
-                        }
-
-                        double factorToAdjPrice = 0;
-                        if (!"".equals(array[4].trim())) {
-                            factorToAdjPrice = Double.parseDouble(array[4]);
-                        }
-
-                        double factorToAdjVolume = 0;
-                        if (!"".equals(array[3].trim())) {
-                            factorToAdjVolume = Double.parseDouble(array[3]);
-                        }
-
-                        int volume = 0;
-                        if (!array[6].equals("")) {
-                            volume = Integer.parseInt(array[6]);
-                        }
-
-                        return new Record(price, permNo, date, array[1], stringSymbol, volume, factorToAdjPrice, factorToAdjVolume);
-                    } else {
-                        return new Record(-1, permNo, date, array[1], stringSymbol, 0, 0, 0);
-                    }
-                }
-            }
-        } catch (ParseException e) {
-            throw new RuntimeException("Failed to read content from file", e);
-        }
-
-        return null;
     }
 }
