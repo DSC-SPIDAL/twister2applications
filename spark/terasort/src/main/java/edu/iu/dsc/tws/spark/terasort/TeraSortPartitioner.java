@@ -6,25 +6,25 @@ import java.io.Serializable;
 import java.util.*;
 
 public class TeraSortPartitioner extends Partitioner implements Serializable {
+    private int partitions;
+
+    public TeraSortPartitioner(int partitions) {
+        this.partitions = partitions;
+        Set<Integer> h = new HashSet<>();
+        for (int j = 0; j < partitions; j++) {
+            h.add(j);
+        }
+        prepare(h);
+    }
+
     @Override
     public int getPartition(Object key) {
-        if (!initialized) {
-            Set<Integer> h = new HashSet<>();
-            for (int j = 0; j < 10; j++) {
-                h.add(j);
-            }
-            prepare(h);
-            initialized = true;
-        }
-
         return partition((byte[]) key);
     }
 
     private int keysToOneTask;
 
     private List<Integer> destinationsList;
-
-    private boolean initialized = false;
 
     void prepare(Set<Integer> destinations) {
         int totalPossibilities = 256 * 256; //considering only most significant bytes of array
@@ -45,6 +45,6 @@ public class TeraSortPartitioner extends Partitioner implements Serializable {
 
     @Override
     public int numPartitions() {
-        return 10;
+        return partitions;
     }
 }

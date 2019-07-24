@@ -8,7 +8,7 @@ import java.util.List;
 
 public class ByteInputFormat extends InputFormat<byte[], byte[]> {
 
-  private int parallel = 10;
+  private int parallel = 16;
 
   @Override
   public List<InputSplit> getSplits(JobContext jobContext) throws IOException, InterruptedException {
