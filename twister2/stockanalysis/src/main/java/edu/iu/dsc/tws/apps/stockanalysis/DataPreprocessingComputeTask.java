@@ -6,6 +6,7 @@ import edu.iu.dsc.tws.api.task.TaskContext;
 import edu.iu.dsc.tws.api.task.nodes.BaseCompute;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.CleanMetric;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.Record;
+import edu.iu.dsc.tws.apps.stockanalysis.utils.Utils;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.VectorPoint;
 
 import java.util.*;
@@ -106,13 +107,18 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             this.metrics.put(outFileName, metric);
         }
 
-        Date startDate = windowRecordList.get(0).getDate();
+        Date currentDate = windowRecordList.get(0).getDate();
+        Date lastDate = Utils.addYear(currentDate);
+
+        String start = Utils.getDateString(currentDate);
+        String end = Utils.getDateString(lastDate);
+
         Date endDate = windowRecordList.get(windowLength - 1).getDate();
 
         LOG.info("window record list:" + windowRecordList.size()
-                + "\tstartdate:" + startDate + "\tendate:" + endDate);
+                + "\tstartdate:" +  currentDate + "\tendate:" + endDate);
         for (int i = 1; i < windowRecordList.size(); i++) {
-            if (!startDate.equals(windowRecordList.get(i).getDate())) {
+            if (!currentDate.equals(windowRecordList.get(i).getDate())) {
                 noOfDays++;
             }
         }
