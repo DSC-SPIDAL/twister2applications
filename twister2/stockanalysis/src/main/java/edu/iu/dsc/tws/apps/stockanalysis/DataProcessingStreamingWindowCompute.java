@@ -15,7 +15,9 @@ import edu.iu.dsc.tws.task.window.function.ProcessWindowedFunction;
 import java.util.*;
 import java.util.logging.Logger;
 
-public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> {
+//public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> {
+
+public class DataProcessingStreamingWindowCompute extends ProcessWindow<EventTimeData> {
 
     private static final long serialVersionUID = -343442338342343424L;
 
@@ -30,6 +32,37 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
 
     //private List<IMessage<Record>> messageList;
     private List<String> vectorPointsList = new ArrayList<>();
+
+
+    public DataProcessingStreamingWindowCompute(
+            ProcessWindowedFunction<EventTimeData> processWindowedFunction) {
+        super(processWindowedFunction);
+    }
+
+    @Override
+    public boolean process(IWindowMessage<EventTimeData> windowMessage) {
+        LOG.info(String.format("Num Events : %d", windowMessage.getWindow().size()));
+        List<Record> messageList = new ArrayList<>();
+        for (IMessage<EventTimeData> msg : windowMessage.getWindow()) {
+            Record record = msg.getContent().getData();
+            messageList.add(record);
+            if (messageList != null) {
+                processRecords(messageList);
+            }
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean processLateMessages(IMessage<EventTimeData> lateMessage) {
+        return false;
+    }
+
+  /*  @Override
+    public boolean processLateMessages(IMessage<EventTimeData> lateMessage) {
+        return false;
+    }
 
     public DataProcessingStreamingWindowCompute(ProcessWindowedFunction<Record> processWindowedFunction) {
         super(processWindowedFunction);
@@ -50,9 +83,9 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
             processRecords(messageList);
         }
         return true;
-    }
+    }*/
 
-    public void processRecords(List<IMessage<Record>> recordList) {
+    public void processRecords(List<Record> recordList) {
 
         int noOfDays = recordList.size();
         int splitCount = 0;
@@ -71,13 +104,14 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
             this.metrics.put(outFileName, metric);
         }
 
-        Date startDate = recordList.get(0).getContent().getDate();
-        Date endDate = recordList.get(0 + 6).getContent().getDate();
+        //Date startDate = recordList.get(0).getContent().getDate();
+        //Date endDate = recordList.get(0 + 6).getContent().getDate();
 
         for (int i = 0; i < recordList.size(); i++) {
-            Record record = recordList.get(i).getContent();
+            //Record record = recordList.get(i).getContent();
+            Record record = recordList.get(i);
             LOG.fine("Received record value is:" + record + "\tand its date:" + record.getDate()
-            + "\t" + "Number Of Days:" + noOfDays);
+                    + "\t" + "Number Of Days:" + noOfDays);
 
             int key = record.getSymbol();
             if (record.getFactorToAdjPrice() > 0) {
@@ -186,11 +220,11 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> 
         return capSum;
     }
 
-    @Override
-    public boolean processLateMessages(IMessage<Record> lateMessage) {
-        return true;
-    }
-
+//    @Override
+//    public boolean processLateMessages(IMessage<Record> lateMessage) {
+//        return true;
+//    }
+//
 
     @Override
     public void prepare(Config cfg, TaskContext ctx) {

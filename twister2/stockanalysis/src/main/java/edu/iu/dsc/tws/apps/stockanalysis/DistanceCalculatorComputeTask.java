@@ -33,7 +33,7 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
 
     private List<Map<Integer, VectorPoint>> vectors;
     private List<Map<Integer, VectorPoint>> values;
-    private List<String> vectorPoints = new ArrayList<>();
+    //private List<String> vectorPoints;
 
     public DistanceCalculatorComputeTask(String vectorfolder, String distfolder, int distancetype, String edgename) {
         this.vectorFolder = vectorfolder;
@@ -44,8 +44,9 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
 
     @Override
     public boolean execute(IMessage content) {
-        vectorPoints = (List<String>) content.getContent();
+        List<String> vectorPoints = (List<String>) content.getContent();
         LOG.fine("Vector points size in distance calculator:" + vectorPoints.size());
+        LOG.info("vector folder and distance folder:" + vectorFolder + "\t" + distFolder);
         //process();
         context.write(edgeName, vectorPoints);
         return true;
@@ -75,18 +76,6 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
 
     public void process() {
         LOG.info("Starting Distance calculator..." + vectorFolder);
-        /*for (Map<Integer, VectorPoint> currentPoints : values) {
-            LOG.info("Currentpoints size:" + currentPoints.size());
-            for (Map.Entry<Integer, VectorPoint> entry : currentPoints.entrySet()) {
-                VectorPoint v = entry.getValue();
-                LOG.info("%%% Serialized Value: %%%" + v.serialize());
-            }
-        }*/
-
-        for (String vectorPoint : vectorPoints) {
-            LOG.info("Vector point value:" + vectorPoint);
-        }
-
         File inFolder = new File(vectorFolder);
         if (!inFolder.isDirectory()) {
             LOG.info("In should be a folder: " + vectorFolder);

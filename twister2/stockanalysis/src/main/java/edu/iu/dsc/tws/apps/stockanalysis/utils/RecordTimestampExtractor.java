@@ -9,7 +9,7 @@ public class RecordTimestampExtractor extends TimestampExtractor<Record> {
 
     @Override
     public long extractTimestamp(Record o) {
-        LOG.info("time unit:" + o.getDate());
+        LOG.fine("time unit:" + o.getDate().getTime()); //time unit: time unit:1195102800000
         return o.getDate().getTime();
     }
 }

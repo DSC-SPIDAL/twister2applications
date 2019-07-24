@@ -54,7 +54,6 @@ public class DataProcessingSourceTask extends BaseSource {
         try {
             Record record;
             if ((record = Utils.parseFile(bufRead, null, false)) != null) {
-                LOG.fine("Record to write:" + record);
                 writeToComputeTask(record);
             }
         } catch (IOException ioe) {
@@ -71,7 +70,6 @@ public class DataProcessingSourceTask extends BaseSource {
         ExecutionRuntime runtime = (ExecutionRuntime) cfg.get(ExecutorContext.TWISTER2_RUNTIME_OBJECT);
         this.source = runtime.createInput(cfg, context, new LocalCompleteTextInputPartitioner(
                 new Path(inputFile), context.getParallelism(), config));
-
         try {
             input = new FileReader(inputFile);
             bufRead = new BufferedReader(input);

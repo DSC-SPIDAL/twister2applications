@@ -524,7 +524,6 @@ public class Utils implements Serializable {
             } while (lastDate.before(endDate));
         } else if (mode == 7) {
             Date lastDate = addYear(currentDate);
-            ;
             do {
                 String start = getDateString(currentDate);
                 String end = getDateString(lastDate);

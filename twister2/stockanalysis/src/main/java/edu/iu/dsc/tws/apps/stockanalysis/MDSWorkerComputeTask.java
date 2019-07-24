@@ -2,7 +2,9 @@ package edu.iu.dsc.tws.apps.stockanalysis;
 
 import edu.iu.dsc.tws.api.task.IMessage;
 import edu.iu.dsc.tws.api.task.nodes.BaseCompute;
+import edu.iu.dsc.tws.apps.stockanalysis.utils.Record;
 
+import java.util.List;
 import java.util.logging.Logger;
 
 public class MDSWorkerComputeTask extends BaseCompute {
@@ -21,7 +23,8 @@ public class MDSWorkerComputeTask extends BaseCompute {
 
     @Override
     public boolean execute(IMessage content) {
-        LOG.fine("Received message:" + content.getContent());
+        List<Record> recordList = (List<Record>) content.getContent();
+        LOG.info("Received message:" + recordList.size());
         //run(); //run() method to invoke the mds processing
         context.write(edgeName, "received distance for processing mds");
         return true;
