@@ -46,7 +46,7 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
     public boolean execute(IMessage content) {
         List<String> vectorPoints = (List<String>) content.getContent();
         LOG.fine("Vector points size in distance calculator:" + vectorPoints.size());
-        LOG.info("vector folder and distance folder:" + vectorFolder + "\t" + distFolder);
+        LOG.fine("vector folder and distance folder:" + vectorFolder + "\t" + distFolder);
         //process();
         context.write(edgeName, vectorPoints);
         return true;

@@ -24,7 +24,7 @@ public class MDSWorkerComputeTask extends BaseCompute {
     @Override
     public boolean execute(IMessage content) {
         List<Record> recordList = (List<Record>) content.getContent();
-        LOG.info("Received message:" + recordList.size());
+        LOG.fine("Received message:" + recordList.size());
         //run(); //run() method to invoke the mds processing
         context.write(edgeName, "received distance for processing mds");
         return true;

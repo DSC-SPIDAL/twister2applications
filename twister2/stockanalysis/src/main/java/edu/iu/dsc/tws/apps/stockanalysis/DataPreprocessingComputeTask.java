@@ -1,12 +1,12 @@
 package edu.iu.dsc.tws.apps.stockanalysis;
 
 import edu.iu.dsc.tws.api.config.Config;
+import edu.iu.dsc.tws.api.config.Context;
 import edu.iu.dsc.tws.api.task.IMessage;
 import edu.iu.dsc.tws.api.task.TaskContext;
 import edu.iu.dsc.tws.api.task.nodes.BaseCompute;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.CleanMetric;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.Record;
-import edu.iu.dsc.tws.apps.stockanalysis.utils.Utils;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.VectorPoint;
 
 import java.util.*;
@@ -31,31 +31,9 @@ public class DataPreprocessingComputeTask extends BaseCompute {
     private Map<String, CleanMetric> metrics = new HashMap();
     private Map<Integer, VectorPoint> currentPoints = new HashMap();
 
-//    private List<String> vectorPoints;
-
-//    public DataPreprocessingComputeTask(String vectordirectory, String distancedirectory,
-//                                        int distancetype, String edgename) {
-//        this.vectorDirectory = vectordirectory;
-//        this.distanceDirectory = distancedirectory;
-//        this.distanceType = distancetype;
-//        this.edgeName = edgename;
-//    }
-//
-//    @Override
-//    public boolean execute(IMessage message) {
-//        if (message.getContent() != null) {
-//            LOG.fine("message content:" + message.getContent());
-//            vectorPoints = new ArrayList<>();
-//            if (message.getContent() != null) {
-//                vectorPoints.add(String.valueOf(message.getContent()));
-//            }
-//        }
-//
-//        if (vectorPoints != null) {
-//            context.write(edgeName, vectorPoints);
-//        }
-//        return true;
-//    }
+    private Date startDate;
+    private Date endDate;
+    private int numberOfDays;
 
     public DataPreprocessingComputeTask(String vectordirectory, String distancedirectory, int distancetype,
                                         int windowlength, int slidinglength, String edgename) {
@@ -69,17 +47,66 @@ public class DataPreprocessingComputeTask extends BaseCompute {
 
     @Override
     public boolean execute(IMessage message) {
+        int flag = 0;
+        Record recordMessage;
         if (message.getContent() != null) {
-            recordList.add((Record) message.getContent());
-            index++;
-            if (recordList.size() == windowLength) {
-                windowRecordList = new ArrayList<>(windowLength);
-                windowRecordList.addAll(recordList.subList(0, windowLength));
-                remove(0, windowLength);
-                processData(windowRecordList);
+            if (flag == 0) {
+                recordMessage = (Record) message.getContent();
+                recordList.add(recordMessage);
+                startDate = recordList.get(0).getDate();
+                endDate = addYear(startDate);
+                flag++;
+            } else if (flag >= 1) {
+                recordMessage = (Record) message.getContent();
+                if (recordMessage.getDate().after(startDate) && recordMessage.getDate().before(endDate)) {
+                    recordList.add(recordMessage);
+                }
             }
         }
+
+        Map<Date, Integer> dateIntegerMap = new HashMap<>();
+        windowRecordList = new ArrayList<>();
+        for (int i = 0; i < recordList.size(); i++) {
+            if (recordList.get(i).getDate().after(startDate) && recordList.get(i).getDate().before(endDate)) {
+                windowRecordList.add(recordList.get(i));
+                if (!dateIntegerMap.containsKey(recordList.get(i).getDate())) {
+                    dateIntegerMap.put(recordList.get(i).getDate(), i);
+                }
+                LOG.fine("R-Date:" + recordList.get(i).getDate()
+                        + "\tS-Date:" + startDate + "\tE-Date:" + endDate);
+            }
+        }
+        LOG.info("Date List:" + dateIntegerMap.entrySet().size() + "\t" + windowRecordList.size());
+        if (windowRecordList.size() >= dateIntegerMap.entrySet().size()) {
+            //processData(windowRecordList, dateIntegerMap);
+            endDate = addDate(endDate, slidingLength);
+            LOG.info("new end date:" + endDate);
+        }
         return true;
+    }
+
+    private void process(List<Record> recordList) {
+        Map<Date, Integer> dateIntegerMap = new HashMap<>();
+        List<Record> windowRecordList = new ArrayList<>();
+        for (int i = 0; i < recordList.size(); i++) {
+            if (recordList.get(i).getDate().after(startDate) && recordList.get(i).getDate().before(endDate)) {
+                windowRecordList.add(recordList.get(i));
+                if (!dateIntegerMap.containsKey(recordList.get(i).getDate())) {
+                    dateIntegerMap.put(recordList.get(i).getDate(), i);
+                }
+                LOG.fine("R-Date:" + recordList.get(i).getDate()
+                        + "\tS-Date:" + startDate + "\tE-Date:" + endDate);
+            }
+        }
+        LOG.fine("Date List:" + dateIntegerMap.entrySet().size() + "\t" + windowRecordList.size());
+        processData(windowRecordList, dateIntegerMap);
+
+//        if (recordList.size() == windowLength) {
+//            windowRecordList = new ArrayList<>(windowLength);
+//            windowRecordList.addAll(recordList.subList(0, windowLength));
+//            remove(0, windowLength);
+//            processData(windowRecordList, dateList);
+//        }
     }
 
     private void remove(int startindex, int endindex) {
@@ -88,14 +115,35 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         }
     }
 
-    private void processData(List<Record> windowRecordList) {
+    private boolean isDateWithing(Date start, Date end, Date compare) {
+        if (compare == null) {
+            System.out.println("Comapre null*****************");
+        }
+        return (compare.equals(start) || compare.after(start)) && compare.before(end);
+    }
 
-        int noOfDays = 0;
+    private static Date addYear(Date date) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        cal.add(Calendar.YEAR, 1);
+        return cal.getTime();
+    }
+
+    private static Date addDate(Date date, int slidingLength) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        cal.add(Calendar.DATE, slidingLength);
+        return cal.getTime();
+    }
+
+    int vectorCounter = 0;
+    private void processData(List<Record> windowRecordList, Map<Date, Integer> dateList) {
+        LOG.info("%%% Window Record List:%%%" + windowRecordList.size());
+        int noOfDays = dateList.size();
         int splitCount = 0;
         int count = 0;
         int fullCount = 0;
         int capCount = 0;
-        int index = 0;
         int size = -1;
 
         double totalCap = 0;
@@ -107,35 +155,115 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             this.metrics.put(outFileName, metric);
         }
 
-        Date currentDate = windowRecordList.get(0).getDate();
-        Date lastDate = Utils.addYear(currentDate);
-
-        String start = Utils.getDateString(currentDate);
-        String end = Utils.getDateString(lastDate);
-
-        Date endDate = windowRecordList.get(windowLength - 1).getDate();
-
-        LOG.info("window record list:" + windowRecordList.size()
-                + "\tstartdate:" +  currentDate + "\tendate:" + endDate);
-        for (int i = 1; i < windowRecordList.size(); i++) {
-            if (!currentDate.equals(windowRecordList.get(i).getDate())) {
-                noOfDays++;
-            }
-        }
-        LOG.info("Number of unique days:" + noOfDays);
-
         //Vector generation
         for (int i = 0; i < windowRecordList.size(); i++) {
             Record record = windowRecordList.get(i);
-            LOG.fine("Received record value is:" + record.getSymbol() + "\t" + record.getDateString()
-                    +"\tand its date:" + record.getDate() + "\t" + "Number Of Days:" + noOfDays);
             int key = record.getSymbol();
             if (record.getFactorToAdjPrice() > 0) {
                 splitCount++;
             }
             VectorPoint point = currentPoints.get(key);
+            if (point == null) {
+                point = new VectorPoint(key, noOfDays, false);
+                currentPoints.put(key, point);
+            }
+            LOG.info("Received record value is:" + record.getSymbol() + "\t" + record.getDateString()
+                    + "\tand its date:" + record.getDate() + "\t" + "Number Of Days:" + noOfDays
+                    + "\tvector:" + point);
+
+            // figure out the index
+            int index = dateList.get(record.getDate());
+            LOG.info("index value is:" + index);
+            if (!point.add(record.getPrice(), record.getFactorToAdjPrice(), record.getFactorToAdjVolume(), metric, index)) {
+                metric.dupRecords++;
+                LOG.info("dup: " + record.serialize());
+            }
+            point.addCap(record.getVolume() * record.getPrice());
+
+            if (point.noOfElements() == size) {
+                fullCount++;
+            }
+
+            if (currentPoints.size() > 2000 && size == -1) {
+                List<Integer> pointSizes = new ArrayList<>();
+                for (VectorPoint v : currentPoints.values()) {
+                    pointSizes.add(v.noOfElements());
+                }
+                size = mostCommon(pointSizes);
+                LOG.info("Number of stocks per period: " + size);
+            }
+            // now write the current vectors, also make sure we have the size determined correctly
+            if (currentPoints.size() > 1000 && size != -1 && fullCount > 750) {
+                System.out.println("Processed: " + count);
+                totalCap += writeVectors(noOfDays, metric);
+                capCount++;
+                fullCount = 0;
+            }
         }
+        System.out.println("Total stocks: " + vectorCounter + " bad stocks: " + currentPoints.size());
+        metric.stocksWithIncorrectDays = currentPoints.size();
+        System.out.println("Metrics for file: " + outFileName + " " + metric.serialize());
+        currentPoints.clear();
         writeData(windowRecordList);
+    }
+
+    private double writeVectors(int size, CleanMetric metric) {
+        double capSum = 0;
+        int count = 0;
+        for(Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<Integer, VectorPoint> entry = it.next();
+            VectorPoint v = entry.getValue();
+            if (v.noOfElements() == size) {
+                metric.totalStocks++;
+
+                if (!v.cleanVector(metric)) {
+                    // System.out.println("Vector not valid: " + outFileName + ", " + v.serialize());
+                    metric.invalidStocks++;
+                    it.remove();
+                    continue;
+                }
+                String sv = v.serialize();
+
+                // if many points are missing, this can return null
+                if (sv != null) {
+                    capSum += v.getTotalCap();
+                    count++;
+                    context.write(Context.TWISTER2_DIRECT_EDGE, sv);
+                    // remove it from map
+                    vectorCounter++;
+                    metric.writtenStocks++;
+                } else {
+                    metric.invalidStocks++;
+                }
+                it.remove();
+            } else {
+                metric.lenghtWrong++;
+            }
+        }
+        return capSum;
+    }
+
+    public static <T> T mostCommon(List<T> list) {
+        Map<T, Integer> map = new HashMap<T, Integer>();
+        for (T t : list) {
+            Integer val = map.get(t);
+            map.put(t, val == null ? 1 : val + 1);
+        }
+        Map.Entry<T, Integer> max = null;
+        for (Map.Entry<T, Integer> e : map.entrySet()) {
+            if (max == null || e.getValue() > max.getValue())
+                max = e;
+        }
+        return max.getKey();
+    }
+
+    private void writeData(List<Record> windowRecordList) {
+        context.write(edgeName, windowRecordList);
+    }
+
+    @Override
+    public void prepare(Config cfg, TaskContext context) {
+        super.prepare(cfg, context);
     }
 
 //    private Map<String, Map<Date, Integer>> findDates(String inFile) {
@@ -201,12 +329,30 @@ public class DataPreprocessingComputeTask extends BaseCompute {
 //        return (compare.equals(start) || compare.after(start)) && compare.before(end);
 //    }
 
-    private void writeData(List<Record> windowRecordList) {
-        context.write(edgeName, windowRecordList);
-    }
+    //    private List<String> vectorPoints;
 
-    @Override
-    public void prepare(Config cfg, TaskContext context) {
-        super.prepare(cfg, context);
-    }
+//    public DataPreprocessingComputeTask(String vectordirectory, String distancedirectory,
+//                                        int distancetype, String edgename) {
+//        this.vectorDirectory = vectordirectory;
+//        this.distanceDirectory = distancedirectory;
+//        this.distanceType = distancetype;
+//        this.edgeName = edgename;
+//    }
+//
+//    @Override
+//    public boolean execute(IMessage message) {
+//        if (message.getContent() != null) {
+//            LOG.fine("message content:" + message.getContent());
+//            vectorPoints = new ArrayList<>();
+//            if (message.getContent() != null) {
+//                vectorPoints.add(String.valueOf(message.getContent()));
+//            }
+//        }
+//
+//        if (vectorPoints != null) {
+//            context.write(edgeName, vectorPoints);
+//        }
+//        return true;
+//    }
+
 }
