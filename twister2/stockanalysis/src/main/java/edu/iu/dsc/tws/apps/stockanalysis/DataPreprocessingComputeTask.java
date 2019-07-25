@@ -47,59 +47,48 @@ public class DataPreprocessingComputeTask extends BaseCompute {
 
     @Override
     public boolean execute(IMessage message) {
-        int flag = 0;
+        int startIndex = 0;
         Record recordMessage;
         if (message.getContent() != null) {
-            if (flag == 0) {
+            if (startIndex == 0) {
                 recordMessage = (Record) message.getContent();
                 recordList.add(recordMessage);
                 startDate = recordList.get(0).getDate();
                 endDate = addYear(startDate);
-                flag++;
-            } else if (flag >= 1) {
+                startIndex++;
+            } else if (startIndex >= 1) {
                 recordMessage = (Record) message.getContent();
-                if (recordMessage.getDate().after(startDate) && recordMessage.getDate().before(endDate)) {
-                    recordList.add(recordMessage);
-                }
+                //if (recordMessage.getDate().after(startDate) && recordMessage.getDate().before(endDate)) {
+                recordList.add(recordMessage);
+                //}
             }
         }
-
-        Map<Date, Integer> dateIntegerMap = new HashMap<>();
-        windowRecordList = new ArrayList<>();
-        for (int i = 0; i < recordList.size(); i++) {
-            if (recordList.get(i).getDate().after(startDate) && recordList.get(i).getDate().before(endDate)) {
-                windowRecordList.add(recordList.get(i));
-                if (!dateIntegerMap.containsKey(recordList.get(i).getDate())) {
-                    dateIntegerMap.put(recordList.get(i).getDate(), i);
-                }
-                LOG.fine("R-Date:" + recordList.get(i).getDate()
-                        + "\tS-Date:" + startDate + "\tE-Date:" + endDate);
-            }
-        }
-        LOG.info("Date List:" + dateIntegerMap.entrySet().size() + "\t" + windowRecordList.size());
-        if (windowRecordList.size() >= dateIntegerMap.entrySet().size()) {
-            //processData(windowRecordList, dateIntegerMap);
-            endDate = addDate(endDate, slidingLength);
-            LOG.info("new end date:" + endDate);
+        LOG.info("record list size:" + recordList.size());
+        if (recordList.size() > windowLength) {
+            process(recordList);
         }
         return true;
     }
 
     private void process(List<Record> recordList) {
-        Map<Date, Integer> dateIntegerMap = new HashMap<>();
+        Map<Date, Integer> dateIntegerMap = null;
         List<Record> windowRecordList = new ArrayList<>();
         for (int i = 0; i < recordList.size(); i++) {
             if (recordList.get(i).getDate().after(startDate) && recordList.get(i).getDate().before(endDate)) {
                 windowRecordList.add(recordList.get(i));
+                dateIntegerMap = new HashMap<>();
                 if (!dateIntegerMap.containsKey(recordList.get(i).getDate())) {
                     dateIntegerMap.put(recordList.get(i).getDate(), i);
                 }
                 LOG.fine("R-Date:" + recordList.get(i).getDate()
                         + "\tS-Date:" + startDate + "\tE-Date:" + endDate);
+                //recordList.remove(recordList.get(i));
+            } else {
+                endDate = addDate(endDate, slidingLength);
             }
         }
-        LOG.fine("Date List:" + dateIntegerMap.entrySet().size() + "\t" + windowRecordList.size());
-        processData(windowRecordList, dateIntegerMap);
+        LOG.info("Date List:" + dateIntegerMap.entrySet().size() + "\t" + windowRecordList.size());
+        //processData(windowRecordList, dateIntegerMap);
 
 //        if (recordList.size() == windowLength) {
 //            windowRecordList = new ArrayList<>(windowLength);
@@ -137,6 +126,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
     }
 
     int vectorCounter = 0;
+
     private void processData(List<Record> windowRecordList, Map<Date, Integer> dateList) {
         LOG.info("%%% Window Record List:%%%" + windowRecordList.size());
         int noOfDays = dateList.size();
@@ -210,7 +200,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
     private double writeVectors(int size, CleanMetric metric) {
         double capSum = 0;
         int count = 0;
-        for(Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
+        for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<Integer, VectorPoint> entry = it.next();
             VectorPoint v = entry.getValue();
             if (v.noOfElements() == size) {
