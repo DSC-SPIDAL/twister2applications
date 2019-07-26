@@ -53,30 +53,29 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             if (startIndex == 0) {
                 recordMessage = (Record) message.getContent();
                 recordList.add(recordMessage);
-                startDate = recordList.get(0).getDate();
-                endDate = addYear(startDate);
                 startIndex++;
             } else if (startIndex >= 1) {
                 recordMessage = (Record) message.getContent();
-                //if (recordMessage.getDate().after(startDate) && recordMessage.getDate().before(endDate)) {
                 recordList.add(recordMessage);
-                //}
             }
         }
-        LOG.info("record list size:" + recordList.size());
+
         if (recordList.size() > windowLength) {
             process(recordList);
+            recordList.clear();
         }
         return true;
     }
 
     private void process(List<Record> recordList) {
-        Map<Date, Integer> dateIntegerMap = null;
+        LOG.info("record list size:" + recordList.size());
+        startDate = recordList.get(0).getDate();
+        endDate = addYear(startDate);
+        Map<Date, Integer> dateIntegerMap = new HashMap<>();
         List<Record> windowRecordList = new ArrayList<>();
         for (int i = 0; i < recordList.size(); i++) {
             if (recordList.get(i).getDate().after(startDate) && recordList.get(i).getDate().before(endDate)) {
                 windowRecordList.add(recordList.get(i));
-                dateIntegerMap = new HashMap<>();
                 if (!dateIntegerMap.containsKey(recordList.get(i).getDate())) {
                     dateIntegerMap.put(recordList.get(i).getDate(), i);
                 }
@@ -88,7 +87,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             }
         }
         LOG.info("Date List:" + dateIntegerMap.entrySet().size() + "\t" + windowRecordList.size());
-        //processData(windowRecordList, dateIntegerMap);
+        processData(windowRecordList, dateIntegerMap);
 
 //        if (recordList.size() == windowLength) {
 //            windowRecordList = new ArrayList<>(windowLength);
