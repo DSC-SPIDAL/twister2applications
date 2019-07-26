@@ -112,7 +112,7 @@ public class StockAnalysisWorker extends TaskWorker {
                 startDate);
         DataPreprocessingComputeTask dataPreprocessingCompute = new DataPreprocessingComputeTask(vectorDirectory,
                 distanceMatrixDirectory, distanceType, windowLength.intValue(), slidingLength.intValue(),
-                Context.TWISTER2_DIRECT_EDGE);
+                startDate, endDate, Context.TWISTER2_DIRECT_EDGE);
         DistanceCalculatorComputeTask distanceCalculatorCompute = new DistanceCalculatorComputeTask(vectorDirectory,
                 distanceMatrixDirectory, distanceType, Context.TWISTER2_DIRECT_EDGE);
         MDSWorkerComputeTask mdsProgramWorkerCompute = new MDSWorkerComputeTask(Context.TWISTER2_DIRECT_EDGE);
