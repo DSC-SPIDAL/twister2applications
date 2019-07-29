@@ -65,19 +65,19 @@ public class DataPreprocessingComputeTask extends BaseCompute {
 
             if (record.getDate().after(startDate) && record.getDate().before(endDate)) {
                 recordList.add((Record) message.getContent());
+            } else if (record.getDate().after(endDate)) {
+                LOG.info("start date:" + startDate + "\t" + "enddate:" + endDate);
+                process(recordList);
+                startDate = addDate(startDate, slidingLength);
+                endDate = addDate(endDate, slidingLength);
+                // send the list to matrix computation
             }
         }
-        value = process(recordList);
-        if (value) {
-            endDate = addDate(endDate, slidingLength);
-        }
-        LOG.info("After processing start date:" + startDate + "\t" + endDate + "\t" + recordList.size());
-        //while (endDate.before(finalendDate));
+        LOG.fine("After processing start date:" + startDate + "\t" + endDate + "\t" + recordList.size());
         return true;
     }
 
     private boolean process(List<Record> recordList) {
-
         for (int i = 0; i < recordList.size(); i++) {
             if (!dateIntegerMap.containsKey(recordList.get(i).getDate())) {
                 dateIntegerMap.put(recordList.get(i).getDate(), i);
@@ -91,38 +91,9 @@ public class DataPreprocessingComputeTask extends BaseCompute {
                 break;
             }
         }
-        LOG.info("Before removing sliding length:" + recordList.size() + "\tDate List:" + dateIntegerMap.entrySet().size());
+        LOG.fine("Before removing sliding length:" + recordList.size() + "\tDate List:" + dateIntegerMap.entrySet().size());
         processData(recordList, dateIntegerMap, slidingList);
-        LOG.info("After removing sliding length record list size:" + recordList.size());
         return true;
-    }
-
-    private void remove(int startindex, int endindex) {
-        LOG.info("start index:" + startindex + "\t" + endindex);
-        for (int i = 0; i < endindex - startindex; i++) {
-            recordList.remove(startindex);
-        }
-    }
-
-    private boolean isDateWithing(Date start, Date end, Date compare) {
-        if (compare == null) {
-            System.out.println("Comapre null*****************");
-        }
-        return (compare.equals(start) || compare.after(start)) && compare.before(end);
-    }
-
-    private static Date addYear(Date date) {
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(date);
-        cal.add(Calendar.YEAR, 1);
-        return cal.getTime();
-    }
-
-    private static Date addDate(Date date, int slidingLength) {
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(date);
-        cal.add(Calendar.DATE, slidingLength);
-        return cal.getTime();
     }
 
     int vectorCounter = 0;
@@ -130,12 +101,11 @@ public class DataPreprocessingComputeTask extends BaseCompute {
     private void processData(List<Record> recordList, Map<Date, Integer> dateIntegerMap, List<Date> slidingList) {
         LOG.info("%%% Window Record List:%%%" + recordList.size());
         int noOfDays = dateIntegerMap.size();
+        int size = -1;
         int splitCount = 0;
         int count = 0;
         int fullCount = 0;
         int capCount = 0;
-        int size = -1;
-
         double totalCap = 0;
 
         String outFileName = "/home/kannan/out.csv";
@@ -157,7 +127,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
                 point = new VectorPoint(key, noOfDays, false);
                 currentPoints.put(key, point);
             }
-            LOG.info("Received record value is:" + record.getSymbol()
+            LOG.fine("Received record value is:" + record.getSymbol()
                     + "\trecord date string:" + record.getDateString()
                     + "\tand its date:" + record.getDate()
                     + "\tNumber Of Days:" + noOfDays
@@ -166,7 +136,6 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             // figure out the index
             int index = dateIntegerMap.get(record.getDate());
             LOG.info("index value is:" + index);
-
             if (!point.add(record.getPrice(), record.getFactorToAdjPrice(), record.getFactorToAdjVolume(), metric, index)) {
                 metric.dupRecords++;
                 LOG.info("dup: " + record.serialize());
@@ -209,7 +178,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         metric.stocksWithIncorrectDays = currentPoints.size();
         LOG.fine("Metrics for file: " + outFileName + " " + metric.serialize());
         currentPoints.clear();
-        writeData(recordList);
+        //writeData(recordList);
     }
 
     private double writeVectors(int size, CleanMetric metric) {
@@ -222,7 +191,6 @@ public class DataPreprocessingComputeTask extends BaseCompute {
                 metric.totalStocks++;
 
                 if (!v.cleanVector(metric)) {
-                    // System.out.println("Vector not valid: " + outFileName + ", " + v.serialize());
                     metric.invalidStocks++;
                     it.remove();
                     continue;
@@ -246,6 +214,34 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             }
         }
         return capSum;
+    }
+
+    private void remove(int startindex, int endindex) {
+        LOG.info("start index:" + startindex + "\t" + endindex);
+        for (int i = 0; i < endindex - startindex; i++) {
+            recordList.remove(startindex);
+        }
+    }
+
+    private boolean isDateWithing(Date start, Date end, Date compare) {
+        if (compare == null) {
+            System.out.println("Comapre null*****************");
+        }
+        return (compare.equals(start) || compare.after(start)) && compare.before(end);
+    }
+
+    private static Date addYear(Date date) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        cal.add(Calendar.YEAR, 1);
+        return cal.getTime();
+    }
+
+    private static Date addDate(Date date, int slidingLength) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        cal.add(Calendar.DATE, slidingLength);
+        return cal.getTime();
     }
 
     public static <T> T mostCommon(List<T> list) {
