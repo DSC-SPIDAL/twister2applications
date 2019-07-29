@@ -1,7 +1,6 @@
 package edu.iu.dsc.tws.apps.stockanalysis;
 
 import edu.iu.dsc.tws.api.config.Config;
-import edu.iu.dsc.tws.api.config.Context;
 import edu.iu.dsc.tws.api.task.IMessage;
 import edu.iu.dsc.tws.api.task.TaskContext;
 import edu.iu.dsc.tws.api.task.nodes.BaseCompute;
@@ -10,6 +9,8 @@ import edu.iu.dsc.tws.apps.stockanalysis.utils.Record;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.Utils;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.VectorPoint;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -26,22 +27,18 @@ public class DataPreprocessingComputeTask extends BaseCompute {
     private int index = 0;
     private int distanceType;
 
-    private List<Record> recordList = new ArrayList<>();
-    private List<Record> windowRecordList;
-
     private Map<String, CleanMetric> metrics = new HashMap();
-    private Map<Integer, VectorPoint> currentPoints = new HashMap();
 
     private Date startDate;
     private Date endDate;
-    private Date finalendDate;
-    private int numberOfDays;
 
-    private Map<Date, Integer> dateIntegerMap = new LinkedHashMap<>();
+    private int totalCount = 0;
+
+    private List<Record> recordList = new ArrayList<>();
 
     public DataPreprocessingComputeTask(String vectordirectory, String distancedirectory,
                                         int distancetype, int windowlength, int slidinglength,
-                                        String startDate, String endDate, String edgename) {
+                                        String startDate, String edgename) {
         this.vectorDirectory = vectordirectory;
         this.distanceDirectory = distancedirectory;
         this.distanceType = distancetype;
@@ -49,58 +46,79 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         this.windowLength = windowlength;
         this.slidingLength = slidinglength;
         this.startDate = Utils.parseDateString(startDate);
-        this.finalendDate = Utils.parseDateString(endDate);
+        this.endDate = addYear(this.startDate);
     }
 
     @Override
     public boolean execute(IMessage message) {
-        this.endDate = addYear(this.startDate);
-        boolean value;
         if (message.getContent() != null) {
             Record record = (Record) message.getContent();
-
             if (recordList.isEmpty()) {
                 recordList.add((Record) message.getContent());
             }
-
+            LOG.info("Before Processing start date:" + startDate + "\t" + "enddate:" + endDate);
             if (record.getDate().after(startDate) && record.getDate().before(endDate)) {
                 recordList.add((Record) message.getContent());
             } else if (record.getDate().after(endDate)) {
-                LOG.info("start date:" + startDate + "\t" + "enddate:" + endDate);
+                LOG.info("%%%%% Record List Size:%%%%%%" + recordList.size());
                 process(recordList);
+                ++totalCount;
                 startDate = addDate(startDate, slidingLength);
                 endDate = addDate(endDate, slidingLength);
+                LOG.info("After Processing start date:" + startDate + "\t" + "enddate:" + endDate);
                 // send the list to matrix computation
             }
         }
-        LOG.fine("After processing start date:" + startDate + "\t" + endDate + "\t" + recordList.size());
+        LOG.fine("total count value:" + totalCount);
         return true;
     }
 
     private boolean process(List<Record> recordList) {
+
+        Map<Date, Integer> dateIntegerMap = new LinkedHashMap<>();
+        List<Record> windowRecordList = new LinkedList<>();
+
         for (int i = 0; i < recordList.size(); i++) {
             if (!dateIntegerMap.containsKey(recordList.get(i).getDate())) {
                 dateIntegerMap.put(recordList.get(i).getDate(), i);
             }
         }
+        LOG.info("%%% Window Record List:%%%" + recordList.size() + "\t" + dateIntegerMap.size());
+
         List<Date> slidingList = new LinkedList<>();
         for (Map.Entry<Date, Integer> dateIntegerEntry : dateIntegerMap.entrySet()) {
             Date start = dateIntegerEntry.getKey();
+            LOG.info("date list:" + Utils.dateToString(start));
             slidingList.add(start);
             if (slidingList.size() == slidingLength) {
                 break;
             }
         }
-        LOG.fine("Before removing sliding length:" + recordList.size() + "\tDate List:" + dateIntegerMap.entrySet().size());
-        processData(recordList, dateIntegerMap, slidingList);
+
+        for (int i = 0; i < slidingList.size(); i++) {
+            Date date = slidingList.get(i);
+            LOG.info("sliding date:" + i + "\t" + date);
+            for (int j = 0; j < recordList.size(); j++) {
+                if (recordList.get(j).getDate().equals(date)) {
+                    recordList.remove(j);
+                } else {
+                    windowRecordList.add(recordList.get(j));
+                }
+            }
+        }
+        LOG.info("window record list:" + windowRecordList.size());
+        //processData(windowRecordList, dateIntegerMap);
         return true;
     }
 
-    int vectorCounter = 0;
+    private int vectorCounter = 0;
 
-    private void processData(List<Record> recordList, Map<Date, Integer> dateIntegerMap, List<Date> slidingList) {
-        LOG.info("%%% Window Record List:%%%" + recordList.size());
+    private void processData(List<Record> recordList, Map<Date, Integer> dateIntegerMap) {
+        BufferedWriter bufWriter = null;
+        BufferedReader bufRead = null;
+        Map<Integer, VectorPoint> currentPoints = new HashMap();
         int noOfDays = dateIntegerMap.size();
+        LOG.info("%%% Window Record List:%%%" + recordList.size() + "\tnumber of days:" + noOfDays);
         int size = -1;
         int splitCount = 0;
         int count = 0;
@@ -108,7 +126,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         int capCount = 0;
         double totalCap = 0;
 
-        String outFileName = "/home/kannan/out.csv";
+        String outFileName = "/home/kannan/~stockbench/out.csv";
         CleanMetric metric = this.metrics.get(outFileName);
         if (metric == null) {
             metric = new CleanMetric();
@@ -117,6 +135,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
 
         //Vector generation
         for (int i = 0; i < recordList.size(); i++) {
+            count++;
             Record record = recordList.get(i);
             int key = record.getSymbol();
             if (record.getFactorToAdjPrice() > 0) {
@@ -124,7 +143,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             }
             VectorPoint point = currentPoints.get(key);
             if (point == null) {
-                point = new VectorPoint(key, noOfDays, false);
+                point = new VectorPoint(key, noOfDays, true);
                 currentPoints.put(key, point);
             }
             LOG.fine("Received record value is:" + record.getSymbol()
@@ -135,55 +154,48 @@ public class DataPreprocessingComputeTask extends BaseCompute {
 
             // figure out the index
             int index = dateIntegerMap.get(record.getDate());
-            LOG.info("index value is:" + index);
+            LOG.fine("index value is:" + index);
             if (!point.add(record.getPrice(), record.getFactorToAdjPrice(), record.getFactorToAdjVolume(), metric, index)) {
                 metric.dupRecords++;
                 LOG.info("dup: " + record.serialize());
             }
+
             point.addCap(record.getVolume() * record.getPrice());
 
             if (point.noOfElements() == size) {
                 fullCount++;
             }
 
-            if (currentPoints.size() > 2000 && size == -1) {
+            /*if (currentPoints.size() > 2000 && size == -1) {
                 List<Integer> pointSizes = new ArrayList<>();
                 for (VectorPoint v : currentPoints.values()) {
                     pointSizes.add(v.noOfElements());
                 }
                 size = mostCommon(pointSizes);
                 LOG.info("Number of stocks per period: " + size);
-            }
+            }*/
+
             // now write the current vectors, also make sure we have the size determined correctly
             if (currentPoints.size() > 1000 && size != -1 && fullCount > 750) {
                 LOG.info("Processed: " + count);
-                totalCap += writeVectors(noOfDays, metric);
+                //totalCap += writeVectors(noOfDays, metric);
+                writeVectors(noOfDays, metric, currentPoints);
                 capCount++;
                 fullCount = 0;
             }
+
+            LOG.fine("Total stocks: " + vectorCounter + " bad stocks: " + currentPoints.size());
+            metric.stocksWithIncorrectDays = currentPoints.size();
+            //currentPoints.clear();
         }
-
-        /*for (int i = 0; i < slidingList.size(); i++) {
-            Date date = slidingList.get(i);
-            LOG.fine("sliding date:" + i + "\t" + date);
-            for (int j = 0; j < recordList.size(); j++) {
-                if (recordList.get(j).getDate().equals(date)) {
-                    recordList.remove(j);
-                }
-            }
-        }*/
-
-        endDate = addDate(endDate, slidingLength);
-        LOG.fine("Total stocks: " + vectorCounter + " bad stocks: " + currentPoints.size());
-        metric.stocksWithIncorrectDays = currentPoints.size();
-        LOG.fine("Metrics for file: " + outFileName + " " + metric.serialize());
-        currentPoints.clear();
-        //writeData(recordList);
     }
 
-    private double writeVectors(int size, CleanMetric metric) {
+    private double writeVectors(int size,
+                                CleanMetric metric, Map<Integer, VectorPoint> currentPoints) {
+        List<String> vectorsPoint = new LinkedList<>();
         double capSum = 0;
         int count = 0;
+        LOG.info("I am entering write vectors method:" + size + "\t" + currentPoints.entrySet());
         for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<Integer, VectorPoint> entry = it.next();
             VectorPoint v = entry.getValue();
@@ -201,8 +213,11 @@ public class DataPreprocessingComputeTask extends BaseCompute {
                 if (sv != null) {
                     capSum += v.getTotalCap();
                     count++;
-                    context.write(Context.TWISTER2_DIRECT_EDGE, sv);
+                    vectorsPoint.add(sv);
                     // remove it from map
+                    LOG.info("Serialized value:" + sv);
+                    //bufWriter.write(sv);
+                    //bufWriter.newLine();
                     vectorCounter++;
                     metric.writtenStocks++;
                 } else {
@@ -213,15 +228,16 @@ public class DataPreprocessingComputeTask extends BaseCompute {
                 metric.lenghtWrong++;
             }
         }
+        //context.write(Context.TWISTER2_DIRECT_EDGE, vectorsPoint);
         return capSum;
     }
 
-    private void remove(int startindex, int endindex) {
+   /* private void remove(int startindex, int endindex) {
         LOG.info("start index:" + startindex + "\t" + endindex);
         for (int i = 0; i < endindex - startindex; i++) {
             recordList.remove(startindex);
         }
-    }
+    }*/
 
     private boolean isDateWithing(Date start, Date end, Date compare) {
         if (compare == null) {
@@ -255,105 +271,12 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             if (max == null || e.getValue() > max.getValue())
                 max = e;
         }
+        LOG.info("max key is:" + max.getKey());
         return max.getKey();
-    }
-
-    private void writeData(List<Record> windowRecordList) {
-        context.write(edgeName, windowRecordList);
     }
 
     @Override
     public void prepare(Config cfg, TaskContext context) {
         super.prepare(cfg, context);
     }
-
-//    private Map<String, Map<Date, Integer>> findDates(String inFile) {
-//
-//        FileReader input = null;
-//        Map<String, Map<Date, Integer>> outDates = new HashMap<>();
-//        Map<String, Set<Date>> tempDates = new HashMap<>();
-//
-//        for (String dateRange : this.dates.keySet()) {
-//            tempDates.put(dateRange, new TreeSet<Date>());
-//        }
-//
-//        try {
-//            input = new FileReader(inFile);
-//            BufferedReader bufRead = new BufferedReader(input);
-//            Record record;
-//            while ((record = Utils.parseFile(bufRead, null, false)) != null) {
-//                for (Map.Entry<String, List<Date>> ed : this.dates.entrySet()) {
-//                    Date start = ed.getValue().get(0);
-//                    Date end = ed.getValue().get(1);
-//                    if (isDateWithing(start, end, record.getDate())) {
-//                        Set<Date> tempDateList = tempDates.get(ed.getKey());
-//                        tempDateList.add(record.getDate());
-//                    }
-//                }
-//            }
-//
-//            for (Map.Entry<String, Set<Date>> ed : tempDates.entrySet()) {
-//                Set<Date> datesSet = ed.getValue();
-//                int i = 0;
-//                Map<Date, Integer> dateIntegerMap = new HashMap<Date, Integer>();
-//                for (Date d : datesSet) {
-//                    dateIntegerMap.put(d, i);
-//                    i++;
-//                }
-//                System.out.println("%%%% Key and date integer map size:" + ed.getKey() + "\t" + dateIntegerMap.size());
-//                outDates.put(ed.getKey(), dateIntegerMap);
-//            }
-//        } catch (FileNotFoundException e) {
-//            if (input != null) {
-//                try {
-//                    input.close();
-//                } catch (IOException ignore) {
-//                }
-//            }
-//        }
-//
-//        for (Map.Entry<String, Set<Date>> ed : tempDates.entrySet()) {
-//            StringBuilder sb = new StringBuilder();
-//            for (Date d : ed.getValue()) {
-//                sb.append(Utils.formatter.format(d)).append(" ");
-//            }
-//            System.out.println(ed.getKey() + ":"  + sb.toString());
-//        }
-//        return outDates;
-//    }
-//
-//
-//    private boolean isDateWithing(Date start, Date end, Date compare) {
-//        if (compare == null) {
-//            System.out.println("Comapre null*****************");
-//        }
-//        return (compare.equals(start) || compare.after(start)) && compare.before(end);
-//    }
-
-    //    private List<String> vectorPoints;
-
-//    public DataPreprocessingComputeTask(String vectordirectory, String distancedirectory,
-//                                        int distancetype, String edgename) {
-//        this.vectorDirectory = vectordirectory;
-//        this.distanceDirectory = distancedirectory;
-//        this.distanceType = distancetype;
-//        this.edgeName = edgename;
-//    }
-//
-//    @Override
-//    public boolean execute(IMessage message) {
-//        if (message.getContent() != null) {
-//            LOG.fine("message content:" + message.getContent());
-//            vectorPoints = new ArrayList<>();
-//            if (message.getContent() != null) {
-//                vectorPoints.add(String.valueOf(message.getContent()));
-//            }
-//        }
-//
-//        if (vectorPoints != null) {
-//            context.write(edgeName, vectorPoints);
-//        }
-//        return true;
-//    }
-
 }

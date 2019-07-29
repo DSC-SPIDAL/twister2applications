@@ -2,6 +2,7 @@ package edu.iu.dsc.tws.apps.stockanalysis;
 
 import edu.iu.dsc.tws.api.task.IMessage;
 import edu.iu.dsc.tws.api.task.nodes.BaseCompute;
+import edu.iu.dsc.tws.apps.stockanalysis.utils.Record;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.Utils;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.VectorPoint;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.WriterWrapper;
@@ -10,10 +11,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
@@ -31,9 +29,9 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
     private int distanceType;
     private static int INC = 7000;
 
-    private List<Map<Integer, VectorPoint>> vectors;
+    private Map<Integer, VectorPoint> currentPoints = new HashMap<>();
     private List<Map<Integer, VectorPoint>> values;
-    //private List<String> vectorPoints;
+    private List<String> vectorsPoint = new LinkedList<>();
 
     public DistanceCalculatorComputeTask(String vectorfolder, String distfolder, int distancetype, String edgename) {
         this.vectorFolder = vectorfolder;
@@ -44,13 +42,14 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
 
     @Override
     public boolean execute(IMessage content) {
-        List<String> vectorPoints = (List<String>) content.getContent();
-        LOG.fine("Vector points size in distance calculator:" + vectorPoints.size());
-        LOG.fine("vector folder and distance folder:" + vectorFolder + "\t" + distFolder);
+        List<Record> recordList = (List<Record>) content.getContent();
+        LOG.info("Vector points size in distance calculator:" + recordList.size());
         //process();
-        context.write(edgeName, vectorPoints);
+        context.write(edgeName, "hello");
         return true;
     }
+
+    private int vectorCounter;
 
 
     private class Worker implements Runnable {
