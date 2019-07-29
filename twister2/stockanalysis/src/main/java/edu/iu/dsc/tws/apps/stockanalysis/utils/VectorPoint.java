@@ -24,8 +24,7 @@ import java.util.Random;
 
 
 public class VectorPoint {
-
-    int key;
+  int key;
   double []numbers;
   //double []factorToAjdPrices;
   //double []factorToAjdVolume;

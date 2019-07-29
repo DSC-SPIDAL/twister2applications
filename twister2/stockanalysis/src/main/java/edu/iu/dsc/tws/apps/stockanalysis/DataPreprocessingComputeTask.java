@@ -49,6 +49,8 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         this.endDate = addYear(this.startDate);
     }
 
+    private  Map<Date, Integer> dateIntegerMap;
+
     @Override
     public boolean execute(IMessage message) {
         if (message.getContent() != null) {
@@ -56,16 +58,27 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             if (recordList.isEmpty()) {
                 recordList.add((Record) message.getContent());
             }
-            LOG.info("Before Processing start date:" + startDate + "\t" + "enddate:" + endDate);
+            LOG.fine("Before Processing start date:" + startDate + "\t" + "enddate:" + endDate);
             if (record.getDate().after(startDate) && record.getDate().before(endDate)) {
                 recordList.add((Record) message.getContent());
             } else if (record.getDate().after(endDate)) {
-                LOG.info("%%%%% Record List Size:%%%%%%" + recordList.size());
+                LOG.info("Before Processing Record List Size:" + recordList.size());
                 process(recordList);
+                dateIntegerMap = new LinkedHashMap<>();
+                for (int i = 0; i < recordList.size(); i++) {
+                    if (!dateIntegerMap.containsKey(recordList.get(i).getDate())) {
+                        dateIntegerMap.put(recordList.get(i).getDate(), i);
+                    }
+                }
+                List<Date> slidingList = getSlidingList(dateIntegerMap);
+                removeSlidingList(slidingList);
+                LOG.info("sliding list:" + slidingList.size());
+                LOG.info("Data Map List:" + dateIntegerMap.entrySet().size());
+                LOG.info("Record list size:" + this.recordList.size());
                 ++totalCount;
                 startDate = addDate(startDate, slidingLength);
                 endDate = addDate(endDate, slidingLength);
-                LOG.info("After Processing start date:" + startDate + "\t" + "enddate:" + endDate);
+                LOG.fine("After Processing start date:" + startDate + "\t" + "enddate:" + endDate);
                 // send the list to matrix computation
             }
         }
@@ -73,18 +86,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         return true;
     }
 
-    private boolean process(List<Record> recordList) {
-
-        Map<Date, Integer> dateIntegerMap = new LinkedHashMap<>();
-        List<Record> windowRecordList = new LinkedList<>();
-
-        for (int i = 0; i < recordList.size(); i++) {
-            if (!dateIntegerMap.containsKey(recordList.get(i).getDate())) {
-                dateIntegerMap.put(recordList.get(i).getDate(), i);
-            }
-        }
-        LOG.info("%%% Window Record List:%%%" + recordList.size() + "\t" + dateIntegerMap.size());
-
+    private List<Date> getSlidingList(Map<Date, Integer> dateIntegerMap) {
         List<Date> slidingList = new LinkedList<>();
         for (Map.Entry<Date, Integer> dateIntegerEntry : dateIntegerMap.entrySet()) {
             Date start = dateIntegerEntry.getKey();
@@ -94,20 +96,63 @@ public class DataPreprocessingComputeTask extends BaseCompute {
                 break;
             }
         }
+        return slidingList;
+    }
 
+    private void removeSlidingList(List<Date> slidingList) {
         for (int i = 0; i < slidingList.size(); i++) {
             Date date = slidingList.get(i);
             LOG.info("sliding date:" + i + "\t" + date);
-            for (int j = 0; j < recordList.size(); j++) {
-                if (recordList.get(j).getDate().equals(date)) {
-                    recordList.remove(j);
-                } else {
-                    windowRecordList.add(recordList.get(j));
+            for (int j = 0; j < this.recordList.size(); j++) {
+                if (this.recordList.get(j).getDate().equals(date)) {
+                    this.recordList.remove(j);
                 }
             }
         }
-        LOG.info("window record list:" + windowRecordList.size());
-        //processData(windowRecordList, dateIntegerMap);
+        dateIntegerMap.clear();
+        LOG.info("this record list:" + this.recordList.size());
+    }
+
+    private boolean process(List<Record> recordList) {
+        boolean flag = false;
+        Map<Date, Integer> dateIntegerMap = new LinkedHashMap<>();
+        List<Record> windowRecordList = new LinkedList<>();
+
+//        LOG.info("%%% Window Record List:%%%" + recordList.size());
+//        for (int i = 0; i < recordList.size(); i++) {
+//            if (!dateIntegerMap.containsKey(recordList.get(i).getDate())) {
+//                dateIntegerMap.put(recordList.get(i).getDate(), i);
+//            }
+//        }
+//        LOG.info("%%% Window Record List:%%%" + recordList.size() + "\t" + dateIntegerMap.size());
+
+//        List<Date> slidingList = new LinkedList<>();
+//        for (Map.Entry<Date, Integer> dateIntegerEntry : dateIntegerMap.entrySet()) {
+//            Date start = dateIntegerEntry.getKey();
+//            LOG.info("date list:" + Utils.dateToString(start));
+//            slidingList.add(start);
+//            if (slidingList.size() == slidingLength) {
+//                break;
+//            }
+//        }
+//
+//        LOG.info("Before removing window record list:" + this.recordList.size());
+//        if (flag == false) {
+//            processData(this.recordList, dateIntegerMap);
+//            flag = true;
+//        } else {
+//            for (int i = 0; i < slidingList.size(); i++) {
+//                Date date = slidingList.get(i);
+//                LOG.info("sliding date:" + i + "\t" + date);
+//                for (int j = 0; j < this.recordList.size(); j++) {
+//                    if (this.recordList.get(j).getDate().equals(date)) {
+//                        this.recordList.remove(j);
+//                    }
+//                }
+//            }
+//            flag = true;
+//        }
+//        LOG.info("After removing window record list:" + this.recordList.size());
         return true;
     }
 
