@@ -2,7 +2,6 @@ package edu.iu.dsc.tws.apps.stockanalysis;
 
 import edu.iu.dsc.tws.api.task.IMessage;
 import edu.iu.dsc.tws.api.task.nodes.BaseCompute;
-import edu.iu.dsc.tws.apps.stockanalysis.utils.Record;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.Utils;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.VectorPoint;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.WriterWrapper;
@@ -26,11 +25,10 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
     private String distFolder;
     private String edgeName;
 
-    private int distanceType;
     private static int INC = 7000;
+    private int distanceType;
 
-    private Map<Integer, VectorPoint> currentPoints = new HashMap<>();
-    private List<Map<Integer, VectorPoint>> values;
+    private Map<Integer, VectorPoint> currentPoints = new HashMap();
     private List<String> vectorsPoint = new LinkedList<>();
 
     public DistanceCalculatorComputeTask(String vectorfolder, String distfolder, int distancetype, String edgename) {
@@ -42,15 +40,14 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
 
     @Override
     public boolean execute(IMessage content) {
-        List<Record> recordList = (List<Record>) content.getContent();
-        LOG.info("Vector points size in distance calculator:" + recordList.size());
+        if (content.getContent() != null) {
+            currentPoints = (Map<Integer, VectorPoint>) content.getContent();
+        }
+        LOG.info("Vector points size in distance calculator:" + vectorsPoint.size() + "\t" + vectorsPoint);
         //process();
         context.write(edgeName, "hello");
         return true;
     }
-
-    private int vectorCounter;
-
 
     private class Worker implements Runnable {
         private BlockingQueue<File> queue;
