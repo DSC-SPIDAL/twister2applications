@@ -41,7 +41,7 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
     @Override
     public boolean execute(IMessage content) {
         if (content.getContent() != null) {
-            currentPoints = (Map<Integer, VectorPoint>) content.getContent();
+            vectorsPoint = (List<String>) content.getContent();
         }
         LOG.info("Vector points size in distance calculator:" + vectorsPoint.size() + "\t" + vectorsPoint);
         //process();
