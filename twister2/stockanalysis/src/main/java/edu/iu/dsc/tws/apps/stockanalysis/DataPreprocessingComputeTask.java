@@ -108,7 +108,6 @@ public class DataPreprocessingComputeTask extends BaseCompute {
     }
 
     private void processData(List<Record> recordList, Map<Date, Integer> dateIntegerMap) {
-        getTotalList++;
         int noOfDays = dateIntegerMap.size();
         int size = -1;
         int splitCount = 0;
@@ -128,58 +127,57 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         }
 
         //Vector generation
-        while (true) {
-            for (int i = 0; i < recordList.size(); i++) {
-                Record record = recordList.get(i);
-                count++;
-                int key = record.getSymbol();
-                if (record.getFactorToAdjPrice() > 0) {
-                    splitCount++;
-                }
-                VectorPoint point = currentPoints.get(key);
-                if (point == null) {
-                    point = new VectorPoint(key, noOfDays, true);
-                    currentPoints.put(key, point);
-                }
+        for (int i = 0; i < recordList.size(); i++) {
+            Record record = recordList.get(i);
+            count++;
+            int key = record.getSymbol();
+            if (record.getFactorToAdjPrice() > 0) {
+                splitCount++;
+            }
+            VectorPoint point = currentPoints.get(key);
+            if (point == null) {
+                point = new VectorPoint(key, noOfDays, true);
+                currentPoints.put(key, point);
+            }
 
-                LOG.fine("Received record value is:" + record.getSymbol()
-                        + "\trecord date string:" + record.getDateString()
-                        + "\tand its date:" + record.getDate()
-                        + "\tNumber Of Days:" + noOfDays
-                        + "\tvector:" + point);
+            LOG.fine("Received record value is:" + record.getSymbol()
+                    + "\trecord date string:" + record.getDateString()
+                    + "\tand its date:" + record.getDate()
+                    + "\tNumber Of Days:" + noOfDays
+                    + "\tvector:" + point);
 
-                // figure out the index
-                int index = dateIntegerMap.get(record.getDate());
-                if (!point.add(record.getPrice(), record.getFactorToAdjPrice(), record.getFactorToAdjVolume(), metric, index)) {
-                    metric.dupRecords++;
-                    //LOG.info("dup: " + record.serialize());
-                }
-                point.addCap(record.getVolume() * record.getPrice());
-                if (point.noOfElements() == size) {
-                    fullCount++;
-                }
+            // figure out the index
+            int index = dateIntegerMap.get(record.getDate());
+            if (!point.add(record.getPrice(), record.getFactorToAdjPrice(), record.getFactorToAdjVolume(), metric, index)) {
+                metric.dupRecords++;
+                //LOG.info("dup: " + record.serialize());
+            }
+            point.addCap(record.getVolume() * record.getPrice());
+            if (point.noOfElements() == size) {
+                fullCount++;
+            }
 
-                /*if (currentPoints.size() > 2000 && size == -1) {
+            /*if (currentPoints.size() > 2000 && size == -1) {
                 List<Integer> pointSizes = new ArrayList<>();
                 for (VectorPoint v : currentPoints.values()) {
                     pointSizes.add(v.noOfElements());
                 }
                 size = mostCommon(pointSizes);
-                LOG.info("Number of stocks per period: " + size);}*/
+                LOG.info("Number of stocks per period: " + size);
+            }*/
 
-                // now write the current vectors, also make sure we have the size determined correctly
-                //if (currentPoints.size() > 1000 && size != -1 && fullCount > 750) {
-                LOG.fine("Processed: " + count);
-                totalCap += writeVectors(noOfDays, metric);
-                capCount++;
-                fullCount = 0;
-                //}
-            }
-            LOG.info("Split count: " + " = " + splitCount);
-            LOG.info("Total stocks: " + currentPoints.size());
-            metric.stocksWithIncorrectDays = currentPoints.size();
-            currentPoints.clear();
+            // now write the current vectors, also make sure we have the size determined correctly
+            //if (currentPoints.size() > 1000 && size != -1 && fullCount > 750) {
+            LOG.fine("Processed: " + count);
+            totalCap += writeVectors(noOfDays, metric);
+            capCount++;
+            fullCount = 0;
+            //}
         }
+        LOG.info("Split count: " + " = " + splitCount);
+        LOG.info("Total stocks: " + currentPoints.size());
+        //metric.stocksWithIncorrectDays = currentPoints.size();
+        //currentPoints.clear();
     }
 
     List<String> vectorsPoint = new LinkedList<>();
@@ -187,7 +185,6 @@ public class DataPreprocessingComputeTask extends BaseCompute {
     private double writeVectors(int size, CleanMetric metric) {
         double capSum = 0;
         int count = 0;
-        LOG.info("current points size:" + currentPoints.entrySet().size());
         for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<Integer, VectorPoint> entry = it.next();
             VectorPoint v = entry.getValue();
@@ -226,9 +223,8 @@ public class DataPreprocessingComputeTask extends BaseCompute {
                 metric.lenghtWrong++;
             }*/
         }
-        LOG.info("vectors points size:::::::::::::" + vectorsPoint.size());
         context.write(Context.TWISTER2_DIRECT_EDGE, vectorsPoint);
-        LOG.info("%%%%%%%%%%%%%%%%% Vector Counter Value:" + vectorCounter);
+        LOG.fine("%%%%%%%%%%%%%%%%% Vector Counter Value:" + vectorCounter);
         return capSum;
     }
 
