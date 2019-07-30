@@ -52,33 +52,40 @@ public class DataPreprocessingComputeTask extends BaseCompute {
 
     private Map<Date, Integer> dateIntegerMap;
 
+
+    int counter = 0;
     @Override
     public boolean execute(IMessage message) {
+        Record tempRecord;
         if (message.getContent() != null) {
             Record record = (Record) message.getContent();
-            if (recordList.isEmpty()) {
+//            if (recordList.isEmpty()) {
+//                recordList.add((Record) message.getContent());
+//            }
+            if (record.getDate().compareTo(startDate) >= 0 && record.getDate().before(endDate)) {
                 recordList.add((Record) message.getContent());
-            }
-            if (record.getDate().after(startDate) && record.getDate().before(endDate)) {
-                recordList.add((Record) message.getContent());
+                counter++;
             } else if (record.getDate().after(endDate)) {
+                tempRecord = ((Record) message.getContent());
+                LOG.info("adding counter value:" + counter);
+                counter = 0;
                 int i = 0;
                 LOG.info("Before Processing start date:" + startDate + "\t" + "enddate:" + endDate);
                 LOG.info("%%%%% Before Processing Record List Size:%%%%%%" + recordList.size());
-
-                if (i == 0) {
-                    processRecord(recordList);
-                    ++totalCount;
-                    ++i;
-                } else {
-                    windowrecordList = recordList;
-                    LOG.info("$$$$$$$$$$$$ window reccord list size:" + windowrecordList.size());
-                    addRecord(windowrecordList);
-                    LOG.info("start date:" + startDate + "\tend date:" + endDate);
-                }
-
                 startDate = addDate(startDate, slidingLength);
                 endDate = addDate(endDate, slidingLength);
+                processRecord(recordList);
+                recordList.add(tempRecord);
+                ++totalCount;
+                ++i;
+//                } else {
+//                    windowrecordList = recordList;
+//                    LOG.info("$$$$$$$$$$$$ window reccord list size:" + windowrecordList.size());
+//                    addRecord(windowrecordList);
+//                    LOG.info("start date:" + startDate + "\tend date:" + endDate);
+//                }
+
+
                 LOG.fine("After Processing start date:" + startDate + "\t" + "enddate:" + endDate);
                 LOG.fine("%%%%% After Processing Record List Size:%%%%%%" + recordList.size());
                 // send the list to matrix computation
@@ -89,18 +96,55 @@ public class DataPreprocessingComputeTask extends BaseCompute {
     }
 
     private Map<Date, Integer> processRecord(List<Record> recordList) {
-        LOG.info("Record List Size:" + recordList.size());
+        //LOG.info("Record List Size:" + recordList.size());
         dateIntegerMap = new LinkedHashMap<>();
         for (int i = 0; i < recordList.size(); i++) {
             if (!dateIntegerMap.containsKey(recordList.get(i).getDate())) {
                 dateIntegerMap.put(recordList.get(i).getDate(), i);
             }
         }
-        LOG.info("Date Map List Size:" + dateIntegerMap.entrySet().size());
+        //LOG.info("Date Map List Size:" + dateIntegerMap.entrySet().size());
         List<Date> slidingList = getSlidingList(dateIntegerMap);
         removeSlidingList(slidingList);
         process(recordList);
         return dateIntegerMap;
+    }
+
+    private List<Date> getSlidingList(Map<Date, Integer> dateIntegerMap) {
+        List<Date> slidingList = new LinkedList<>();
+        for (Map.Entry<Date, Integer> dateIntegerEntry : dateIntegerMap.entrySet()) {
+            Date start = dateIntegerEntry.getKey();
+            slidingList.add(start);
+            if (slidingList.size() == slidingLength) {
+                break;
+            }
+        }
+        return slidingList;
+    }
+
+
+    private void removeSlidingList(List<Date> slidingList) {
+        int count = 0;
+        while (true) {
+            //Date date = slidingList.get(i);
+            //LOG.info("sliding date:" + i + "\t" + date);
+            if (this.recordList.get(0).getDate().compareTo(startDate) < 0) {
+                this.recordList.remove(0);
+                count++;
+            } else {
+                break;
+            }
+
+            /*for (int j = 0; j < this.recordList.size(); j++) {
+                if (this.recordList.get(j).getDate().equals(date)) {
+                    //LOG.info("date and record list date:" + date + "\t" + this.recordList.get(j).getDate());
+                    this.recordList.remove(j);
+                    count++;
+                }
+            }*/
+        }
+        LOG.info("count of records removed:" + count);
+        //dateIntegerMap.clear();
     }
 
     private Map<Date, Integer> addRecord(List<Record> recordList) {
@@ -117,32 +161,6 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         return dateIntegerMap;
     }
 
-    private void removeSlidingList(List<Date> slidingList) {
-        for (int i = 0; i < slidingList.size(); i++) {
-            Date date = slidingList.get(i);
-            //LOG.info("sliding date:" + i + "\t" + date);
-            for (int j = 0; j < this.recordList.size(); j++) {
-                if (this.recordList.get(j).getDate().equals(date)) {
-                    //LOG.info("date and record list date:" + date + "\t" + this.recordList.get(j).getDate());
-                    this.recordList.remove(j);
-                }
-            }
-        }
-        //dateIntegerMap.clear();
-    }
-
-
-    private List<Date> getSlidingList(Map<Date, Integer> dateIntegerMap) {
-        List<Date> slidingList = new LinkedList<>();
-        for (Map.Entry<Date, Integer> dateIntegerEntry : dateIntegerMap.entrySet()) {
-            Date start = dateIntegerEntry.getKey();
-            slidingList.add(start);
-            if (slidingList.size() == slidingLength) {
-                break;
-            }
-        }
-        return slidingList;
-    }
 
     private void addSlidingList(List<Date> slidingList) {
         for (int i = 0; i < slidingList.size(); i++) {
@@ -194,7 +212,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             }
         }
         LOG.info("window record list:" + windowRecordList.size());*/
-        //processData(windowRecordList, dateIntegerMap);
+        processData(recordList, dateIntegerMap);
         return true;
     }
 
