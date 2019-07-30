@@ -28,8 +28,9 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
     private static int INC = 7000;
     private int distanceType;
 
+    private List<String> vectorsPoint;
     private Map<Integer, VectorPoint> currentPoints = new HashMap();
-    private List<String> vectorsPoint = new LinkedList<>();
+    private Map<Integer, String> vectorsMap = new LinkedHashMap<>();
 
     public DistanceCalculatorComputeTask(String vectorfolder, String distfolder, int distancetype, String edgename) {
         this.vectorFolder = vectorfolder;
@@ -41,9 +42,14 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
     @Override
     public boolean execute(IMessage content) {
         if (content.getContent() != null) {
-            vectorsPoint = (List<String>) content.getContent();
+            vectorsMap  = (Map<Integer, String>) content.getContent();
         }
-        LOG.info("Vector points size in distance calculator:" + vectorsPoint.size() + "\t" + vectorsPoint);
+        LOG.info("Vector points size in distance calculator:" + vectorsMap.size());
+        for (Iterator<Map.Entry<Integer, String>> it = vectorsMap.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<Integer, String> entry = it.next();
+            LOG.info("Index:" + entry.getKey() + "\t" + entry.getValue());
+        }
+
         //process();
         context.write(edgeName, "hello");
         return true;

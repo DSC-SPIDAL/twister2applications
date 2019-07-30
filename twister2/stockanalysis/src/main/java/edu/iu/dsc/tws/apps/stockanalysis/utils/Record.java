@@ -1,9 +1,8 @@
 package edu.iu.dsc.tws.apps.stockanalysis.utils;
 
-import java.io.Serializable;
 import java.util.Date;
 
-public class Record implements Serializable {
+public class Record {
     private double price;
     private int symbol;
     private Date date;

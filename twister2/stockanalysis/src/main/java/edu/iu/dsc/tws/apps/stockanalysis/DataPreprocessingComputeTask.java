@@ -1,7 +1,6 @@
 package edu.iu.dsc.tws.apps.stockanalysis;
 
 import edu.iu.dsc.tws.api.config.Config;
-import edu.iu.dsc.tws.api.config.Context;
 import edu.iu.dsc.tws.api.task.IMessage;
 import edu.iu.dsc.tws.api.task.TaskContext;
 import edu.iu.dsc.tws.api.task.nodes.BaseCompute;
@@ -32,7 +31,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
     private int index = 0;
     private int vectorCounter = 0;
 
-    private int getTotalList = 0;
+    private int getTotalList = 1;
 
     private Map<String, CleanMetric> metrics = new HashMap();
     private List<Record> recordList = new ArrayList<>();
@@ -56,12 +55,15 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         Record tempRecord;
         if (message.getContent() != null) {
             Record record = (Record) message.getContent();
+            counter++;
             if (record.getDate().compareTo(startDate) > 0 && record.getDate().before(endDate)) {
+            //if ((record.getDate().equals(startDate) || record.getDate().after(startDate))
+            //        && record.getDate().before(endDate)) {
                 recordList.add((Record) message.getContent());
-                counter++;
+                //counter++;
             } else if (record.getDate().after(endDate)) {
                 tempRecord = ((Record) message.getContent());
-                counter = 0;
+                //counter = 0;
                 LOG.info("Before Processing start date:" + startDate + "\t" + "enddate:" + endDate);
                 LOG.info("%%%%% Before Processing Record List Size:%%%%%%" + recordList.size());
                 startDate = addDate(startDate, slidingLength);
@@ -69,7 +71,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
                 processRecord(recordList);
                 LOG.info("After Processing start date:" + startDate + "\t" + "enddate:" + endDate);
                 LOG.info("%%%%% After Processing Record List Size:%%%%%%" + recordList.size());
-                recordList.add(tempRecord);
+                //recordList.add(tempRecord);
                 // send the list to matrix computation
             }
         }
@@ -77,16 +79,18 @@ public class DataPreprocessingComputeTask extends BaseCompute {
     }
 
     private boolean processRecord(List<Record> recordList) {
-        process(recordList);
-        removeSlidingList();
+        boolean process = process(recordList);
+        if (process) {
+            removeSlidingList();
+        }
         return true;
     }
 
     private void removeSlidingList() {
         int count = 0;
         while (true) {
-            if (this.recordList.get(0).getDate().compareTo(startDate) < 0) {
-                this.recordList.remove(0);
+            if (recordList.get(0).getDate().compareTo(startDate) < 0) {
+                recordList.remove(0);
                 count++;
             } else {
                 break;
@@ -108,6 +112,8 @@ public class DataPreprocessingComputeTask extends BaseCompute {
     }
 
     private void processData(List<Record> recordList, Map<Date, Integer> dateIntegerMap) {
+        LOG.info("I am processing " + getTotalList + "window data segements");
+        this.getTotalList++;
         int noOfDays = dateIntegerMap.size();
         int size = -1;
         int splitCount = 0;
@@ -127,8 +133,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         }
 
         //Vector generation
-        for (int i = 0; i < recordList.size(); i++) {
-            Record record = recordList.get(i);
+        for (Record record : recordList) {
             count++;
             int key = record.getSymbol();
             if (record.getFactorToAdjPrice() > 0) {
@@ -150,21 +155,12 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             int index = dateIntegerMap.get(record.getDate());
             if (!point.add(record.getPrice(), record.getFactorToAdjPrice(), record.getFactorToAdjVolume(), metric, index)) {
                 metric.dupRecords++;
-                //LOG.info("dup: " + record.serialize());
+                //LOG.fine("dup: " + record.serialize());
             }
             point.addCap(record.getVolume() * record.getPrice());
             if (point.noOfElements() == size) {
                 fullCount++;
             }
-
-            /*if (currentPoints.size() > 2000 && size == -1) {
-                List<Integer> pointSizes = new ArrayList<>();
-                for (VectorPoint v : currentPoints.values()) {
-                    pointSizes.add(v.noOfElements());
-                }
-                size = mostCommon(pointSizes);
-                LOG.info("Number of stocks per period: " + size);
-            }*/
 
             // now write the current vectors, also make sure we have the size determined correctly
             //if (currentPoints.size() > 1000 && size != -1 && fullCount > 750) {
@@ -180,7 +176,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         //currentPoints.clear();
     }
 
-    List<String> vectorsPoint = new LinkedList<>();
+    private Map<Integer, String> vectorsMap = new LinkedHashMap<>();
 
     private double writeVectors(int size, CleanMetric metric) {
         double capSum = 0;
@@ -188,11 +184,9 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<Integer, VectorPoint> entry = it.next();
             VectorPoint v = entry.getValue();
-
-            //newly added for testing
             String sv = v.serialize();
-            vectorsPoint.add(sv);
             vectorCounter++;
+            vectorsMap.put(getTotalList, sv);
 
             /*if (v.noOfElements() == size) {
                 metric.totalStocks++;
@@ -222,9 +216,8 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             } else {
                 metric.lenghtWrong++;
             }*/
+            count++;
         }
-        context.write(Context.TWISTER2_DIRECT_EDGE, vectorsPoint);
-        LOG.fine("%%%%%%%%%%%%%%%%% Vector Counter Value:" + vectorCounter);
         return capSum;
     }
 
