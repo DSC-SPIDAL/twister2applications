@@ -119,7 +119,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
     }
 
     private void processData(List<Record> recordList, Map<Date, Integer> dateIntegerMap) {
-        LOG.info("I am processing " + getTotalList + "window data segements");
+        LOG.info("Processing " + getTotalList + "\twindow data segements");
         this.getTotalList++;
         //int noOfDays = dateIntegerMap.size();
         int noOfDays = recordList.size();
