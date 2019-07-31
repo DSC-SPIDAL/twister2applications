@@ -1,6 +1,7 @@
 package edu.iu.dsc.tws.apps.stockanalysis;
 
 import edu.iu.dsc.tws.api.config.Config;
+import edu.iu.dsc.tws.api.config.Context;
 import edu.iu.dsc.tws.api.task.IMessage;
 import edu.iu.dsc.tws.api.task.TaskContext;
 import edu.iu.dsc.tws.api.task.nodes.BaseCompute;
@@ -218,6 +219,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             }*/
             count++;
         }
+        context.write(Context.TWISTER2_DIRECT_EDGE, vectorsMap);
         return capSum;
     }
 
