@@ -30,7 +30,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
     private int totalCount = 0;
     private int counter = 0;
     private int index = 0;
-    private int vectorCounter = 0;
+    private int vectorCounter;
 
     private int getTotalList = 1;
 
@@ -57,9 +57,9 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         if (message.getContent() != null) {
             Record record = (Record) message.getContent();
             counter++;
-            if (record.getDate().compareTo(startDate) > 0 && record.getDate().before(endDate)) {
-            //if ((record.getDate().equals(startDate) || record.getDate().after(startDate))
-            //        && record.getDate().before(endDate)) {
+            //if (record.getDate().compareTo(startDate) > 0 && record.getDate().before(endDate)) {
+            if ((record.getDate().equals(startDate) || record.getDate().after(startDate))
+                    && record.getDate().before(endDate)) {
                 recordList.add((Record) message.getContent());
                 //counter++;
             } else if (record.getDate().after(endDate)) {
@@ -122,6 +122,8 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         int fullCount = 0;
         int capCount = 0;
         double totalCap = 0;
+
+        vectorCounter = 0;
 
         Map.Entry<Date, Integer> entry = dateIntegerMap.entrySet().iterator().next();
         Date date = entry.getKey();
@@ -219,6 +221,8 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             }*/
             count++;
         }
+        LOG.info("vectors map size:" + vectorsMap.size());
+        LOG.fine("%%% Vector Counter value:%%%" + vectorCounter);
         context.write(Context.TWISTER2_DIRECT_EDGE, vectorsMap);
         return capSum;
     }
