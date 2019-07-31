@@ -44,7 +44,7 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
         if (content.getContent() != null) {
             vectorsMap  = (Map<Integer, String>) content.getContent();
         }
-        LOG.info("Vector points size in distance calculator:" + vectorsMap.size());
+        LOG.fine("Vector points size in distance calculator:" + vectorsMap.size());
         //process();
         //context.write(edgeName, "hello");
         return true;

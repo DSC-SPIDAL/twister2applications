@@ -84,7 +84,17 @@ public class StockAnalysisWorker extends TaskWorker {
             windowLength = windowParameters.getWindowLength();
             slidingLength = windowParameters.getSlidingLength();
         }
+
         LOG.info("Distance Matrix Directory:" + distanceMatrixDirectory + "\t" + vectorDirectory);
+//        try {
+//            FileSorter fileSorter = new FileSorter(datainputFile);
+//            fileSorter.sort();
+//            Thread.sleep(100000);
+//        } catch (IOException e) {
+//            throw new RuntimeException(e.getMessage());
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e.getMessage());
+//        }
 
         //Sequential Vector Generation
         long startTime = System.currentTimeMillis();

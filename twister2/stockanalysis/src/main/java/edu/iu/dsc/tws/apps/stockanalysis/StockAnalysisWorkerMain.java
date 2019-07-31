@@ -132,7 +132,7 @@ public class StockAnalysisWorkerMain {
     Twister2Job.Twister2JobBuilder jobBuilder = Twister2Job.newBuilder();
     jobBuilder.setJobName("StockAnalysisJob");
     jobBuilder.setWorkerClass(StockAnalysisWorker.class.getName());
-    jobBuilder.addComputeResource(2, 4096, 1.0, workers);
+    jobBuilder.addComputeResource(2, 8196, 1.0, workers);
     jobBuilder.setConfig(jobConfig);
 
     // now submit the job
