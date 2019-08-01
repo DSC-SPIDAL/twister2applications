@@ -56,14 +56,9 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         Record tempRecord;
         if (message.getContent() != null) {
             Record record = (Record) message.getContent();
-
-            /*if (recordList.isEmpty()) {
-                recordList.add((Record) message.getContent());
-            }*/
-
-            if (record.getDate().compareTo(startDate) > 0 && record.getDate().before(endDate)) {
-            //if (record.getDate().equals(startDate) || record.getDate().after(startDate)
-            //        && record.getDate().before(endDate)) {
+            //if (record.getDate().compareTo(startDate) > 0 && record.getDate().before(endDate)) {
+            if (record.getDate().equals(startDate) || record.getDate().after(startDate)
+                        && record.getDate().before(endDate)) {
                 recordList.add((Record) message.getContent());
                 counter++;
             } else if (record.getDate().after(endDate)) {
@@ -108,12 +103,13 @@ public class DataPreprocessingComputeTask extends BaseCompute {
 
     private boolean process(List<Record> recordList) {
         Map<Date, Integer> dateIntegerMap = new LinkedHashMap<>();
+        int index = 0;
         for (int i = 0; i < recordList.size(); i++) {
-            //if (!dateIntegerMap.containsKey(recordList.get(i).getDate())) {
-                dateIntegerMap.put(recordList.get(i).getDate(), i);
-            //}
+            if (!dateIntegerMap.containsKey(recordList.get(i).getDate())) {
+                dateIntegerMap.put(recordList.get(i).getDate(), index);
+            }
         }
-        LOG.fine("Date IntegerMap Size:" + dateIntegerMap.entrySet().size());
+        LOG.info("Date IntegerMap Size:" + dateIntegerMap.entrySet().size());
         processData(recordList, dateIntegerMap);
         return true;
     }
@@ -121,8 +117,9 @@ public class DataPreprocessingComputeTask extends BaseCompute {
     private void processData(List<Record> recordList, Map<Date, Integer> dateIntegerMap) {
         LOG.info("Processing " + getTotalList + "\twindow data segements");
         this.getTotalList++;
-        //int noOfDays = dateIntegerMap.size();
-        int noOfDays = recordList.size();
+        int noOfDays = dateIntegerMap.size();
+        LOG.info("number of days:" + noOfDays);
+        //int noOfDays = recordList.size();
         int size = -1;
         int splitCount = 0;
         int count = 0;
@@ -172,14 +169,14 @@ public class DataPreprocessingComputeTask extends BaseCompute {
                 fullCount++;
             }
 
-//            if (currentPoints.size() > 2000 && size == -1) {
-//                List<Integer> pointSizes = new ArrayList<Integer>();
-//                for (VectorPoint v : currentPoints.values()) {
-//                    pointSizes.add(v.noOfElements());
-//                }
-//                size = mostCommon(pointSizes);
-//                LOG.info("Number of stocks per period: " + size);
-//            }
+            if (currentPoints.size() > 2000 && size == -1) {
+                List<Integer> pointSizes = new ArrayList<Integer>();
+                for (VectorPoint v : currentPoints.values()) {
+                    pointSizes.add(v.noOfElements());
+                }
+                size = mostCommon(pointSizes);
+                LOG.info("Number of stocks per period: " + size);
+            }
 
             // now write the current vectors, also make sure we have the size determined correctly
             //if (currentPoints.size() > 1000 && size != -1 && fullCount > 750) {
@@ -189,14 +186,14 @@ public class DataPreprocessingComputeTask extends BaseCompute {
                 fullCount = 0;
             //}
         }
-        totalCap += writeVectors(size, metric);
-        capCount++;
+        //totalCap += writeVectors(size, metric);
+        //capCount++;
 
         LOG.info("Vector Counter Value:" + vectorCounter);
         LOG.info("Split count: " + " = " + splitCount);
         LOG.info("Total stocks: " + currentPoints.size());
         metric.stocksWithIncorrectDays = currentPoints.size();
-        currentPoints.clear();
+        //currentPoints.clear();
     }
 
     Map<Integer, String> vectorsMap = new LinkedHashMap<>();
@@ -204,17 +201,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
     private double writeVectors(int size, CleanMetric metric) {
         double capSum = 0;
         int count = 0;
-//        for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
-//            Map.Entry<Integer, VectorPoint> entry = it.next();
-//            VectorPoint v = entry.getValue();
-//            String sv = v.serialize();
-//            //vectorCounter++;
-//            if (sv != null) {
-//                vectorsMap.put(getTotalList, sv);
-//            }
-//            count++;
-//        }
-        for(Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
+        for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<Integer, VectorPoint> entry = it.next();
             VectorPoint v = entry.getValue();
             if (v.noOfElements() == size) {
