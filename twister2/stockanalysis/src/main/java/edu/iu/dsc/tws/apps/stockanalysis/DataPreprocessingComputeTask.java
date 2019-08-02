@@ -82,7 +82,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
 
     private boolean processRecord(List<Record> recordList) {
         boolean flag = process(recordList);
-        if (flag) {
+        if(flag) {
             removeSlidingList();
         }
         return true;
@@ -92,6 +92,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         int count = 0;
         while (true) {
             if (recordList.get(0).getDate().compareTo(startDate) < 0) {
+                //LOG.info("record list getting removed:" + recordList.get(0).getDate());
                 recordList.remove(0);
                 count++;
             } else {
@@ -107,6 +108,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         for (int i = 0; i < recordList.size(); i++) {
             if (!dateIntegerMap.containsKey(recordList.get(i).getDate())) {
                 dateIntegerMap.put(recordList.get(i).getDate(), index);
+                index++;
             }
         }
         LOG.info("Date IntegerMap Size:" + dateIntegerMap.entrySet().size());
@@ -160,6 +162,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
 
             // figure out the index
             int index = dateIntegerMap.get(record.getDate());
+            LOG.info("Index value is::::::" + index);
             if (!point.add(record.getPrice(), record.getFactorToAdjPrice(), record.getFactorToAdjVolume(), metric, index)) {
                 metric.dupRecords++;
                 LOG.info("dup: " + record.serialize());
@@ -181,7 +184,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
 
             // now write the current vectors, also make sure we have the size determined correctly
             //if (currentPoints.size() > 1000 && size != -1 && fullCount > 750) {
-            LOG.fine("Processed: " + count);
+            LOG.info("Processed: " + count);
             totalCap += writeVectors(noOfDays, metric);
             capCount++;
             fullCount = 0;
