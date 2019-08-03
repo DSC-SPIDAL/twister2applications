@@ -42,11 +42,12 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
     @Override
     public boolean execute(IMessage content) {
         if (content.getContent() != null) {
-            vectorsMap  = (Map<Integer, String>) content.getContent();
+            //vectorsMap  = (Map<Integer, String>) content.getContent();
+            currentPoints = (Map<Integer, VectorPoint>) content.getContent();
         }
-        LOG.fine("Vector points size in distance calculator:" + vectorsMap.size());
+        LOG.info("Vector points size in distance calculator:" + currentPoints.size());
         //process();
-        //context.write(edgeName, "hello");
+        context.write(edgeName, "hello");
         return true;
     }
 
