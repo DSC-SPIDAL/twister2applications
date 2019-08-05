@@ -82,7 +82,9 @@ public class DataPreprocessingComputeTask extends BaseCompute {
 
     private boolean processRecord(List<Record> recordList) {
         boolean flag = process(recordList);
-        if(flag) {
+        if (flag) {
+            LOG.info("I am writing the current points:" + currentPoints.size());
+            context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
             removeSlidingList();
         }
         return true;
@@ -157,10 +159,9 @@ public class DataPreprocessingComputeTask extends BaseCompute {
 
             // figure out the index
             int index = dateIntegerMap.get(record.getDate());
-            //LOG.info("Index value is::::::" + index);
             if (!point.add(record.getPrice(), record.getFactorToAdjPrice(), record.getFactorToAdjVolume(), metric, index)) {
                 metric.dupRecords++;
-                LOG.info("dup: " + record.serialize());
+                //LOG.info("dup: " + record.serialize());
             }
             point.addCap(record.getVolume() * record.getPrice());
 
@@ -168,18 +169,17 @@ public class DataPreprocessingComputeTask extends BaseCompute {
                 fullCount++;
             }
 
-            if (currentPoints.size() > 2000 && size == -1) {
+            /*if (currentPoints.size() > 2000 && size == -1) {
                 List<Integer> pointSizes = new ArrayList<Integer>();
                 for (VectorPoint v : currentPoints.values()) {
                     pointSizes.add(v.noOfElements());
                 }
                 size = mostCommon(pointSizes);
                 LOG.info("Number of stocks per period: " + size);
-            }
-
+            }*/
             // now write the current vectors, also make sure we have the size determined correctly
             //if (currentPoints.size() > 1000 && size != -1 && fullCount > 750) {
-            LOG.info("Processed: " + count);
+            //LOG.info("Processed: " + count);
             //totalCap += writeVectors(noOfDays, metric);
             capCount++;
             fullCount = 0;
@@ -190,9 +190,8 @@ public class DataPreprocessingComputeTask extends BaseCompute {
         LOG.info("Vector Counter Value:" + vectorCounter);
         LOG.info("Split count: " + " = " + splitCount);
         LOG.info("Total stock size: " + currentPoints.size());
-        context.write(Context.TWISTER2_DIRECT_EDGE, currentPoints);
-        //metric.stocksWithIncorrectDays = currentPoints.size();
-        currentPoints.clear();
+        metric.stocksWithIncorrectDays = currentPoints.size();
+        //currentPoints.clear();
     }
 
     Map<Integer, String> vectorsMap = new LinkedHashMap<>();
