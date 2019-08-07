@@ -1,15 +1,17 @@
 package edu.iu.dsc.tws.apps.stockanalysis;
 
+import edu.iu.dsc.tws.api.data.FSDataOutputStream;
+import edu.iu.dsc.tws.api.data.FileSystem;
+import edu.iu.dsc.tws.api.data.Path;
 import edu.iu.dsc.tws.api.task.IMessage;
 import edu.iu.dsc.tws.api.task.nodes.BaseCompute;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.Utils;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.VectorPoint;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.WriterWrapper;
+import edu.iu.dsc.tws.data.utils.FileSystemUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -41,17 +43,50 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
 
     @Override
     public boolean execute(IMessage content) {
+        LOG.info("Message values:" + content);
         if (content.getContent() != null) {
             currentPoints = (Map<Integer, VectorPoint>) content.getContent();
         }
         LOG.info("Vector points size in distance calculator:" + currentPoints.size());
 
         if (currentPoints.size() > 0) {
+            //removeUnwantedVectorPoints();
+            //currentPoints.clear();
             processVectors(currentPoints);
         }
         //process();
         //context.write(edgeName, "hello");
         return true;
+    }
+
+    private Map<Integer, VectorPoint> properCurrentPoints = new HashMap();
+
+    //For testing write into file
+    private void removeUnwantedVectorPoints() {
+
+        String directory = "/tmp/vectorfile";
+        FSDataOutputStream outputStream;
+        try {
+            FileSystem fs = FileSystemUtils.get(new Path(directory), config);
+            outputStream = fs.create(new Path(directory, generateRandom(10) + ".csv"));
+            for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
+                Map.Entry<Integer, VectorPoint> entry = it.next();
+                VectorPoint v = entry.getValue();
+                String sv = v.serialize();
+                PrintWriter pw = new PrintWriter(outputStream);
+                pw.print(sv);
+                outputStream.sync();
+                pw.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static String generateRandom(int length) {
+        boolean useLetters = true;
+        boolean useNumbers = false;
+        return RandomStringUtils.random(length, useLetters, useNumbers);
     }
 
     private void processVectors(Map<Integer, VectorPoint> currentPoints) {
