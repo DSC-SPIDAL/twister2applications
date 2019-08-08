@@ -123,12 +123,12 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
         int readEndIndex = INC - 1;
 
         vectors = readVectors(currentPoints, startIndex, endIndex);
-        LOG.info("Reading Vector Size:" + vectors.size());
+        //LOG.info("Reading Vector Size:" + vectors.size());
 
         // now start from the beginning and go through the whole file
         List<VectorPoint> secondVectors = vectors;
-        LOG.info("Reading second block: " + readStartIndex + " : " + readEndIndex
-                + " read size: " + secondVectors.size());
+        //LOG.info("Reading second block: " + readStartIndex + " : " + readEndIndex
+        //        + " read size: " + secondVectors.size());
         for (int i = 0; i < secondVectors.size(); i++) {
             VectorPoint sv = secondVectors.get(i);
             double v = VectorPoint.vectorLength(1, sv);
@@ -181,7 +181,7 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
                     throw new RuntimeException("Invalid distance");
                 }
                 short shortValue = (short) (doubleValue * Short.MAX_VALUE);
-                LOG.info("short value:" + shortValue);
+                //LOG.info("short value:" + shortValue);
             }
 
         }

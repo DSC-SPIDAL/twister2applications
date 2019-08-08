@@ -147,7 +147,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             }
             VectorPoint point = currentPoints.get(key);
             if (point == null) {
-                point = new VectorPoint(key, noOfDays, false);
+                point = new VectorPoint(key, noOfDays, true);
                 currentPoints.put(key, point);
             }
 
@@ -160,7 +160,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             int index = dateIntegerMap.get(record.getDate());
             if (!point.add(record.getPrice(), record.getFactorToAdjPrice(), record.getFactorToAdjVolume(), metric, index)) {
                 metric.dupRecords++;
-                LOG.info("dup: " + record.serialize());
+                //LOG.info("dup: " + record.serialize());
             }
 
             if (currentPoints.size() > 2000 && size == -1) {
