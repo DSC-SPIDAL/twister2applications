@@ -66,6 +66,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
                 counter = 0;
                 LOG.info("Before Processing start date:" + startDate + "\t" + "enddate:" + endDate);
                 LOG.info("%%%%% Before Processing Record List Size:%%%%%%" + recordList.size());
+                LOG.info("%%%%% Edge:%%%%%%" + edgeName);
                 processRecord(recordList);
                 startDate = addDate(startDate, slidingLength);
                 endDate = addDate(endDate, slidingLength);
@@ -178,15 +179,8 @@ public class DataPreprocessingComputeTask extends BaseCompute {
                 capCount++;
                 fullCount = 0;
             }
-            context.write(edgeName, currentPoints);
         }
-
-        /*for (Iterator<Map.Entry<Integer, VectorPoint>> it = currentPoints.entrySet().iterator(); it.hasNext(); ) {
-            Map.Entry<Integer, VectorPoint> entry = it.next();
-            VectorPoint v = entry.getValue();
-            String sv = v.serialize();
-            LOG.info("Serialized Vector Points:" + sv);
-        }*/
+        context.write(edgeName, currentPoints);
         LOG.info("Vector Counter Value:" + vectorCounter);
         LOG.info("Split count: " + " = " + splitCount);
         LOG.info("Total stock size: " + currentPoints.size());

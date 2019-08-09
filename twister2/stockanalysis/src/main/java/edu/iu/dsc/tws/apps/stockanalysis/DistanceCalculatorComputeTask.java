@@ -6,12 +6,15 @@ import edu.iu.dsc.tws.api.data.Path;
 import edu.iu.dsc.tws.api.task.IMessage;
 import edu.iu.dsc.tws.api.task.nodes.BaseCompute;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.VectorPoint;
+import edu.iu.dsc.tws.apps.stockanalysis.utils.WriterWrapper;
 import edu.iu.dsc.tws.data.utils.FileSystemUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
 public class DistanceCalculatorComputeTask extends BaseCompute {
@@ -24,12 +27,11 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
     private String distFolder;
     private String edgeName;
 
-    private static int INC = 8000;
+    //private static int INC = 8000;
     private int distanceType;
+    private int index = 0;
 
-    private List<String> vectorsPoint;
     private Map<Integer, VectorPoint> currentPoints = new HashMap();
-    private Map<Integer, String> vectorsMap = new LinkedHashMap<>();
 
     public DistanceCalculatorComputeTask(String vectorfolder, String distfolder, int distancetype, String edgename) {
         this.vectorFolder = vectorfolder;
@@ -43,22 +45,78 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
         LOG.info("Message values:" + content);
         if (content.getContent() != null) {
             currentPoints = (Map<Integer, VectorPoint>) content.getContent();
+            ++index;
         }
-        LOG.info("Vector points size in distance calculator:" + currentPoints.size());
+        LOG.info("Vector points size in distance calculator:" + currentPoints.size() + "index value:" + index);
         if (currentPoints.size() > 0) {
-            //removeUnwantedVectorPoints();
-            processVectors(currentPoints);
+            //processVectors(currentPoints, index);
+            process();
         }
-        //context.write(edgeName, "hello");
         return true;
     }
 
-    private void processVectors(Map<Integer, VectorPoint> currentPoints) {
+    private void process() {
+        BlockingQueue<Map> vectorsMap = new LinkedBlockingQueue<>();
+        try {
+            vectorsMap.put(currentPoints);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        List<Thread> threads = new ArrayList<Thread>();
+        // start 4 threads
+        for (int i = 0; i < 1; i++) {
+            Thread t = new Thread(new Worker(vectorsMap));
+            t.start();
+            threads.add(t);
+        }
+
+        for (Thread t : threads) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        System.out.println("Distance calculator finished...");
+    }
+
+    private class Worker implements Runnable {
+        private BlockingQueue<Map> queue;
+
+        private Worker(BlockingQueue<Map> queue) {
+            this.queue = queue;
+        }
+
+        @Override
+        public void run() {
+            while (!queue.isEmpty()) {
+                try {
+                    Map f = queue.take();
+                    processVectors(f, 0);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }
+    }
+
+    private void processVectors(Map<Integer, VectorPoint> currentPoints, int index) {
+        WriterWrapper writer = null;
         int lineCount = currentPoints.size();
 
+//        String outFileName = "/tmp/distancefiles/" + "out" + index;
+//        writer = new WriterWrapper(outFileName, false);
+
         // initialize the double arrays for this block
-        double values[][] = new double[INC][];
-        double cachedValues[][] = new double[INC][];
+        //double values[][] = new double[INC][];
+        //double cachedValues[][] = new double[INC][];
+
+        int INC = lineCount;
+
+        double values[][] = new double[lineCount][];
+        double cachedValues[][] = new double[lineCount][];
         for (int i = 0; i < values.length; i++) {
             values[i] = new double[lineCount];
             cachedValues[i] = new double[lineCount];
@@ -69,6 +127,16 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
                 cachedValues[i][j] = -1;
             }
         }
+
+        //For Testing
+        double doubleVal = 0.0002d;
+        List<Short> distanceMatrix = new LinkedList<>();
+        short shortVal = (short) (doubleVal * Short.MAX_VALUE);
+        for (int i = 0; i < 100; i++) {
+            distanceMatrix.add(shortVal);
+        }
+        context.write(this.edgeName, distanceMatrix);
+
         int[] histogram = new int[100];
         double[] changeHistogram = new double[100];
 
@@ -87,6 +155,7 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
         int readEndIndex = INC - 1;
 
         vectors = readVectors(currentPoints, startIndex, endIndex);
+
         LOG.info("Reading Vector Size:" + vectors.size());
 
         // now start from the beginning and go through the whole file
@@ -125,6 +194,7 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
         readEndIndex = readStartIndex + INC - 1;
         LOG.info("MAX distance is: " + dmax + " MIN Distance is: " + dmin);
 
+
         // write the vectors to file
         for (int i = 0; i < vectors.size(); i++) {
             for (int j = 0; j < values[i].length; j++) {
@@ -143,10 +213,14 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
                     throw new RuntimeException("Invalid distance");
                 }
                 short shortValue = (short) (doubleValue * Short.MAX_VALUE);
-                //LOG.info("short value:" + shortValue);
+                distanceMatrix.add(shortValue);
+                //writer.writeShort(shortValue);
             }
+            //writer.line();
         }
+        //context.write(edgeName, distanceMatrix);
         LOG.info("MAX: " + VectorPoint.maxChange + " MIN: " + VectorPoint.minChange);
+
         /*LOG.info("Distance history");
         for (int i = 0; i < 100; i++) {
             System.out.print(histogram[i] + ", ");
