@@ -6,7 +6,6 @@ import edu.iu.dsc.tws.api.data.Path;
 import edu.iu.dsc.tws.api.task.IMessage;
 import edu.iu.dsc.tws.api.task.nodes.BaseCompute;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.VectorPoint;
-import edu.iu.dsc.tws.apps.stockanalysis.utils.WriterWrapper;
 import edu.iu.dsc.tws.data.utils.FileSystemUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 
@@ -27,7 +26,7 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
     private String distFolder;
     private String edgeName;
 
-    //private static int INC = 8000;
+    private static int INC = 8000;
     private int distanceType;
     private int index = 0;
 
@@ -53,6 +52,164 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
             process();
         }
         return true;
+    }
+
+    private void processVectors(Map<Integer, VectorPoint> currentPoints, int index) {
+        List<Short> distanceMatrix = new LinkedList<>();
+        int INC = currentPoints.size();
+
+        // initialize the double arrays for this block
+        //double values[][] = new double[INC][];
+        //double cachedValues[][] = new double[INC][];
+
+        int taskLength = currentPoints.size() / context.getParallelism();
+        double values[][] = new double[INC / context.getParallelism()][];
+        double cachedValues[][] = new double[INC / context.getParallelism()][];
+        for (int i = 0; i < taskLength; i++) {
+            values[i] = new double[taskLength];
+            cachedValues[i] = new double[taskLength];
+        }
+        for (int i = 0; i < cachedValues.length; i++) {
+            for (int j = 0; j < cachedValues[i].length; j++) {
+                cachedValues[i][j] = -1;
+            }
+        }
+
+
+        LOG.info("Context Task Index:" + context.taskIndex() + "\t" + values.length + "\t" + cachedValues.length);
+
+        /*double values[][] = new double[INC][];
+        double cachedValues[][] = new double[INC][];
+        for (int i = 0; i < values.length; i++) {
+            values[i] = new double[INC];
+            cachedValues[i] = new double[INC];
+        }
+
+        for (int i = 0; i < cachedValues.length; i++) {
+            for (int j = 0; j < cachedValues[i].length; j++) {
+                cachedValues[i][j] = -1;
+            }
+        }*/
+
+        int[] histogram = new int[100];
+        double[] changeHistogram = new double[100];
+
+        double dmax = Double.MIN_VALUE;
+        double dmin = Double.MAX_VALUE;
+
+        List<VectorPoint> vectors;
+
+        //int startIndex = 0;
+        //int endIndex = -1;
+
+        //startIndex = endIndex + 1;
+        //endIndex = startIndex + INC - 1;
+
+        //int readStartIndex = 0;
+        //int readEndIndex = INC - 1;
+
+        int startIndex;
+        int endIndex;
+
+        int readStartIndex = 0;
+        int readEndIndex = 0;
+
+        if (context.taskIndex() == 0) {
+            startIndex = 0;
+            endIndex = taskLength;
+
+            readStartIndex = 0;
+            readEndIndex = INC - 1;
+
+            LOG.info("Start Index and end Index (0):" + startIndex + "\t" + endIndex);
+            vectors = readVectors(currentPoints, startIndex, endIndex);
+        } else {
+            startIndex = taskLength + 1;
+            endIndex = INC;
+
+            //readStartIndex = taskLength;
+            //readEndIndex = INC;
+
+            LOG.info("Start Index and end Index (1):" + startIndex + "\t" + endIndex);
+            vectors = readVectors(currentPoints, startIndex, endIndex);
+        }
+
+        LOG.info("Reading Vector Size:" + context.taskIndex() + "\t" + vectors.size());
+        // now start from the beginning and go through the whole file
+        List<VectorPoint> secondVectors = vectors;
+        for (int i = 0; i < secondVectors.size(); i++) {
+            VectorPoint sv = secondVectors.get(i);
+            double v = VectorPoint.vectorLength(1, sv);
+            for (int z = 0; z < 100; z++) {
+                if (v < (z + 1) * .1) {
+                    changeHistogram[z]++;
+                    break;
+                }
+            }
+            for (int j = 0; j < vectors.size(); j++) {
+                VectorPoint fv = vectors.get(j);
+                double cor = 0;
+                // assume i,j is equal to j,i
+                if (cachedValues[readStartIndex + i][j] == -1) {
+                    cor = sv.correlation(fv, distanceType);
+                } else {
+                    cor = cachedValues[readStartIndex + i][j];
+                }
+
+                if (cor > dmax) {
+                    dmax = cor;
+                }
+
+                if (cor < dmin) {
+                    dmin = cor;
+                }
+                values[j][readStartIndex + i] = cor;
+                cachedValues[j][readStartIndex + i] = cor;
+            }
+        }
+        readStartIndex = readEndIndex + 1;
+        //readEndIndex = readStartIndex + INC - 1;
+        LOG.info("MAX distance is: " + dmax + " MIN Distance is: " + dmin);
+
+        // write the vectors to file
+        for (int i = 0; i < vectors.size(); i++) {
+            for (int j = 0; j < values[i].length; j++) {
+                double doubleValue = values[i][j] / dmax;
+                for (int k = 0; k < 100; k++) {
+                    if (doubleValue < (k + 1.0) / 100) {
+                        histogram[k]++;
+                        break;
+                    }
+                }
+                if (doubleValue < 0) {
+                    System.out.println("*********************************ERROR, invalid distance*************************************");
+                    throw new RuntimeException("Invalid distance");
+                } else if (doubleValue > 1) {
+                    System.out.println("*********************************ERROR, invalid distance*************************************");
+                    throw new RuntimeException("Invalid distance");
+                }
+                short shortValue = (short) (doubleValue * Short.MAX_VALUE);
+                distanceMatrix.add(shortValue);
+                //writer.writeShort(shortValue);
+            }
+            //writer.line();
+        }
+        LOG.info("Distance Matrix Size:" + distanceMatrix.size());
+        context.write(edgeName, distanceMatrix);
+        LOG.info("MAX: " + VectorPoint.maxChange + " MIN: " + VectorPoint.minChange);
+
+        /*LOG.info("Distance history");
+        for (int i = 0; i < 100; i++) {
+            System.out.print(histogram[i] + ", ");
+        }
+        System.out.println();
+
+        LOG.info("Ratio history");
+        for (int i = 0; i < 100; i++) {
+            System.out.print(changeHistogram[i] + ", ");
+        }
+        System.out.println();
+        System.out.println(dmax);*/
     }
 
     private void process() {
@@ -100,139 +257,6 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
 
             }
         }
-    }
-
-    private void processVectors(Map<Integer, VectorPoint> currentPoints, int index) {
-        WriterWrapper writer = null;
-        int lineCount = currentPoints.size();
-
-//        String outFileName = "/tmp/distancefiles/" + "out" + index;
-//        writer = new WriterWrapper(outFileName, false);
-
-        // initialize the double arrays for this block
-        //double values[][] = new double[INC][];
-        //double cachedValues[][] = new double[INC][];
-
-        int INC = lineCount;
-
-        double values[][] = new double[lineCount][];
-        double cachedValues[][] = new double[lineCount][];
-        for (int i = 0; i < values.length; i++) {
-            values[i] = new double[lineCount];
-            cachedValues[i] = new double[lineCount];
-        }
-
-        for (int i = 0; i < cachedValues.length; i++) {
-            for (int j = 0; j < cachedValues[i].length; j++) {
-                cachedValues[i][j] = -1;
-            }
-        }
-
-        //For Testing
-        double doubleVal = 0.0002d;
-        List<Short> distanceMatrix = new LinkedList<>();
-        short shortVal = (short) (doubleVal * Short.MAX_VALUE);
-        for (int i = 0; i < 100; i++) {
-            distanceMatrix.add(shortVal);
-        }
-        context.write(this.edgeName, distanceMatrix);
-
-        int[] histogram = new int[100];
-        double[] changeHistogram = new double[100];
-
-        double dmax = Double.MIN_VALUE;
-        double dmin = Double.MAX_VALUE;
-
-        int startIndex = 0;
-        int endIndex = -1;
-
-        List<VectorPoint> vectors;
-
-        startIndex = endIndex + 1;
-        endIndex = startIndex + INC - 1;
-
-        int readStartIndex = 0;
-        int readEndIndex = INC - 1;
-
-        vectors = readVectors(currentPoints, startIndex, endIndex);
-
-        LOG.info("Reading Vector Size:" + vectors.size());
-
-        // now start from the beginning and go through the whole file
-        List<VectorPoint> secondVectors = vectors;
-        for (int i = 0; i < secondVectors.size(); i++) {
-            VectorPoint sv = secondVectors.get(i);
-            double v = VectorPoint.vectorLength(1, sv);
-            for (int z = 0; z < 100; z++) {
-                if (v < (z + 1) * .1) {
-                    changeHistogram[z]++;
-                    break;
-                }
-            }
-            for (int j = 0; j < vectors.size(); j++) {
-                VectorPoint fv = vectors.get(j);
-                double cor = 0;
-                // assume i,j is equal to j,i
-                if (cachedValues[readStartIndex + i][j] == -1) {
-                    cor = sv.correlation(fv, distanceType);
-                } else {
-                    cor = cachedValues[readStartIndex + i][j];
-                }
-
-                if (cor > dmax) {
-                    dmax = cor;
-                }
-
-                if (cor < dmin) {
-                    dmin = cor;
-                }
-                values[j][readStartIndex + i] = cor;
-                cachedValues[j][readStartIndex + i] = cor;
-            }
-        }
-        readStartIndex = readEndIndex + 1;
-        readEndIndex = readStartIndex + INC - 1;
-        LOG.info("MAX distance is: " + dmax + " MIN Distance is: " + dmin);
-
-
-        // write the vectors to file
-        for (int i = 0; i < vectors.size(); i++) {
-            for (int j = 0; j < values[i].length; j++) {
-                double doubleValue = values[i][j] / dmax;
-                for (int k = 0; k < 100; k++) {
-                    if (doubleValue < (k + 1.0) / 100) {
-                        histogram[k]++;
-                        break;
-                    }
-                }
-                if (doubleValue < 0) {
-                    System.out.println("*********************************ERROR, invalid distance*************************************");
-                    throw new RuntimeException("Invalid distance");
-                } else if (doubleValue > 1) {
-                    System.out.println("*********************************ERROR, invalid distance*************************************");
-                    throw new RuntimeException("Invalid distance");
-                }
-                short shortValue = (short) (doubleValue * Short.MAX_VALUE);
-                distanceMatrix.add(shortValue);
-                //writer.writeShort(shortValue);
-            }
-            //writer.line();
-        }
-        //context.write(edgeName, distanceMatrix);
-        LOG.info("MAX: " + VectorPoint.maxChange + " MIN: " + VectorPoint.minChange);
-
-        /*LOG.info("Distance history");
-        for (int i = 0; i < 100; i++) {
-            System.out.print(histogram[i] + ", ");
-        }
-        System.out.println();
-
-        LOG.info("Ratio history");
-        for (int i = 0; i < 100; i++) {
-            System.out.print(changeHistogram[i] + ", ");
-        }
-        System.out.println();
-        System.out.println(dmax);*/
     }
 
     public static List<VectorPoint> readVectors(Map<Integer, VectorPoint> vectorPointMap, int startIndex, int endIndex) {

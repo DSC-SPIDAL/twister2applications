@@ -66,7 +66,6 @@ public class DataPreprocessingComputeTask extends BaseCompute {
                 counter = 0;
                 LOG.info("Before Processing start date:" + startDate + "\t" + "enddate:" + endDate);
                 LOG.info("%%%%% Before Processing Record List Size:%%%%%%" + recordList.size());
-                LOG.info("%%%%% Edge:%%%%%%" + edgeName);
                 processRecord(recordList);
                 startDate = addDate(startDate, slidingLength);
                 endDate = addDate(endDate, slidingLength);
@@ -138,8 +137,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             this.metrics.put(outFileName, metric);
         }
         //Vector generation
-        for (int i = 0; i < recordList.size(); i++) {
-            Record record = recordList.get(i);
+        for (Record record : recordList) {
             count++;
             vectorCounter++;
             int key = record.getSymbol();
@@ -161,7 +159,7 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             int index = dateIntegerMap.get(record.getDate());
             if (!point.add(record.getPrice(), record.getFactorToAdjPrice(), record.getFactorToAdjVolume(), metric, index)) {
                 metric.dupRecords++;
-                //LOG.info("dup: " + record.serialize());
+                LOG.fine("dup: " + record.serialize());
             }
 
             if (currentPoints.size() > 2000 && size == -1) {
@@ -179,8 +177,8 @@ public class DataPreprocessingComputeTask extends BaseCompute {
                 capCount++;
                 fullCount = 0;
             }
+            context.write(edgeName, currentPoints);
         }
-        context.write(edgeName, currentPoints);
         LOG.info("Vector Counter Value:" + vectorCounter);
         LOG.info("Split count: " + " = " + splitCount);
         LOG.info("Total stock size: " + currentPoints.size());
@@ -276,7 +274,6 @@ public class DataPreprocessingComputeTask extends BaseCompute {
             if (max == null || e.getValue() > max.getValue())
                 max = e;
         }
-        LOG.info("max key is:" + max.getKey());
         return max.getKey();
     }
 

@@ -26,7 +26,7 @@ public class MDSWorkerComputeTask extends BaseCompute {
             List<Short> distanceMatrix = (List<Short>) content.getContent();
             LOG.info("Received message:" + distanceMatrix.size());
         }
-        run(); //run() method to invoke the mds processing
+        //run(); //run() method to invoke the mds processing
         context.write(edgeName, "received distance for processing mds");
         return true;
     }

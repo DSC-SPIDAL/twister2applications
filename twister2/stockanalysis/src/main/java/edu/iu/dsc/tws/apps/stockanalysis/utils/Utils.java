@@ -15,7 +15,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Logger;
 
-public class Utils implements Serializable {
+public class Utils {
 
     private static final Logger LOG = Logger.getLogger(Utils.class.getName());
     public static SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
@@ -25,7 +25,7 @@ public class Utils implements Serializable {
     }
 
     public static Record parseFile(BufferedReader reader, CleanMetric metric, boolean convert) throws FileNotFoundException {
-        String myLine = null;
+        String myLine;
         try {
             while ((myLine = reader.readLine()) != null) {
                 String[] array = myLine.trim().split(",");
