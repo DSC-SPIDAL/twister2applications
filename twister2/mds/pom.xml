@@ -41,7 +41,8 @@
             <groupId>ompi</groupId>
             <artifactId>ompijavabinding</artifactId>
             <!--version>1.10.1</version-->
-            <version>3.1.2</version>
+            <version>4.0.1</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -53,157 +54,157 @@
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>api-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>api-utils-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>checkpointing-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>checkpointing-api-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>common-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>comms-api-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>comms-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>config-api-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>connector-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>data-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>data-api-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>dataset-api-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>exceptions-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>executor-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>master-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>network-api-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>proto-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>resource-scheduler-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>scheduler-api-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>task-api-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>task-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>taskscheduler-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>tset-api-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>twister2-storm</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>edu.iu.dsc.tws</groupId>
             <artifactId>examples-java</artifactId>
-            <version>0.2.2</version>
+            <version>0.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>18.0</version>
+            <version>20.0</version>
         </dependency>
 
         <dependency>
@@ -227,7 +228,7 @@
         <dependency>
             <groupId>com.esotericsoftware</groupId>
             <artifactId>kryo</artifactId>
-            <version>4.0.0</version>
+            <version>4.0.2</version>
         </dependency>
     </dependencies>
 

@@ -15,21 +15,21 @@ import com.google.common.base.Stopwatch;
 import edu.indiana.soic.spidal.configuration.ConfigurationMgr;
 import edu.indiana.soic.spidal.configuration.section.DAMDSSection;
 import edu.iu.dsc.tws.api.comms.messaging.types.MessageTypes;
+import edu.iu.dsc.tws.api.compute.IMessage;
+import edu.iu.dsc.tws.api.compute.TaskContext;
+import edu.iu.dsc.tws.api.compute.executor.ExecutionPlan;
+import edu.iu.dsc.tws.api.compute.graph.ComputeGraph;
+import edu.iu.dsc.tws.api.compute.graph.OperationMode;
+import edu.iu.dsc.tws.api.compute.modifiers.Collector;
+import edu.iu.dsc.tws.api.compute.modifiers.Receptor;
+import edu.iu.dsc.tws.api.compute.nodes.BaseSink;
+import edu.iu.dsc.tws.api.compute.nodes.BaseSource;
 import edu.iu.dsc.tws.api.config.Config;
 import edu.iu.dsc.tws.api.config.Context;
 import edu.iu.dsc.tws.api.dataset.DataObject;
 import edu.iu.dsc.tws.api.dataset.DataPartition;
-import edu.iu.dsc.tws.api.task.IMessage;
-import edu.iu.dsc.tws.api.task.TaskContext;
-import edu.iu.dsc.tws.api.task.executor.ExecutionPlan;
-import edu.iu.dsc.tws.api.task.graph.DataFlowTaskGraph;
-import edu.iu.dsc.tws.api.task.graph.OperationMode;
-import edu.iu.dsc.tws.api.task.modifiers.Collector;
-import edu.iu.dsc.tws.api.task.modifiers.Receptor;
-import edu.iu.dsc.tws.api.task.nodes.BaseSink;
-import edu.iu.dsc.tws.api.task.nodes.BaseSource;
 import edu.iu.dsc.tws.task.impl.ComputeConnection;
-import edu.iu.dsc.tws.task.impl.TaskGraphBuilder;
+import edu.iu.dsc.tws.task.impl.ComputeGraphBuilder;
 import edu.iu.dsc.tws.task.impl.TaskWorker;
 import mpi.MPIException;
 
@@ -88,7 +88,7 @@ public class MDSWorker extends TaskWorker {
         MDSDataObjectSource mdsDataObjectSource = new MDSDataObjectSource(Context.TWISTER2_DIRECT_EDGE,
                 directory, datasize);
         MDSDataObjectSink mdsDataObjectSink = new MDSDataObjectSink(matrixColumLength);
-        TaskGraphBuilder mdsDataProcessingGraphBuilder = TaskGraphBuilder.newBuilder(config);
+        ComputeGraphBuilder mdsDataProcessingGraphBuilder = ComputeGraphBuilder.newBuilder(config);
         mdsDataProcessingGraphBuilder.setTaskGraphName("MDSDataProcessing");
         mdsDataProcessingGraphBuilder.addSource("dataobjectsource", mdsDataObjectSource, parallel);
 
@@ -98,7 +98,7 @@ public class MDSWorker extends TaskWorker {
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
                 .withDataType(MessageTypes.OBJECT);
         mdsDataProcessingGraphBuilder.setMode(OperationMode.BATCH);
-        DataFlowTaskGraph dataObjectTaskGraph = mdsDataProcessingGraphBuilder.build();
+        ComputeGraph dataObjectTaskGraph = mdsDataProcessingGraphBuilder.build();
 
         //Get the execution plan for the first task graph
         ExecutionPlan plan = taskExecutor.plan(dataObjectTaskGraph);
@@ -115,7 +115,7 @@ public class MDSWorker extends TaskWorker {
         MDSSourceTask generatorTask = new MDSSourceTask();
         MDSReceiverTask receiverTask = new MDSReceiverTask();
 
-        TaskGraphBuilder mdsComputeProcessingGraphBuilder = TaskGraphBuilder.newBuilder(config);
+        ComputeGraphBuilder mdsComputeProcessingGraphBuilder = ComputeGraphBuilder.newBuilder(config);
         mdsComputeProcessingGraphBuilder.setTaskGraphName("MDSCompute");
         mdsComputeProcessingGraphBuilder.addSource("generator", generatorTask, parallel);
         ComputeConnection computeConnection = mdsComputeProcessingGraphBuilder.addSink("receiver",
@@ -125,7 +125,7 @@ public class MDSWorker extends TaskWorker {
                 .withDataType(MessageTypes.OBJECT);
         mdsComputeProcessingGraphBuilder.setMode(OperationMode.BATCH);
 
-        DataFlowTaskGraph mdsTaskGraph = mdsComputeProcessingGraphBuilder.build();
+        ComputeGraph mdsTaskGraph = mdsComputeProcessingGraphBuilder.build();
 
         //Get the execution plan for the first task graph
         ExecutionPlan executionPlan = taskExecutor.plan(mdsTaskGraph);
@@ -176,7 +176,8 @@ public class MDSWorker extends TaskWorker {
 
         @Override
         public void execute() {
-            DataPartition<?> dataPartition = dataPointsObject.getPartitions(context.taskIndex());
+            //DataPartition<?> dataPartition = dataPointsObject.getPartitions(context.taskIndex());
+            DataPartition<?> dataPartition = dataPointsObject.getPartition(context.taskIndex());
             datapoints = (short[]) dataPartition.getConsumer().next();
             executeMds(datapoints);
             context.writeEnd(Context.TWISTER2_DIRECT_EDGE, "MDS_Execution");
