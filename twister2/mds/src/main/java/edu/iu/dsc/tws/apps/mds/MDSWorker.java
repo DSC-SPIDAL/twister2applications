@@ -63,6 +63,7 @@ public class MDSWorker extends TaskWorker {
         String directory = mdsWorkerParameters.getDatapointDirectory();
         String byteType = mdsWorkerParameters.getByteType();
 
+        LOG.info("Config File:" + configFile);
         readConfiguration(configFile);
         String[] args = new String[]{configFile, String.valueOf(ParallelOps.nodeCount),
                 String.valueOf(ParallelOps.threadCount)};
@@ -147,6 +148,8 @@ public class MDSWorker extends TaskWorker {
 
         ParallelOps.nodeCount = Integer.parseInt(config.getStringValue("workers"));
         ParallelOps.threadCount = Integer.parseInt(String.valueOf(config.get("twister2.exector.worker.threads")));
+
+        LOG.info("node count value:" + ParallelOps.nodeCount + "\t" + ParallelOps.threadCount);
 
         byteOrder = mdsconfig.isBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
         BlockSize = mdsconfig.blockSize;

@@ -30,7 +30,10 @@ public class MDSDataObjectSink  extends BaseSink implements Collector {
 
   private short[] dataPoints;
   private int numberOfColumns;
-  
+
+  public MDSDataObjectSink() {
+  }
+
   public MDSDataObjectSink(int length) {
     this.numberOfColumns = length;
   }

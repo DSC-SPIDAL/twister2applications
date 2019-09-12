@@ -109,7 +109,7 @@ public class ParallelOps {
     private static boolean isHeterogeneous;
 
     public static void setupParallelism(String[] args) throws MPIException {
-        //MPI.Init(args);
+        MPI.Init(args);
         machineName = MPI.getProcessorName();
 
         /* Allocate basic buffers for communication */
@@ -247,10 +247,10 @@ public class ParallelOps {
         }
     }
 
-//    public static void tearDownParallelism() throws MPIException {
-//        // End MPI
-//        MPI.Finalize();
-//    }
+    public static void tearDownParallelism() throws MPIException {
+        // End MPI
+        MPI.Finalize();
+    }
 
     public static void setParallelDecomposition(int globalRowCount, int targetDimension)
             throws IOException, MPIException {

@@ -59,10 +59,10 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
         int INC = currentPoints.size();
 
         // initialize the double arrays for this block
-        //double values[][] = new double[INC][];
-        //double cachedValues[][] = new double[INC][];
+        double values[][] = new double[INC][];
+        double cachedValues[][] = new double[INC][];
 
-        int taskLength = currentPoints.size() / context.getParallelism();
+        /*int taskLength = currentPoints.size() / context.getParallelism();
         double values[][] = new double[INC / context.getParallelism()][];
         double cachedValues[][] = new double[INC / context.getParallelism()][];
         for (int i = 0; i < taskLength; i++) {
@@ -73,8 +73,7 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
             for (int j = 0; j < cachedValues[i].length; j++) {
                 cachedValues[i][j] = -1;
             }
-        }
-
+        }*/
 
         LOG.info("Context Task Index:" + context.taskIndex() + "\t" + values.length + "\t" + cachedValues.length);
 
@@ -99,16 +98,16 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
 
         List<VectorPoint> vectors;
 
-        //int startIndex = 0;
-        //int endIndex = -1;
+        int startIndex = 0;
+        int endIndex = -1;
 
-        //startIndex = endIndex + 1;
-        //endIndex = startIndex + INC - 1;
+        startIndex = endIndex + 1;
+        endIndex = startIndex + INC - 1;
 
-        //int readStartIndex = 0;
-        //int readEndIndex = INC - 1;
+        int readStartIndex = 0;
+        int readEndIndex = INC - 1;
 
-        int startIndex;
+        /*int startIndex;
         int endIndex;
 
         int readStartIndex = 0;
@@ -132,8 +131,9 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
 
             LOG.info("Start Index and end Index (1):" + startIndex + "\t" + endIndex);
             vectors = readVectors(currentPoints, startIndex, endIndex);
-        }
+        }*/
 
+        vectors = readVectors(currentPoints, startIndex, endIndex);
         LOG.info("Reading Vector Size:" + context.taskIndex() + "\t" + vectors.size());
         // now start from the beginning and go through the whole file
         List<VectorPoint> secondVectors = vectors;
@@ -222,7 +222,7 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
 
         List<Thread> threads = new ArrayList<Thread>();
         // start 4 threads
-        for (int i = 0; i < 1; i++) {
+        for (int i = 0; i < 4; i++) {
             Thread t = new Thread(new Worker(vectorsMap));
             t.start();
             threads.add(t);

@@ -40,6 +40,11 @@ public class MatrixGenerator {
     this.workerId = workerid;
   }
 
+  public MatrixGenerator(Config cfg) {
+    this.config = cfg;
+  }
+
+
   /**
    * To generate the matrix for MDS application
    * @param matrixRowLength
@@ -69,11 +74,13 @@ public class MatrixGenerator {
 
       Path path = new Path(directory);
       FileSystem fs = FileSystemUtils.get(path.toUri(), config);
+      LOG.info("File System:" + fs.getClass().getName());
       if (fs.exists(path)) {
         fs.delete(path, true);
       }
       FSDataOutputStream outputStream = fs.create(new Path(directory, generateRandom(10) + ".bin"));
       FileChannel out = outputStream.getChannel();
+      LOG.info("Byte buffer values:" + byteBuffer);
       out.write(byteBuffer);
       outputStream.flush();
       out.close();

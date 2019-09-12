@@ -4,6 +4,7 @@ import edu.iu.dsc.tws.api.JobConfig;
 import edu.iu.dsc.tws.api.Twister2Job;
 import edu.iu.dsc.tws.api.config.Config;
 import edu.iu.dsc.tws.api.scheduler.SchedulerContext;
+import edu.iu.dsc.tws.apps.mds.MDSWorker;
 import edu.iu.dsc.tws.data.utils.DataObjectConstants;
 import edu.iu.dsc.tws.examples.Utils;
 import edu.iu.dsc.tws.rsched.core.ResourceAllocator;
@@ -73,8 +74,8 @@ public class MDSProgram {
         // build JobConfig
         Twister2Job.Twister2JobBuilder jobBuilder = Twister2Job.newBuilder();
         jobBuilder.setJobName("MDS-job");
-        jobBuilder.setWorkerClass(MDSProgram.class.getName());
-        jobBuilder.addComputeResource(2, 4098, 1.0, workers);
+        jobBuilder.setWorkerClass(MDSWorker.class.getName());
+        jobBuilder.addComputeResource(2, 2048, 1.0, workers);
         jobBuilder.setConfig(jobConfig);
 
         // now submit the job

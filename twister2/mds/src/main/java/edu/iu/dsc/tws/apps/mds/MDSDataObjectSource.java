@@ -51,6 +51,9 @@ public class MDSDataObjectSource extends BaseSource {
     private String dataDirectory;
     private int dataSize;
 
+    public MDSDataObjectSource(){
+    }
+
     public MDSDataObjectSource(String edgename, String dataDirectory, int size) {
         setEdgeName(edgename);
         setDataDirectory(dataDirectory);
