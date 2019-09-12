@@ -122,76 +122,12 @@ public final class MDSConnectedDataflowExample {
         }
     }
 
-    public static void main(String[] args) throws ParseException {
-        Config config = ResourceAllocator.loadConfig(new HashMap<>());
-
-        // build JobConfig
-        HashMap<String, Object> configurations = new HashMap<>();
-        configurations.put(SchedulerContext.THREADS_PER_WORKER, 1);
-
-        Options options = new Options();
-        options.addOption(CDFConstants.ARGS_WORKERS, true, "Workers");
-        options.addOption(CDFConstants.ARGS_PARALLELISM_VALUE, true, "parallelism");
-        options.addOption(CDFConstants.ARGS_DSIZE, true, "Size of the matrix rows");
-        options.addOption(CDFConstants.ARGS_DIMENSIONS, true, "dimension of the matrix");
-        options.addOption(CDFConstants.ARGS_BYTE_TYPE, true, "bytetype");
-        options.addOption(CDFConstants.ARGS_DATA_INPUT, true, "datainput");
-
-        options.addOption(CDFConstants.ARGS_DINPUT_DIRECTORY, true, "2");
-        options.addOption(CDFConstants.ARGS_FILE_SYSTEM, true, "2");
-        options.addOption(CDFConstants.ARGS_CONFIG_FILE, true, "2");
-
-        @SuppressWarnings("deprecation")
-        CommandLineParser commandLineParser = new DefaultParser();
-        CommandLine cmd = commandLineParser.parse(options, args);
-
-        instances = Integer.parseInt(cmd.getOptionValue(CDFConstants.ARGS_WORKERS));
-        parallel = Integer.parseInt(cmd.getOptionValue(CDFConstants.ARGS_PARALLELISM_VALUE));
-        dsize = Integer.parseInt(cmd.getOptionValue(CDFConstants.ARGS_DSIZE));
-        dimension = Integer.parseInt(cmd.getOptionValue(CDFConstants.ARGS_DIMENSIONS));
-        byteType = cmd.getOptionValue(CDFConstants.ARGS_BYTE_TYPE);
-        dataInput = cmd.getOptionValue(CDFConstants.ARGS_DATA_INPUT);
-        dataDirectory = cmd.getOptionValue(CDFConstants.ARGS_DINPUT_DIRECTORY);
-        fileSystem = cmd.getOptionValue(CDFConstants.ARGS_FILE_SYSTEM);
-        configFile = cmd.getOptionValue(CDFConstants.ARGS_CONFIG_FILE);
-
-
-        // build JobConfig
-        configurations.put(CDFConstants.ARGS_WORKERS, Integer.toString(instances));
-        configurations.put(CDFConstants.ARGS_PARALLELISM_VALUE, Integer.toString(parallel));
-        configurations.put(CDFConstants.ARGS_DSIZE, Integer.toString(dsize));
-        configurations.put(CDFConstants.ARGS_DIMENSIONS, Integer.toString(dimension));
-        configurations.put(CDFConstants.ARGS_BYTE_TYPE, byteType);
-        configurations.put(CDFConstants.ARGS_DATA_INPUT, dataInput);
-        configurations.put(CDFConstants.ARGS_DINPUT_DIRECTORY, dataDirectory);
-        configurations.put(CDFConstants.ARGS_FILE_SYSTEM, fileSystem);
-        configurations.put(CDFConstants.ARGS_CONFIG_FILE, configFile);
-
-        // build JobConfig
-        JobConfig jobConfig = new JobConfig();
-        jobConfig.putAll(configurations);
-
-        config = Config.newBuilder().putAll(config)
-                .put(SchedulerContext.DRIVER_CLASS, null).build();
-
-        // build JobConfig
-        Twister2Job twister2Job;
-        twister2Job = Twister2Job.newBuilder()
-                .setJobName(MDSExampleDriver.class.getName())
-                .setWorkerClass(CDFWWorker.class)
-                .setDriverClass(MDSExampleDriver.class.getName())
-                .addComputeResource(1, 2048, instances)
-                .setConfig(jobConfig)
-                .build();
-        // now submit the job
-        Twister2Submitter.submitJob(twister2Job, config);
-    }
 
     private static DataFlowGraph generateFirstJob(Config config, DafaFlowJobConfig jobConfig) {
 
         MDSDataObjectSource mdsDataObjectSource = new MDSDataObjectSource(
-                Context.TWISTER2_DIRECT_EDGE, dataDirectory, datasize);
-        MDSDataObjectSink mdsDataObjectSink = new MDSDataObjectSink(matrixColumLength);
+                Context.TWISTER2_DIRECT_EDGE, dataDirectory, dsize);
+        MDSDataObjectSink mdsDataObjectSink = new MDSDataObjectSink(dimension);
         ComputeGraphBuilder mdsDataProcessingGraphBuilder = ComputeGraphBuilder.newBuilder(config);
         mdsDataProcessingGraphBuilder.setTaskGraphName("MDSDataProcessing");
         mdsDataProcessingGraphBuilder.addSource("dataobjectsource", mdsDataObjectSource, parallel);
@@ -297,4 +233,70 @@ public final class MDSConnectedDataflowExample {
             return null;
         }
     }
+
+    public static void main(String[] args) throws ParseException {
+        Config config = ResourceAllocator.loadConfig(new HashMap<>());
+
+        // build JobConfig
+        HashMap<String, Object> configurations = new HashMap<>();
+        configurations.put(SchedulerContext.THREADS_PER_WORKER, 1);
+
+        Options options = new Options();
+        options.addOption(CDFConstants.ARGS_WORKERS, true, "Workers");
+        options.addOption(CDFConstants.ARGS_PARALLELISM_VALUE, true, "parallelism");
+        options.addOption(CDFConstants.ARGS_DSIZE, true, "Size of the matrix rows");
+        options.addOption(CDFConstants.ARGS_DIMENSIONS, true, "dimension of the matrix");
+        options.addOption(CDFConstants.ARGS_BYTE_TYPE, true, "bytetype");
+        options.addOption(CDFConstants.ARGS_DATA_INPUT, true, "datainput");
+
+        options.addOption(CDFConstants.ARGS_DINPUT_DIRECTORY, true, "2");
+        options.addOption(CDFConstants.ARGS_FILE_SYSTEM, true, "2");
+        options.addOption(CDFConstants.ARGS_CONFIG_FILE, true, "2");
+
+        @SuppressWarnings("deprecation")
+        CommandLineParser commandLineParser = new DefaultParser();
+        CommandLine cmd = commandLineParser.parse(options, args);
+
+        instances = Integer.parseInt(cmd.getOptionValue(CDFConstants.ARGS_WORKERS));
+        parallel = Integer.parseInt(cmd.getOptionValue(CDFConstants.ARGS_PARALLELISM_VALUE));
+        dsize = Integer.parseInt(cmd.getOptionValue(CDFConstants.ARGS_DSIZE));
+        dimension = Integer.parseInt(cmd.getOptionValue(CDFConstants.ARGS_DIMENSIONS));
+        byteType = cmd.getOptionValue(CDFConstants.ARGS_BYTE_TYPE);
+        dataInput = cmd.getOptionValue(CDFConstants.ARGS_DATA_INPUT);
+        dataDirectory = cmd.getOptionValue(CDFConstants.ARGS_DINPUT_DIRECTORY);
+        fileSystem = cmd.getOptionValue(CDFConstants.ARGS_FILE_SYSTEM);
+        configFile = cmd.getOptionValue(CDFConstants.ARGS_CONFIG_FILE);
+
+
+        // build JobConfig
+        configurations.put(CDFConstants.ARGS_WORKERS, Integer.toString(instances));
+        configurations.put(CDFConstants.ARGS_PARALLELISM_VALUE, Integer.toString(parallel));
+        configurations.put(CDFConstants.ARGS_DSIZE, Integer.toString(dsize));
+        configurations.put(CDFConstants.ARGS_DIMENSIONS, Integer.toString(dimension));
+        configurations.put(CDFConstants.ARGS_BYTE_TYPE, byteType);
+        configurations.put(CDFConstants.ARGS_DATA_INPUT, dataInput);
+        configurations.put(CDFConstants.ARGS_DINPUT_DIRECTORY, dataDirectory);
+        configurations.put(CDFConstants.ARGS_FILE_SYSTEM, fileSystem);
+        configurations.put(CDFConstants.ARGS_CONFIG_FILE, configFile);
+
+        // build JobConfig
+        JobConfig jobConfig = new JobConfig();
+        jobConfig.putAll(configurations);
+
+        config = Config.newBuilder().putAll(config)
+                .put(SchedulerContext.DRIVER_CLASS, null).build();
+
+        // build JobConfig
+        Twister2Job twister2Job;
+        twister2Job = Twister2Job.newBuilder()
+                .setJobName(MDSExampleDriver.class.getName())
+                .setWorkerClass(CDFWWorker.class)
+                .setDriverClass(MDSExampleDriver.class.getName())
+                .addComputeResource(1, 2048, instances)
+                .setConfig(jobConfig)
+                .build();
+        // now submit the job
+        Twister2Submitter.submitJob(twister2Job, config);
+    }
+
 }
