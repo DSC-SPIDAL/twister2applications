@@ -15,7 +15,6 @@ import edu.iu.dsc.tws.api.JobConfig;
 import edu.iu.dsc.tws.api.Twister2Job;
 import edu.iu.dsc.tws.api.config.Config;
 import edu.iu.dsc.tws.api.scheduler.SchedulerContext;
-import edu.iu.dsc.tws.apps.stockanalysis.utils.EUtils;
 import edu.iu.dsc.tws.rsched.core.ResourceAllocator;
 import edu.iu.dsc.tws.rsched.job.Twister2Submitter;
 import org.apache.commons.cli.*;
@@ -52,20 +51,20 @@ public class StockAnalysisWorkerMain {
     options.addOption(StockAnalysisConstants.MODE, true, "mode");
     options.addOption(StockAnalysisConstants.DISTANCE_TYPE, true, "distance type");
 
-    options.addOption(EUtils.createOption(StockAnalysisConstants.DINPUT_DIRECTORY,
+    options.addOption(createOption(StockAnalysisConstants.DINPUT_DIRECTORY,
         true, "Matrix Input Creation directory", true));
-    options.addOption(EUtils.createOption(StockAnalysisConstants.FILE_SYSTEM,
+    options.addOption(createOption(StockAnalysisConstants.FILE_SYSTEM,
         true, "file system", true));
-    options.addOption(EUtils.createOption(StockAnalysisConstants.CONFIG_FILE,
+    options.addOption(createOption(StockAnalysisConstants.CONFIG_FILE,
         true, "config File", true));
 
-    options.addOption(EUtils.createOption(WindowingConstants.WINDOW_TYPE,
+    options.addOption(createOption(WindowingConstants.WINDOW_TYPE,
             true, "Windowing Type : tumbling, sliding, global (not supported), "
                     + "session (not supported)", false));
-    options.addOption(EUtils.createOption(WindowingConstants.WINDOW_LENGTH,
+    options.addOption(createOption(WindowingConstants.WINDOW_LENGTH,
             true, "Length of the window (needed for all kinds of window types)",
             false));
-    options.addOption(EUtils.createOption(WindowingConstants.SLIDING_WINDOW_LENGTH,
+    options.addOption(createOption(WindowingConstants.SLIDING_WINDOW_LENGTH,
             true, "Length of the slide in windowing (needed for only sliding windows"
                     + "for other windows the slide equals to window length)",
             false));
@@ -138,4 +137,11 @@ public class StockAnalysisWorkerMain {
     // now submit the job
     Twister2Submitter.submitJob(jobBuilder.build(), config);
   }
+
+    public static Option createOption(String opt, boolean hasArg,
+                                      String description, boolean required) {
+        Option symbolListOption = new Option(opt, hasArg, description);
+        symbolListOption.setRequired(required);
+        return symbolListOption;
+    }
 }

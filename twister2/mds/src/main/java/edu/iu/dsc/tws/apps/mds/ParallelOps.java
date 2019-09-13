@@ -109,7 +109,7 @@ public class ParallelOps {
     private static boolean isHeterogeneous;
 
     public static void setupParallelism(String[] args) throws MPIException {
-        MPI.Init(args);
+        //MPI.Init(args);
         machineName = MPI.getProcessorName();
 
         /* Allocate basic buffers for communication */

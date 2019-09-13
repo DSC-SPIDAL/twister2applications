@@ -73,19 +73,6 @@ public final class MDSConnectedDataflowExample {
             Config config = cdfwEnv.getConfig();
             DafaFlowJobConfig jobConfig = new DafaFlowJobConfig();
 
-            readConfiguration(config, configFile);
-            String[] args = new String[]{configFile,
-                    String.valueOf(ParallelOps.nodeCount),
-                    String.valueOf(ParallelOps.threadCount)};
-            mdsconfig = new ConfigurationMgr(configFile).damdsSection;
-            try {
-                ParallelOps.setupParallelism(args);
-                ParallelOps.setParallelDecomposition(mdsconfig.numberDataPoints, mdsconfig.targetDimension);
-            } catch (MPIException e) {
-                throw new RuntimeException(e.getMessage());
-            } catch (IOException e) {
-                throw new RuntimeException(e.getMessage());
-            }
             generateData(config);
 
             DataFlowGraph job1 = generateFirstJob(config, jobConfig);
@@ -99,26 +86,6 @@ public final class MDSConnectedDataflowExample {
             MatrixGenerator matrixGen = new MatrixGenerator(config);
             LOG.info("data size:" + dsize+ "\t" + dimension + "\t" + dataDirectory + "\t" + byteType);
             matrixGen.generate(dsize, dimension, dataDirectory, byteType);
-        }
-
-        private void readConfiguration(Config config, String filename) {
-            mdsconfig = new ConfigurationMgr(filename).damdsSection;
-
-            ParallelOps.nodeCount = instances;
-            ParallelOps.threadCount = Integer.parseInt(String.valueOf(config.get("twister2.exector.worker.threads")));
-
-            byteOrder = mdsconfig.isBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
-            BlockSize = mdsconfig.blockSize;
-
-            ParallelOps.mmapsPerNode = 1;
-            ParallelOps.mmapScratchDir = ".";
-
-            cps = -1;
-            if (cps == -1) {
-                bind = false;
-            }
-            LOG.info("node count and thread count:" + ParallelOps.nodeCount + "\t"
-                    + ParallelOps.threadCount + "\t" + byteOrder + "\t" + BlockSize);
         }
     }
 
@@ -141,7 +108,7 @@ public final class MDSConnectedDataflowExample {
         ComputeGraph dataObjectTaskGraph = mdsDataProcessingGraphBuilder.build();
         mdsDataProcessingGraphBuilder.setTaskGraphName("datapointsTG");
 
-        DataFlowGraph job = DataFlowGraph.newSubGraphJob("datapointsink", dataObjectTaskGraph)
+        DataFlowGraph job = DataFlowGraph.newSubGraphJob("dataobjectsink", dataObjectTaskGraph)
                 .setWorkers(instances).addDataFlowJobConfig(jobConfig)
                 .addOutput("points", "dataobjectsink")
                 .setGraphType("non-iterative");
@@ -202,9 +169,41 @@ public final class MDSConnectedDataflowExample {
         public void prepare(Config config, TaskContext context) {
             super.prepare(config, context);
             String configFilename = String.valueOf(config.get("config"));
+            readConfiguration(configFilename);
+            String[] args = new String[]{configFilename,
+                    String.valueOf(ParallelOps.nodeCount),
+                    String.valueOf(ParallelOps.threadCount)};
             mdsconfig = new ConfigurationMgr(configFilename).damdsSection;
+            try {
+                ParallelOps.setupParallelism(args);
+                ParallelOps.setParallelDecomposition(mdsconfig.numberDataPoints, mdsconfig.targetDimension);
+            } catch (MPIException e) {
+                throw new RuntimeException(e.getMessage());
+            } catch (IOException e) {
+                throw new RuntimeException(e.getMessage());
+            }
             byteOrder = mdsconfig.isBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
             BlockSize = mdsconfig.blockSize;
+        }
+
+        private void readConfiguration(String filename) {
+            mdsconfig = new ConfigurationMgr(filename).damdsSection;
+
+            ParallelOps.nodeCount = context.getParallelism();
+            ParallelOps.threadCount = Integer.parseInt(String.valueOf(config.get("twister2.exector.worker.threads")));
+
+            byteOrder = mdsconfig.isBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
+            BlockSize = mdsconfig.blockSize;
+
+            ParallelOps.mmapsPerNode = 1;
+            ParallelOps.mmapScratchDir = ".";
+
+            cps = -1;
+            if (cps == -1) {
+                bind = false;
+            }
+            LOG.info("node count and thread count:" + ParallelOps.nodeCount + "\t"
+                    + ParallelOps.threadCount + "\t" + byteOrder + "\t" + BlockSize);
         }
 
         private void executeMds(short[] datapoints) {
