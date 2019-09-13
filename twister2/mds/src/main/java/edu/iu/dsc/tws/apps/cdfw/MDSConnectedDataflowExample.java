@@ -42,26 +42,16 @@ public final class MDSConnectedDataflowExample {
 
     private static final Logger LOG = Logger.getLogger(MDSConnectedDataflowExample.class.getName());
 
-    //Config Settings
-    private static DAMDSSection mdsconfig;
-    private static ByteOrder byteOrder;
-    private static int BlockSize;
-    private static boolean bind;
-    private static int cps;
-
     private static int parallel;
-    private static int datasize;
-    private static int matrixColumLength;
+    private static int dsize;
+    private static int dimension;
+    private static int instances;
 
     private static String dataInput;
     private static String configFile;
     private static String dataDirectory;
     private static String byteType;
     private static String fileSystem;
-
-    private static int dsize;
-    private static int dimension;
-    private static int instances;
 
     private MDSConnectedDataflowExample() {
     }
@@ -148,7 +138,9 @@ public final class MDSConnectedDataflowExample {
         //Config Settings
         private DAMDSSection mdsconfig;
         private ByteOrder byteOrder;
-        private int BlockSize;
+        private int blockSize;
+        private int cps;
+        private boolean bind;
 
         @Override
         public void execute() {
@@ -183,7 +175,7 @@ public final class MDSConnectedDataflowExample {
                 throw new RuntimeException(e.getMessage());
             }
             byteOrder = mdsconfig.isBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
-            BlockSize = mdsconfig.blockSize;
+            blockSize = mdsconfig.blockSize;
         }
 
         private void readConfiguration(String filename) {
@@ -193,7 +185,7 @@ public final class MDSConnectedDataflowExample {
             ParallelOps.threadCount = Integer.parseInt(String.valueOf(config.get("twister2.exector.worker.threads")));
 
             byteOrder = mdsconfig.isBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
-            BlockSize = mdsconfig.blockSize;
+            blockSize = mdsconfig.blockSize;
 
             ParallelOps.mmapsPerNode = 1;
             ParallelOps.mmapScratchDir = ".";
@@ -203,13 +195,13 @@ public final class MDSConnectedDataflowExample {
                 bind = false;
             }
             LOG.info("node count and thread count:" + ParallelOps.nodeCount + "\t"
-                    + ParallelOps.threadCount + "\t" + byteOrder + "\t" + BlockSize);
+                    + ParallelOps.threadCount + "\t" + byteOrder + "\t" + blockSize);
         }
 
         private void executeMds(short[] datapoints) {
             Stopwatch mainTimer = Stopwatch.createStarted();
             MDSProgramWorker mdsProgramWorker = new MDSProgramWorker(0, ParallelOps.threadComm,
-                    mdsconfig, byteOrder, BlockSize, mainTimer, null, datapoints);
+                    mdsconfig, byteOrder, blockSize, mainTimer, null, datapoints);
             try {
                 mdsProgramWorker.run();
             } catch (IOException e) {
