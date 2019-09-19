@@ -6,6 +6,7 @@ import edu.iu.dsc.tws.api.data.FSDataOutputStream;
 import edu.iu.dsc.tws.api.data.FileSystem;
 import edu.iu.dsc.tws.api.data.Path;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.VectorPoint;
+import edu.iu.dsc.tws.apps.stockanalysis.utils.WriterWrapper;
 import edu.iu.dsc.tws.data.utils.FileSystemUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 
@@ -30,7 +31,7 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
     private int distanceType;
     private int index = 0;
 
-    private Map<Integer, VectorPoint> currentPoints = new HashMap();
+    private Map<Integer, VectorPoint> currentPoints;
 
     public DistanceCalculatorComputeTask(String vectorfolder, String distfolder, int distancetype, String edgename) {
         this.vectorFolder = vectorfolder;
@@ -43,63 +44,48 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
     public boolean execute(IMessage content) {
         LOG.info("Message values:" + content);
         if (content.getContent() != null) {
+            currentPoints = new HashMap<>();
             currentPoints = (Map<Integer, VectorPoint>) content.getContent();
             ++index;
         }
         LOG.info("Vector points size in distance calculator:" + currentPoints.size() + "index value:" + index);
         if (currentPoints.size() > 0) {
-            //processVectors(currentPoints, index);
-            process();
+            processVectors(currentPoints, index);
+            //process();
         }
         return true;
     }
 
     private void processVectors(Map<Integer, VectorPoint> currentPoints, int index) {
-        List<Short> distanceMatrix = new LinkedList<>();
         int INC = currentPoints.size();
+        WriterWrapper writer = new WriterWrapper("/tmp/distancematrix" + index + ".bin", false);
 
         // initialize the double arrays for this block
         double values[][] = new double[INC][];
         double cachedValues[][] = new double[INC][];
 
-        /*int taskLength = currentPoints.size() / context.getParallelism();
-        double values[][] = new double[INC / context.getParallelism()][];
-        double cachedValues[][] = new double[INC / context.getParallelism()][];
-        for (int i = 0; i < taskLength; i++) {
-            values[i] = new double[taskLength];
-            cachedValues[i] = new double[taskLength];
-        }
-        for (int i = 0; i < cachedValues.length; i++) {
-            for (int j = 0; j < cachedValues[i].length; j++) {
-                cachedValues[i][j] = -1;
-            }
-        }*/
-
         LOG.info("Context Task Index:" + context.taskIndex() + "\t" + values.length + "\t" + cachedValues.length);
-
-        /*double values[][] = new double[INC][];
-        double cachedValues[][] = new double[INC][];
         for (int i = 0; i < values.length; i++) {
-            values[i] = new double[INC];
-            cachedValues[i] = new double[INC];
+            values[i] = new double[currentPoints.size()];
+            cachedValues[i] = new double[currentPoints.size()];
         }
 
         for (int i = 0; i < cachedValues.length; i++) {
             for (int j = 0; j < cachedValues[i].length; j++) {
                 cachedValues[i][j] = -1;
             }
-        }*/
+        }
 
         int[] histogram = new int[100];
-        double[] changeHistogram = new double[100];
+        double[] changeHisto = new double[100];
 
         double dmax = Double.MIN_VALUE;
         double dmin = Double.MAX_VALUE;
 
-        List<VectorPoint> vectors;
-
-        int startIndex = 0;
+        int startIndex;
         int endIndex = -1;
+
+        List<VectorPoint> vectors;
 
         startIndex = endIndex + 1;
         endIndex = startIndex + INC - 1;
@@ -107,34 +93,9 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
         int readStartIndex = 0;
         int readEndIndex = INC - 1;
 
-        /*int startIndex;
-        int endIndex;
-
-        int readStartIndex = 0;
-        int readEndIndex = 0;
-
-        if (context.taskIndex() == 0) {
-            startIndex = 0;
-            endIndex = taskLength;
-
-            readStartIndex = 0;
-            readEndIndex = INC - 1;
-
-            LOG.info("Start Index and end Index (0):" + startIndex + "\t" + endIndex);
-            vectors = readVectors(currentPoints, startIndex, endIndex);
-        } else {
-            startIndex = taskLength + 1;
-            endIndex = INC;
-
-            //readStartIndex = taskLength;
-            //readEndIndex = INC;
-
-            LOG.info("Start Index and end Index (1):" + startIndex + "\t" + endIndex);
-            vectors = readVectors(currentPoints, startIndex, endIndex);
-        }*/
-
         vectors = readVectors(currentPoints, startIndex, endIndex);
-        LOG.info("Reading Vector Size:" + context.taskIndex() + "\t" + vectors.size());
+        LOG.info("Vectors size:" + vectors.size());
+
         // now start from the beginning and go through the whole file
         List<VectorPoint> secondVectors = vectors;
         for (int i = 0; i < secondVectors.size(); i++) {
@@ -142,7 +103,7 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
             double v = VectorPoint.vectorLength(1, sv);
             for (int z = 0; z < 100; z++) {
                 if (v < (z + 1) * .1) {
-                    changeHistogram[z]++;
+                    changeHisto[z]++;
                     break;
                 }
             }
@@ -168,10 +129,11 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
             }
         }
         readStartIndex = readEndIndex + 1;
-        //readEndIndex = readStartIndex + INC - 1;
+        readEndIndex = readStartIndex + INC - 1;
         LOG.info("MAX distance is: " + dmax + " MIN Distance is: " + dmin);
 
         // write the vectors to file
+        List<Short> distanceMatrix = new LinkedList<>();
         for (int i = 0; i < vectors.size(); i++) {
             for (int j = 0; j < values[i].length; j++) {
                 double doubleValue = values[i][j] / dmax;
@@ -190,73 +152,29 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
                 }
                 short shortValue = (short) (doubleValue * Short.MAX_VALUE);
                 distanceMatrix.add(shortValue);
-                //writer.writeShort(shortValue);
+                writer.writeShort(shortValue);
             }
-            //writer.line();
+            writer.line();
+        }
+        if (writer != null) {
+            writer.close();
         }
         LOG.info("Distance Matrix Size:" + distanceMatrix.size());
-        context.write(edgeName, distanceMatrix);
         LOG.info("MAX: " + VectorPoint.maxChange + " MIN: " + VectorPoint.minChange);
+        context.write(edgeName, distanceMatrix);
 
-        /*LOG.info("Distance history");
-        for (int i = 0; i < 100; i++) {
+        LOG.info("Distance history");
+        for (int i = 0; i < histogram.length; i++) {
             System.out.print(histogram[i] + ", ");
         }
         System.out.println();
 
         LOG.info("Ratio history");
-        for (int i = 0; i < 100; i++) {
-            System.out.print(changeHistogram[i] + ", ");
+        for (int i = 0; i < changeHisto.length; i++) {
+            System.out.print(changeHisto[i] + ", ");
         }
         System.out.println();
-        System.out.println(dmax);*/
-    }
-
-    private void process() {
-        BlockingQueue<Map> vectorsMap = new LinkedBlockingQueue<>();
-        try {
-            vectorsMap.put(currentPoints);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        List<Thread> threads = new ArrayList<Thread>();
-        // start 4 threads
-        for (int i = 0; i < 4; i++) {
-            Thread t = new Thread(new Worker(vectorsMap));
-            t.start();
-            threads.add(t);
-        }
-
-        for (Thread t : threads) {
-            try {
-                t.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        System.out.println("Distance calculator finished...");
-    }
-
-    private class Worker implements Runnable {
-        private BlockingQueue<Map> queue;
-
-        private Worker(BlockingQueue<Map> queue) {
-            this.queue = queue;
-        }
-
-        @Override
-        public void run() {
-            while (!queue.isEmpty()) {
-                try {
-                    Map f = queue.take();
-                    processVectors(f, 0);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-            }
-        }
+        System.out.println(dmax);
     }
 
     public static List<VectorPoint> readVectors(Map<Integer, VectorPoint> vectorPointMap, int startIndex, int endIndex) {
@@ -266,6 +184,7 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
         int readCount = 0;
         int globalVectorLength = -1;
 
+        LOG.info("vectorpoint map size:" + vectorPointMap.size() + "\t" + startIndex + "\t" + endIndex);
         for (Iterator<Map.Entry<Integer, VectorPoint>> it = vectorPointMap.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<Integer, VectorPoint> entry = it.next();
             VectorPoint v = entry.getValue();
@@ -293,7 +212,6 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
                     p.addCap(cap);
                     vecs.add(p);
                 }
-
             }
             count++;
             // we stop
@@ -305,9 +223,55 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
         return vecs;
     }
 
+    private void process() {
+        BlockingQueue<Map<Integer, VectorPoint>> vectorsMap = new LinkedBlockingQueue<>();
+        try {
+            vectorsMap.put(currentPoints);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        List<Thread> threads = new ArrayList<>();
+        // start 4 threads
+        for (int i = 0; i < 4; i++) {
+            Thread t = new Thread(new Worker(vectorsMap));
+            t.start();
+            threads.add(t);
+        }
+
+        for (Thread t : threads) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        System.out.println("Distance calculator finished...");
+    }
+
+    private class Worker implements Runnable {
+        private BlockingQueue<Map<Integer, VectorPoint>> queue;
+
+        private Worker(BlockingQueue<Map<Integer, VectorPoint>> queue) {
+            this.queue = queue;
+        }
+
+        @Override
+        public void run() {
+            while (!queue.isEmpty()) {
+                try {
+                    Map<Integer, VectorPoint> f = queue.take();
+                    processVectors(f, 0);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }
+    }
+
     //For testing write into file
     private void removeUnwantedVectorPoints() {
-
         String directory = "/tmp/vectorfile";
         FSDataOutputStream outputStream;
         try {
@@ -332,5 +296,4 @@ public class DistanceCalculatorComputeTask extends BaseCompute {
         boolean useNumbers = false;
         return RandomStringUtils.random(length, useLetters, useNumbers);
     }
-
 }

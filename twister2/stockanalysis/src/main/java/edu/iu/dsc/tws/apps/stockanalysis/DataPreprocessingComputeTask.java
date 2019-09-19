@@ -130,7 +130,6 @@ public class DataPreprocessingComputeTask extends BaseCompute {
 
         String outFileName = vectorDirectory + "/" + Utils.dateToString(startDate)
                 + Utils.dateToString(endDate) + ".csv";
-        LOG.info("output file name:" + outFileName);
         CleanMetric metric = this.metrics.get(outFileName);
         if (metric == null) {
             metric = new CleanMetric();
