@@ -1,14 +1,13 @@
 package edu.iu.dsc.tws.apps;
 
 import edu.iu.dsc.tws.api.JobConfig;
-import edu.iu.dsc.tws.api.Twister2Submitter;
-import edu.iu.dsc.tws.api.job.Twister2Job;
+import edu.iu.dsc.tws.api.Twister2Job;
+import edu.iu.dsc.tws.api.config.Config;
+import edu.iu.dsc.tws.api.scheduler.SchedulerContext;
 import edu.iu.dsc.tws.apps.mds.MDSWorker;
-import edu.iu.dsc.tws.common.config.Config;
 import edu.iu.dsc.tws.data.utils.DataObjectConstants;
-import edu.iu.dsc.tws.examples.Utils;
 import edu.iu.dsc.tws.rsched.core.ResourceAllocator;
-import edu.iu.dsc.tws.rsched.core.SchedulerContext;
+import edu.iu.dsc.tws.rsched.job.Twister2Submitter;
 import org.apache.commons.cli.*;
 
 import java.util.HashMap;
@@ -33,11 +32,11 @@ public class MDSProgram {
         options.addOption(DataObjectConstants.BYTE_TYPE, true, "bytetype");
         options.addOption(DataObjectConstants.DATA_INPUT, true, "datainput");
 
-        options.addOption(Utils.createOption(DataObjectConstants.DINPUT_DIRECTORY,
+        options.addOption(createOption(DataObjectConstants.DINPUT_DIRECTORY,
                 true, "Matrix Input Creation directory", true));
-        options.addOption(Utils.createOption(DataObjectConstants.FILE_SYSTEM,
+        options.addOption(createOption(DataObjectConstants.FILE_SYSTEM,
                 true, "file system", true));
-        options.addOption(Utils.createOption(DataObjectConstants.CONFIG_FILE,
+        options.addOption(createOption(DataObjectConstants.CONFIG_FILE,
                 true, "config File", true));
 
         @SuppressWarnings("deprecation")
@@ -80,6 +79,12 @@ public class MDSProgram {
 
         // now submit the job
         Twister2Submitter.submitJob(jobBuilder.build(), config);
+    }
 
+    public static Option createOption(String opt, boolean hasArg,
+                                      String description, boolean required) {
+        Option symbolListOption = new Option(opt, hasArg, description);
+        symbolListOption.setRequired(required);
+        return symbolListOption;
     }
 }

@@ -14,21 +14,23 @@ package edu.iu.dsc.tws.apps.mds;
 import com.google.common.base.Stopwatch;
 import edu.indiana.soic.spidal.configuration.ConfigurationMgr;
 import edu.indiana.soic.spidal.configuration.section.DAMDSSection;
-import edu.iu.dsc.tws.api.task.*;
-import edu.iu.dsc.tws.common.config.Config;
-import edu.iu.dsc.tws.common.config.Context;
-import edu.iu.dsc.tws.data.api.DataType;
-import edu.iu.dsc.tws.dataset.DataObject;
-import edu.iu.dsc.tws.dataset.DataPartition;
-import edu.iu.dsc.tws.examples.batch.mds.MDSDataObjectSink;
-import edu.iu.dsc.tws.examples.batch.mds.MDSDataObjectSource;
-import edu.iu.dsc.tws.executor.api.ExecutionPlan;
-import edu.iu.dsc.tws.task.api.BaseSink;
-import edu.iu.dsc.tws.task.api.BaseSource;
-import edu.iu.dsc.tws.task.api.IMessage;
-import edu.iu.dsc.tws.task.api.TaskContext;
-import edu.iu.dsc.tws.task.graph.DataFlowTaskGraph;
-import edu.iu.dsc.tws.task.graph.OperationMode;
+import edu.iu.dsc.tws.api.comms.messaging.types.MessageTypes;
+import edu.iu.dsc.tws.api.compute.IMessage;
+import edu.iu.dsc.tws.api.compute.TaskContext;
+import edu.iu.dsc.tws.api.compute.executor.ExecutionPlan;
+import edu.iu.dsc.tws.api.compute.graph.ComputeGraph;
+import edu.iu.dsc.tws.api.compute.graph.OperationMode;
+import edu.iu.dsc.tws.api.compute.modifiers.Collector;
+import edu.iu.dsc.tws.api.compute.modifiers.Receptor;
+import edu.iu.dsc.tws.api.compute.nodes.BaseSink;
+import edu.iu.dsc.tws.api.compute.nodes.BaseSource;
+import edu.iu.dsc.tws.api.config.Config;
+import edu.iu.dsc.tws.api.config.Context;
+import edu.iu.dsc.tws.api.dataset.DataObject;
+import edu.iu.dsc.tws.api.dataset.DataPartition;
+import edu.iu.dsc.tws.task.impl.ComputeConnection;
+import edu.iu.dsc.tws.task.impl.ComputeGraphBuilder;
+import edu.iu.dsc.tws.task.impl.TaskWorker;
 import mpi.MPIException;
 
 import java.io.IOException;
@@ -61,6 +63,7 @@ public class MDSWorker extends TaskWorker {
         String directory = mdsWorkerParameters.getDatapointDirectory();
         String byteType = mdsWorkerParameters.getByteType();
 
+        LOG.info("Config File:" + configFile);
         readConfiguration(configFile);
         String[] args = new String[]{configFile, String.valueOf(ParallelOps.nodeCount),
                 String.valueOf(ParallelOps.threadCount)};
@@ -86,8 +89,7 @@ public class MDSWorker extends TaskWorker {
         MDSDataObjectSource mdsDataObjectSource = new MDSDataObjectSource(Context.TWISTER2_DIRECT_EDGE,
                 directory, datasize);
         MDSDataObjectSink mdsDataObjectSink = new MDSDataObjectSink(matrixColumLength);
-
-        TaskGraphBuilder mdsDataProcessingGraphBuilder = TaskGraphBuilder.newBuilder(config);
+        ComputeGraphBuilder mdsDataProcessingGraphBuilder = ComputeGraphBuilder.newBuilder(config);
         mdsDataProcessingGraphBuilder.setTaskGraphName("MDSDataProcessing");
         mdsDataProcessingGraphBuilder.addSource("dataobjectsource", mdsDataObjectSource, parallel);
 
@@ -95,10 +97,10 @@ public class MDSWorker extends TaskWorker {
                 "dataobjectsink", mdsDataObjectSink, parallel);
         dataObjectComputeConnection.direct("dataobjectsource")
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
-                .withDataType(DataType.OBJECT);
+                .withDataType(MessageTypes.OBJECT);
         mdsDataProcessingGraphBuilder.setMode(OperationMode.BATCH);
+        ComputeGraph dataObjectTaskGraph = mdsDataProcessingGraphBuilder.build();
 
-        DataFlowTaskGraph dataObjectTaskGraph = mdsDataProcessingGraphBuilder.build();
         //Get the execution plan for the first task graph
         ExecutionPlan plan = taskExecutor.plan(dataObjectTaskGraph);
 
@@ -114,17 +116,17 @@ public class MDSWorker extends TaskWorker {
         MDSSourceTask generatorTask = new MDSSourceTask();
         MDSReceiverTask receiverTask = new MDSReceiverTask();
 
-        TaskGraphBuilder mdsComputeProcessingGraphBuilder = TaskGraphBuilder.newBuilder(config);
+        ComputeGraphBuilder mdsComputeProcessingGraphBuilder = ComputeGraphBuilder.newBuilder(config);
         mdsComputeProcessingGraphBuilder.setTaskGraphName("MDSCompute");
         mdsComputeProcessingGraphBuilder.addSource("generator", generatorTask, parallel);
         ComputeConnection computeConnection = mdsComputeProcessingGraphBuilder.addSink("receiver",
                 receiverTask, parallel);
         computeConnection.direct("generator")
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
-                .withDataType(DataType.OBJECT);
+                .withDataType(MessageTypes.OBJECT);
         mdsComputeProcessingGraphBuilder.setMode(OperationMode.BATCH);
 
-        DataFlowTaskGraph mdsTaskGraph = mdsComputeProcessingGraphBuilder.build();
+        ComputeGraph mdsTaskGraph = mdsComputeProcessingGraphBuilder.build();
 
         //Get the execution plan for the first task graph
         ExecutionPlan executionPlan = taskExecutor.plan(mdsTaskGraph);
@@ -146,6 +148,8 @@ public class MDSWorker extends TaskWorker {
 
         ParallelOps.nodeCount = Integer.parseInt(config.getStringValue("workers"));
         ParallelOps.threadCount = Integer.parseInt(String.valueOf(config.get("twister2.exector.worker.threads")));
+
+        LOG.info("node count value:" + ParallelOps.nodeCount + "\t" + ParallelOps.threadCount);
 
         byteOrder = mdsconfig.isBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
         BlockSize = mdsconfig.blockSize;
@@ -175,7 +179,8 @@ public class MDSWorker extends TaskWorker {
 
         @Override
         public void execute() {
-            DataPartition<?> dataPartition = dataPointsObject.getPartitions(context.taskIndex());
+            //DataPartition<?> dataPartition = dataPointsObject.getPartitions(context.taskIndex());
+            DataPartition<?> dataPartition = dataPointsObject.getPartition(context.taskIndex());
             datapoints = (short[]) dataPartition.getConsumer().next();
             executeMds(datapoints);
             context.writeEnd(Context.TWISTER2_DIRECT_EDGE, "MDS_Execution");

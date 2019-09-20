@@ -11,13 +11,13 @@
 //  limitations under the License.
 package edu.iu.dsc.tws.apps.mds;
 
-import edu.iu.dsc.tws.api.task.Collector;
-import edu.iu.dsc.tws.common.config.Config;
-import edu.iu.dsc.tws.dataset.DataPartition;
-import edu.iu.dsc.tws.dataset.impl.EntityPartition;
-import edu.iu.dsc.tws.task.api.BaseSink;
-import edu.iu.dsc.tws.task.api.IMessage;
-import edu.iu.dsc.tws.task.api.TaskContext;
+import edu.iu.dsc.tws.api.compute.IMessage;
+import edu.iu.dsc.tws.api.compute.TaskContext;
+import edu.iu.dsc.tws.api.compute.modifiers.Collector;
+import edu.iu.dsc.tws.api.compute.nodes.BaseSink;
+import edu.iu.dsc.tws.api.config.Config;
+import edu.iu.dsc.tws.api.dataset.DataPartition;
+import edu.iu.dsc.tws.dataset.partition.EntityPartition;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -30,7 +30,10 @@ public class MDSDataObjectSink  extends BaseSink implements Collector {
 
   private short[] dataPoints;
   private int numberOfColumns;
-  
+
+  public MDSDataObjectSink() {
+  }
+
   public MDSDataObjectSink(int length) {
     this.numberOfColumns = length;
   }

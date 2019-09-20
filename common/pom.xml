@@ -5,7 +5,7 @@
     <groupId>twister2</groupId>
     <artifactId>twister2-app-common</artifactId>
     <packaging>pom</packaging>
-    <version>0.2.1-SNAPSHOT</version>
+    <version>0.3.0-SNAPSHOT</version>
 
     <modules>
         <module>utils</module>

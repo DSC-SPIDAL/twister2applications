@@ -247,10 +247,10 @@ public class ParallelOps {
         }
     }
 
-//    public static void tearDownParallelism() throws MPIException {
-//        // End MPI
-//        MPI.Finalize();
-//    }
+    public static void tearDownParallelism() throws MPIException {
+        // End MPI
+        MPI.Finalize();
+    }
 
     public static void setParallelDecomposition(int globalRowCount, int targetDimension)
             throws IOException, MPIException {
