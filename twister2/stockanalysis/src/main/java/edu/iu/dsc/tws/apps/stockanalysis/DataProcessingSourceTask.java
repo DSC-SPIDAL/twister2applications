@@ -43,10 +43,15 @@ public class DataProcessingSourceTask extends BaseSource {
     private DataSource<?, ?> source;
     private InputSplit<?> inputSplit;
 
+    private EventTimeStockData eventTimeData;
+
+
+
     public DataProcessingSourceTask(String inputfile, String outputfile, String startdate) {
         this.inputFile = inputfile;
         this.outputFile = outputfile;
         this.startDate = startdate;
+        this.eventTimeData = new EventTimeStockData(null, 0, 0L);
     }
 
     @Override
@@ -62,7 +67,17 @@ public class DataProcessingSourceTask extends BaseSource {
     }
 
     private void writeToComputeTask(Record record) {
-        context.write(Context.TWISTER2_DIRECT_EDGE, record);
+        /**
+         * TODO:
+         *      1. Extract timestamp from the stock data record and convert it to a long value (this.eventTimeData.setEventTime(//);)
+         *      2. Set the record to the EventTimeStockData object (eventTimeData.setRecord(record);
+         *      3. Write to context
+         * */
+        //
+        //
+
+
+        context.write(Context.TWISTER2_DIRECT_EDGE, this.eventTimeData);
     }
 
     public void prepare(Config cfg, TaskContext context) {

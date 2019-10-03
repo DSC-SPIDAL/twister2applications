@@ -17,7 +17,7 @@ import java.util.logging.Logger;
 
 //public class DataProcessingStreamingWindowCompute extends ProcessWindow<Record> {
 
-public class DataProcessingStreamingWindowCompute extends ProcessWindow<EventTimeData> {
+public class DataProcessingStreamingWindowCompute extends ProcessWindow<EventTimeStockData> {
 
     private static final long serialVersionUID = -343442338342343424L;
 
@@ -35,15 +35,15 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<EventTim
 
 
     public DataProcessingStreamingWindowCompute(
-            ProcessWindowedFunction<EventTimeData> processWindowedFunction) {
+            ProcessWindowedFunction<EventTimeStockData> processWindowedFunction) {
         super(processWindowedFunction);
     }
 
     @Override
-    public boolean process(IWindowMessage<EventTimeData> windowMessage) {
+    public boolean process(IWindowMessage<EventTimeStockData> windowMessage) {
         LOG.info(String.format("Num Events : %d", windowMessage.getWindow().size()));
         List<Record> messageList = new ArrayList<>();
-        for (IMessage<EventTimeData> msg : windowMessage.getWindow()) {
+        for (IMessage<EventTimeStockData> msg : windowMessage.getWindow()) {
             Record record = msg.getContent().getData();
             messageList.add(record);
             if (messageList != null) {
@@ -55,7 +55,7 @@ public class DataProcessingStreamingWindowCompute extends ProcessWindow<EventTim
     }
 
     @Override
-    public boolean processLateMessages(IMessage<EventTimeData> lateMessage) {
+    public boolean processLateMessages(IMessage<EventTimeStockData> lateMessage) {
         return false;
     }
 
