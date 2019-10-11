@@ -3,9 +3,7 @@ package edu.iu.dsc.tws.sparkapps.batch
 import edu.iu.dsc.tws.sparkapps.data.Generator
 import org.apache.spark.{SparkConf, SparkContext}
 
-/**
-  * Created by pulasthi on 2/15/18.
-  */
+
 class Gather(paralelizm: Int, size: Int, iterations: Int) {
   def execute(): Unit = {
     val conf = new SparkConf().setAppName("spark_performance_gather")

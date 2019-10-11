@@ -12,7 +12,7 @@ class Generator {
 
   def getStringData(paralelizm: Int, size: Int,iterations: Int): List[String] = {
     var data: List[String] = List[String]()
-    val totalStrings = paralelizm*iterations;
+    val totalStrings = paralelizm * iterations;
     randomString = new RandomString(size, new Random(System.nanoTime), RandomString.alphanum)
     for( i <- 1 to totalStrings){
       data :+ randomString.nextString()
@@ -22,7 +22,7 @@ class Generator {
 
   def getIntData(paralelizm: Int, size: Int,iterations: Int): List[Int] = {
     var data2: List[Int] = List[Int]()
-    val totalInts = paralelizm*iterations;
+    val totalInts = paralelizm * iterations * size;
     for( i <- 1 to totalInts){
       data2 :+ i
     }
