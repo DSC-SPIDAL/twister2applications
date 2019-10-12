@@ -27,7 +27,7 @@ public class StormCollectiveAckSpout extends BaseRichSpout {
     private int currentSendCount = 0;
     private byte []data = null;
     private int outstandingTuples = 0;
-    private int maxOutstandingTuples = 100;
+    private long maxOutstandingTuples = 100;
     private boolean debug;
     private int totalSendCount = 0;
     private int ackReceiveCount = 0;
@@ -35,19 +35,20 @@ public class StormCollectiveAckSpout extends BaseRichSpout {
     private String fileName;
     private String id;
     private long start = 0;
-    private int printInveral = 0;
+    private long printInveral = 0;
     private long lastSendTime = 0;
     private boolean startFailing = false;
     private int totalAckCount = 0;
     private int totalFailCount = 0;
     private boolean fileWritten = false;
-    private int spoutParallel = 1;
-    private int parallel = 1;
+    private long spoutParallel = 1;
+    private long parallel = 1;
     private Map<String, Long> emitTimes = new HashMap<>();
     private boolean latency = false;
     private List<Long> times = new ArrayList<>();
-    private int streamManagers = 0;
+    private long streamManagers = 0;
     private long sendGap = 0;
+    private long workers = 1;
     private long getLastSendTime = 0;
     private TopologyContext context;
 
@@ -68,16 +69,16 @@ public class StormCollectiveAckSpout extends BaseRichSpout {
             this.collector = outputCollector;
             this.debug = (boolean) stormConf.get(Constants.ARGS_DEBUG);
             fileName = (String) stormConf.get(Constants.ARGS_THRPUT_FILENAME);
-            printInveral = (int) stormConf.get(Constants.ARGS_PRINT_INTERVAL);
+            printInveral = (long) stormConf.get(Constants.ARGS_PRINT_INTERVAL);
             id = topologyContext.getThisComponentId() + "_" + topologyContext.getThisTaskId();
             start = System.currentTimeMillis();
             lastSendTime = System.currentTimeMillis();
-            spoutParallel = (int) stormConf.get(Constants.ARGS_SPOUT_PARALLEL);
-            parallel = (int) stormConf.get(Constants.ARGS_PARALLEL);
-            maxOutstandingTuples = (int) stormConf.get(Constants.ARGS_MAX_PENDING);
-            streamManagers = (int) stormConf.get(Constants.ARGS_SREAM_MGRS);
+            spoutParallel = (long) stormConf.get(Constants.ARGS_SPOUT_PARALLEL);
+            parallel = (long) stormConf.get(Constants.ARGS_PARALLEL);
+            maxOutstandingTuples = (long) stormConf.get(Constants.ARGS_MAX_PENDING);
+            streamManagers = (long) stormConf.get(Constants.ARGS_SREAM_MGRS);
             String mode = (String) stormConf.get(Constants.ARGS_MODE);
-            int messagesPerSecond = (int) stormConf.get(Constants.ARGS_RATE);
+            long messagesPerSecond = (long) stormConf.get(Constants.ARGS_RATE);
             latency = true;
             if (messagesPerSecond > 0) {
                 sendGap = 1000000000 / messagesPerSecond;

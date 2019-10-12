@@ -118,6 +118,7 @@ public class StormProgram {
         if (!local) {
             Properties props = System.getProperties();
             //conf.setNumStmgrs(streamManagers);
+            conf.setNumWorkers(spoutParallel);
             StormSubmitter.submitTopology(name, conf, builder.createTopology());
 
         } else {
