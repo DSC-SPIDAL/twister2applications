@@ -23,6 +23,7 @@ class Gather(paralelizm: Int, size: Int, iterations: Int) {
       + " size : " + size
       + " iterations : " + iterations
       + " para : " + paralelizm
-      + " Time : " + (endTime - startTime));
+      + " Time : " + (endTime - startTime)
+    )
   }
 }

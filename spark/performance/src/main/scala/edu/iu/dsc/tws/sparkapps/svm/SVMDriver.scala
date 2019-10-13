@@ -37,7 +37,7 @@ object SVMDriver {
 
     val isTumbling = if (windowType.equalsIgnoreCase("TUMBLING"))  true else false
 
-    var streamingSVM = new StreamingSVM(para, features, iter, windowLength, slidingLength, isTumbling)
+    var streamingSVM = new StreamingSVM(size, para, features, iter, windowLength, slidingLength, isTumbling)
     streamingSVM.execute()
   }
 }
