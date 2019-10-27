@@ -24,7 +24,7 @@ import edu.iu.dsc.tws.rsched.core.ResourceAllocator;
 import edu.iu.dsc.tws.rsched.job.Twister2Submitter;
 import edu.iu.dsc.tws.task.cdfw.BaseDriver;
 import edu.iu.dsc.tws.task.cdfw.CDFWEnv;
-import edu.iu.dsc.tws.task.cdfw.DafaFlowJobConfig;
+import edu.iu.dsc.tws.task.cdfw.DataFlowJobConfig;
 import edu.iu.dsc.tws.task.cdfw.DataFlowGraph;
 import edu.iu.dsc.tws.task.impl.ComputeConnection;
 import edu.iu.dsc.tws.task.impl.ComputeGraphBuilder;
@@ -61,7 +61,7 @@ public final class MDSConnectedDataflowExample {
         @Override
         public void execute(CDFWEnv cdfwEnv) {
             Config config = cdfwEnv.getConfig();
-            DafaFlowJobConfig jobConfig = new DafaFlowJobConfig();
+            DataFlowJobConfig jobConfig = new DataFlowJobConfig();
 
             generateData(config);
 
@@ -80,7 +80,7 @@ public final class MDSConnectedDataflowExample {
     }
 
 
-    private static DataFlowGraph generateFirstJob(Config config, DafaFlowJobConfig jobConfig) {
+    private static DataFlowGraph generateFirstJob(Config config, DataFlowJobConfig jobConfig) {
 
         MDSDataObjectSource mdsDataObjectSource = new MDSDataObjectSource(
                 Context.TWISTER2_DIRECT_EDGE, dataDirectory, dsize);
@@ -105,7 +105,7 @@ public final class MDSConnectedDataflowExample {
         return job;
     }
 
-    private static DataFlowGraph generateSecondJob(Config config, DafaFlowJobConfig jobConfig) {
+    private static DataFlowGraph generateSecondJob(Config config, DataFlowJobConfig jobConfig) {
 
         MDSSourceTask generatorTask = new MDSSourceTask();
         MDSReceiverTask receiverTask = new MDSReceiverTask();
