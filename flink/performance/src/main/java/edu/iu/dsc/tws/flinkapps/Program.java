@@ -59,6 +59,10 @@ public class Program {
       KeyedReduce reduce = new KeyedReduce(size, itr, env, outFile);
       reduce.execute();
       env.execute();
+    } else if (col == 6) {
+      TeraSort teraSort = new TeraSort(size, params.getInt("numTuples", 1000), env, outFile);
+      teraSort.execute();
+      env.execute();
     }
   }
 
@@ -96,7 +100,7 @@ public class Program {
 
     int size = params.getInt("size", 1);
     int itr = params.getInt("itr", 10);
-    int col = params.getInt("col", 0);
+    int col = params.getInt("col", 6);
     String out = params.get("out", "out.txt");
 
     ReduceIterative  reduce = new ReduceIterative(size, itr, env, out);

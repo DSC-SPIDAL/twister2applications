@@ -35,5 +35,12 @@ object Driver {
       var gather = new Gather(para, size, iter)
       gather.execute();
     }
+    else if (col == 2) {
+      var reduce = new streaming.Reduce(para, size, iter)
+      reduce.execute();
+    }else if (col == 3) {
+      var gather = new streaming.Gather(para, size, iter)
+      gather.execute();
+    }
   }
 }

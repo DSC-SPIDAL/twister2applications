@@ -69,9 +69,11 @@ public class StreamingGather {
       }
 
       @Override
-      public void add(Tuple2<Integer, CollectiveData> integerCollectiveDataTuple2, List<CollectiveData> collectiveData) {
+      public List<CollectiveData> add(Tuple2<Integer, CollectiveData> integerCollectiveDataTuple2, List<CollectiveData> collectiveData) {
         collectiveData.add(integerCollectiveDataTuple2.f1);
+        return collectiveData;
       }
+
 
       @Override
       public List<CollectiveData> getResult(List<CollectiveData> collectiveData) {

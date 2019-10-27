@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>twister2</groupId>
-    <artifactId>spark-performance</artifactId>
+    <artifactId>spark-sort</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
@@ -19,17 +19,9 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_2.11</artifactId>
-            <version>2.2.1</version>
+            <artifactId>spark-core_2.12</artifactId>
+            <version>2.4.3</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.apache.spark/spark-streaming -->
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-streaming_2.12</artifactId>
-            <version>2.4.4</version>
-            <scope>provided</scope>
-        </dependency>
-
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -41,15 +33,14 @@
             <version>2.11.8</version>
         </dependency>
         <dependency>
-            <groupId>twister2</groupId>
-            <artifactId>twister2-app-common-utils</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_2.12</artifactId>
+            <version>2.4.3</version>
         </dependency>
         <!-- Test -->
     </dependencies>
 
     <build>
-        <sourceDirectory>src/main/scala</sourceDirectory>
         <plugins>
             <plugin>
                 <!-- see http://davidb.github.com/scala-maven-plugin -->

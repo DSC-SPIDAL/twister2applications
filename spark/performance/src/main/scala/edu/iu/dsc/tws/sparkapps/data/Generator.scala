@@ -9,10 +9,11 @@ import edu.iu.dsc.tws.apps.common.RandomString
   */
 class Generator {
   private var randomString: RandomString = null
+  private var randomDouble: Random = null
 
   def getStringData(paralelizm: Int, size: Int,iterations: Int): List[String] = {
     var data: List[String] = List[String]()
-    val totalStrings = paralelizm*iterations;
+    val totalStrings = paralelizm * iterations;
     randomString = new RandomString(size, new Random(System.nanoTime), RandomString.alphanum)
     for( i <- 1 to totalStrings){
       data :+ randomString.nextString()
@@ -20,9 +21,22 @@ class Generator {
     data
   }
 
+  def getSVMData(paralelizm: Int, size: Int,noOfFeatures: Int): List[String] = {
+    var data: List[String] = List[String]()
+    randomDouble = new Random()
+    for (j <- 1 to size) {
+      var str = ""
+      for (i <- 1 to noOfFeatures) {
+        str += randomDouble.nextGaussian() + ","
+      }
+      data:+ str
+    }
+    data
+  }
+
   def getIntData(paralelizm: Int, size: Int,iterations: Int): List[Int] = {
     var data2: List[Int] = List[Int]()
-    val totalInts = paralelizm*iterations;
+    val totalInts = paralelizm * iterations * size;
     for( i <- 1 to totalInts){
       data2 :+ i
     }

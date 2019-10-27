@@ -12,9 +12,9 @@
     <packaging>pom</packaging>
 
     <modules>
-      <!-- <module>flink</module>
-       <module>mpi</module>
-       <module>storm</module>-->
+       <module>flink</module>
+       <!--<module>mpi</module>-->
+        <!-- <module>storm</module>-->
        <module>twister2</module>
        <module>common</module>
        <!--<module>spark</module>-->
