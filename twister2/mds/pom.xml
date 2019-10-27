@@ -65,161 +65,167 @@
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>checkpointing-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>checkpointing-api-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>common-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>comms-api-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>comms-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>config-api-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>connector-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>data-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>data-api-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>dataset-api-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>exceptions-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>executor-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>master-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>network-api-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>proto-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>resource-scheduler-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>scheduler-api-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
+            <artifactId>fault-tolerance-api-java</artifactId>
+            <version>0.3.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.twister2</groupId>
             <artifactId>task-api-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>task-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>taskscheduler-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>tset-api-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>twister2-storm</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>edu.iu.dsc.tws</groupId>
+            <groupId>org.twister2</groupId>
             <artifactId>examples-java</artifactId>
             <version>0.3.0</version>
             <scope>provided</scope>
