@@ -5,7 +5,7 @@
 
     <parent>
         <artifactId>twister2-app-root</artifactId>
-        <groupId>twister2</groupId>
+        <groupId>org.twister2</groupId>
         <version>0.3.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -255,6 +255,13 @@
             <groupId>com.esotericsoftware</groupId>
             <artifactId>kryo</artifactId>
             <version>4.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.twister2</groupId>
+            <artifactId>fault-tolerance-api-java</artifactId>
+            <version>0.3.0</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

@@ -72,11 +72,13 @@ public class MatrixGenerator {
       ShortBuffer shortOutputBuffer = byteBuffer.asShortBuffer();
       shortOutputBuffer.put(input);
 
-      Path path = new Path(directory);
-      FileSystem fs = FileSystemUtils.get(path.toUri(), config);
+      Path pathDirectory = new Path(directory);
+      FileSystem fs = FileSystemUtils.get(pathDirectory.toUri(), config);
       LOG.info("File System:" + fs.getClass().getName());
-      if (fs.exists(path)) {
-        fs.delete(path, true);
+      if (fs.exists(pathDirectory)) {
+        if (!fs.delete(pathDirectory, true)) {
+          throw new IOException("Failed to delete the directory: " + pathDirectory.getPath());
+        }
       }
       FSDataOutputStream outputStream = fs.create(new Path(directory, generateRandom(10) + ".bin"));
       FileChannel out = outputStream.getChannel();
