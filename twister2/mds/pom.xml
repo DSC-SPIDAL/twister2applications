@@ -5,7 +5,7 @@
 
     <parent>
         <artifactId>twister2-app-root</artifactId>
-        <groupId>twister2</groupId>
+        <groupId>org.twister2</groupId>
         <version>0.3.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -189,6 +189,7 @@
             <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
+
         <dependency>
             <groupId>org.twister2</groupId>
             <artifactId>task-api-java</artifactId>
