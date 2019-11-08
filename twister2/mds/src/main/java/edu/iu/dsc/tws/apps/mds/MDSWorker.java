@@ -205,6 +205,7 @@ public class MDSWorker extends TaskWorker {
 
         private void executeMds(short[] datapoints) {
             Stopwatch mainTimer = Stopwatch.createStarted();
+            LOG.info("parallel ops thread:" + ParallelOps.threadComm + "\t" + byteOrder + "\t" + BlockSize);
             MDSProgramWorker mdsProgramWorker = new MDSProgramWorker(0, ParallelOps.threadComm,
                     mdsconfig, byteOrder, BlockSize, mainTimer, null, datapoints);
             try {

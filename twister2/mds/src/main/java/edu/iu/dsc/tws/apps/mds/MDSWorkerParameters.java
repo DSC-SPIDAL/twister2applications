@@ -65,6 +65,7 @@ public final class MDSWorkerParameters {
   public static MDSWorkerParameters build(Config cfg) {
 
     int workers = Integer.parseInt(cfg.getStringValue(DataObjectConstants.WORKERS));
+    System.out.println("number of workers:" + workers);
     int parallelismVal = Integer.parseInt(cfg.getStringValue(DataObjectConstants.PARALLELISM_VALUE));
 
     int dsize = Integer.parseInt(cfg.getStringValue(DataObjectConstants.DSIZE));
