@@ -156,8 +156,6 @@ public class MDSWorker extends TaskWorker {
         if (cps == -1){
             bind = false;
         }
-        LOG.info("node count and thread count:" + ParallelOps.nodeCount + "\t"
-                + ParallelOps.threadCount + "\t" + byteOrder + "\t" + BlockSize);
     }
 
     private static class MDSSourceTask extends BaseSource implements Receptor {
