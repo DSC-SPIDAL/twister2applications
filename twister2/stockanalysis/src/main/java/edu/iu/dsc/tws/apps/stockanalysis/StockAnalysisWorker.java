@@ -116,7 +116,7 @@ public class StockAnalysisWorker extends TaskWorker {
                 "distancecalculatorcompute", distanceCalculatorCompute, parallel);
         ComputeConnection mdsComputeConnection = preprocessingTaskGraphBuilder.addCompute(
                 "mdsprogramcompute", mdsProgramWorkerCompute, parallel);
-        ComputeConnection stockAnalysisSinkConnection = preprocessingTaskGraphBuilder.addSink(
+        ComputeConnection stockAnalysisSinkConnection = preprocessingTaskGraphBuilder.addCompute(
                 "dataanalysissink", stockAnalysisSinkTask, parallel);
 
         preprocessingComputeConnection.direct("preprocessingsourcetask").viaEdge(Context.TWISTER2_DIRECT_EDGE)

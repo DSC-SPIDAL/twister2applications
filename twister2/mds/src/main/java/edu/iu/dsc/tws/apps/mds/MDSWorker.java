@@ -23,7 +23,7 @@ import edu.iu.dsc.tws.api.compute.graph.OperationMode;
 import edu.iu.dsc.tws.api.compute.modifiers.Collector;
 import edu.iu.dsc.tws.api.compute.modifiers.IONames;
 import edu.iu.dsc.tws.api.compute.modifiers.Receptor;
-import edu.iu.dsc.tws.api.compute.nodes.BaseSink;
+import edu.iu.dsc.tws.api.compute.nodes.BaseCompute;
 import edu.iu.dsc.tws.api.compute.nodes.BaseSource;
 import edu.iu.dsc.tws.api.config.Config;
 import edu.iu.dsc.tws.api.config.Context;
@@ -93,7 +93,7 @@ public class MDSWorker extends TaskWorker {
         mdsDataProcessingGraphBuilder.setTaskGraphName("MDSDataProcessing");
         mdsDataProcessingGraphBuilder.addSource("dataobjectsource", mdsDataObjectSource, parallel);
 
-        ComputeConnection dataObjectComputeConnection = mdsDataProcessingGraphBuilder.addSink(
+        ComputeConnection dataObjectComputeConnection = mdsDataProcessingGraphBuilder.addCompute(
                 "dataobjectsink", mdsDataObjectSink, parallel);
         dataObjectComputeConnection.direct("dataobjectsource")
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
@@ -116,7 +116,7 @@ public class MDSWorker extends TaskWorker {
         ComputeGraphBuilder mdsComputeProcessingGraphBuilder = ComputeGraphBuilder.newBuilder(config);
         mdsComputeProcessingGraphBuilder.setTaskGraphName("MDSCompute");
         mdsComputeProcessingGraphBuilder.addSource("generator", generatorTask, parallel);
-        ComputeConnection computeConnection = mdsComputeProcessingGraphBuilder.addSink("receiver",
+        ComputeConnection computeConnection = mdsComputeProcessingGraphBuilder.addCompute("receiver",
                 receiverTask, parallel);
         computeConnection.direct("generator")
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
@@ -215,7 +215,7 @@ public class MDSWorker extends TaskWorker {
         }
     }
 
-    private static class MDSReceiverTask extends BaseSink implements Collector {
+    private static class MDSReceiverTask extends BaseCompute implements Collector {
         private static final long serialVersionUID = -254264120110286748L;
 
         @Override

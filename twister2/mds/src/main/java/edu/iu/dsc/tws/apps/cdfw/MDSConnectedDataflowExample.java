@@ -13,7 +13,7 @@ import edu.iu.dsc.tws.api.compute.graph.OperationMode;
 import edu.iu.dsc.tws.api.compute.modifiers.Collector;
 import edu.iu.dsc.tws.api.compute.modifiers.IONames;
 import edu.iu.dsc.tws.api.compute.modifiers.Receptor;
-import edu.iu.dsc.tws.api.compute.nodes.BaseSink;
+import edu.iu.dsc.tws.api.compute.nodes.BaseCompute;
 import edu.iu.dsc.tws.api.compute.nodes.BaseSource;
 import edu.iu.dsc.tws.api.config.Config;
 import edu.iu.dsc.tws.api.config.Context;
@@ -88,7 +88,7 @@ public final class MDSConnectedDataflowExample {
         mdsDataProcessingGraphBuilder.setTaskGraphName("MDSDataProcessing");
         mdsDataProcessingGraphBuilder.addSource("dataobjectsource", mdsDataObjectSource, parallel);
 
-        ComputeConnection dataObjectComputeConnection = mdsDataProcessingGraphBuilder.addSink(
+        ComputeConnection dataObjectComputeConnection = mdsDataProcessingGraphBuilder.addCompute(
                 "dataobjectsink", mdsDataObjectSink, parallel);
         dataObjectComputeConnection.direct("dataobjectsource")
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
@@ -112,7 +112,7 @@ public final class MDSConnectedDataflowExample {
         mdsComputeProcessingGraphBuilder.setTaskGraphName("MDSCompute");
         mdsComputeProcessingGraphBuilder.addSource("generator", generatorTask, parallel);
         ComputeConnection computeConnection
-                = mdsComputeProcessingGraphBuilder.addSink("receiver", receiverTask, parallel);
+                = mdsComputeProcessingGraphBuilder.addCompute("receiver", receiverTask, parallel);
         computeConnection.direct("generator")
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
                 .withDataType(MessageTypes.OBJECT);
@@ -180,7 +180,7 @@ public final class MDSConnectedDataflowExample {
         }
     }
 
-    private static class MDSReceiverTask extends BaseSink implements Collector {
+    private static class MDSReceiverTask extends BaseCompute implements Collector {
         private static final long serialVersionUID = -254264120110286748L;
 
         @Override

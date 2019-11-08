@@ -82,6 +82,7 @@ public class MatrixGenerator {
       FileChannel out = outputStream.getChannel();
       out.write(byteBuffer);
       outputStream.flush();
+      outputStream.sync();
       out.close();
     } catch (IOException e) {
       throw new RuntimeException("IOException Occured" + e.getMessage());
