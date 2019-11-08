@@ -11,8 +11,9 @@ import edu.iu.dsc.tws.api.compute.TaskContext;
 import edu.iu.dsc.tws.api.compute.graph.ComputeGraph;
 import edu.iu.dsc.tws.api.compute.graph.OperationMode;
 import edu.iu.dsc.tws.api.compute.modifiers.Collector;
+import edu.iu.dsc.tws.api.compute.modifiers.IONames;
 import edu.iu.dsc.tws.api.compute.modifiers.Receptor;
-import edu.iu.dsc.tws.api.compute.nodes.BaseSink;
+import edu.iu.dsc.tws.api.compute.nodes.BaseCompute;
 import edu.iu.dsc.tws.api.compute.nodes.BaseSource;
 import edu.iu.dsc.tws.api.config.Config;
 import edu.iu.dsc.tws.api.config.Context;
@@ -24,18 +25,16 @@ import edu.iu.dsc.tws.rsched.core.ResourceAllocator;
 import edu.iu.dsc.tws.rsched.job.Twister2Submitter;
 import edu.iu.dsc.tws.task.cdfw.BaseDriver;
 import edu.iu.dsc.tws.task.cdfw.CDFWEnv;
-import edu.iu.dsc.tws.task.cdfw.DataFlowJobConfig;
 import edu.iu.dsc.tws.task.cdfw.DataFlowGraph;
+import edu.iu.dsc.tws.task.cdfw.DataFlowJobConfig;
 import edu.iu.dsc.tws.task.impl.ComputeConnection;
 import edu.iu.dsc.tws.task.impl.ComputeGraphBuilder;
 import edu.iu.dsc.tws.task.impl.cdfw.CDFWWorker;
-import mpi.MPIException;
 import org.apache.commons.cli.*;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.util.HashMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class MDSConnectedDataflowExample {
@@ -89,7 +88,7 @@ public final class MDSConnectedDataflowExample {
         mdsDataProcessingGraphBuilder.setTaskGraphName("MDSDataProcessing");
         mdsDataProcessingGraphBuilder.addSource("dataobjectsource", mdsDataObjectSource, parallel);
 
-        ComputeConnection dataObjectComputeConnection = mdsDataProcessingGraphBuilder.addSink(
+        ComputeConnection dataObjectComputeConnection = mdsDataProcessingGraphBuilder.addCompute(
                 "dataobjectsink", mdsDataObjectSink, parallel);
         dataObjectComputeConnection.direct("dataobjectsource")
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
@@ -100,7 +99,6 @@ public final class MDSConnectedDataflowExample {
 
         DataFlowGraph job = DataFlowGraph.newSubGraphJob("dataobjectsink", dataObjectTaskGraph)
                 .setWorkers(instances).addDataFlowJobConfig(jobConfig)
-                .addOutput("points", "dataobjectsink")
                 .setGraphType("non-iterative");
         return job;
     }
@@ -114,7 +112,7 @@ public final class MDSConnectedDataflowExample {
         mdsComputeProcessingGraphBuilder.setTaskGraphName("MDSCompute");
         mdsComputeProcessingGraphBuilder.addSource("generator", generatorTask, parallel);
         ComputeConnection computeConnection
-                = mdsComputeProcessingGraphBuilder.addSink("receiver", receiverTask, parallel);
+                = mdsComputeProcessingGraphBuilder.addCompute("receiver", receiverTask, parallel);
         computeConnection.direct("generator")
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
                 .withDataType(MessageTypes.OBJECT);
@@ -123,7 +121,6 @@ public final class MDSConnectedDataflowExample {
 
         DataFlowGraph job = DataFlowGraph.newSubGraphJob("mdscomputegraph", dataComputeTaskGraph)
                 .setWorkers(instances).addDataFlowJobConfig(jobConfig)
-                .addInput("dataobjectsink", "points", "dataobjectink")
                 .setGraphType("non-iterative");
         return job;
     }
@@ -132,76 +129,49 @@ public final class MDSConnectedDataflowExample {
 
         private static final long serialVersionUID = -254264120110286748L;
 
-        private DataObject<?> dataPointsObject = null;
         private short[] datapoints = null;
+        private DataPartition<?> dataPartition = null;
 
         //Config Settings
         private DAMDSSection mdsconfig;
         private ByteOrder byteOrder;
-        private int blockSize;
-        private int cps;
-        private boolean bind;
+        private int BlockSize;
 
         @Override
         public void execute() {
-            DataPartition<?> dataPartition = dataPointsObject.getPartition(context.taskIndex());
-            datapoints = (short[]) dataPartition.getConsumer().next();
+            datapoints = (short[]) dataPartition.first();
             executeMds(datapoints);
             context.writeEnd(Context.TWISTER2_DIRECT_EDGE, "MDS_Execution");
         }
 
         @Override
         public void add(String name, DataObject<?> data) {
-            LOG.log(Level.INFO, "Received input: " + name);
+        }
+
+        @Override
+        public void add(String name, DataPartition<?> data) {
             if ("points".equals(name)) {
-                this.dataPointsObject = data;
+                this.dataPartition = data;
             }
+        }
+
+        @Override
+        public IONames getReceivableNames() {
+            return IONames.declare("points");
         }
 
         public void prepare(Config config, TaskContext context) {
             super.prepare(config, context);
             String configFilename = String.valueOf(config.get("config"));
-            readConfiguration(configFilename);
-            String[] args = new String[]{configFilename,
-                    String.valueOf(ParallelOps.nodeCount),
-                    String.valueOf(ParallelOps.threadCount)};
             mdsconfig = new ConfigurationMgr(configFilename).damdsSection;
-            try {
-                ParallelOps.setupParallelism(args);
-                ParallelOps.setParallelDecomposition(mdsconfig.numberDataPoints, mdsconfig.targetDimension);
-            } catch (MPIException e) {
-                throw new RuntimeException(e.getMessage());
-            } catch (IOException e) {
-                throw new RuntimeException(e.getMessage());
-            }
             byteOrder = mdsconfig.isBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
-            blockSize = mdsconfig.blockSize;
-        }
-
-        private void readConfiguration(String filename) {
-            mdsconfig = new ConfigurationMgr(filename).damdsSection;
-
-            ParallelOps.nodeCount = context.getParallelism();
-            ParallelOps.threadCount = Integer.parseInt(String.valueOf(config.get("twister2.exector.worker.threads")));
-
-            byteOrder = mdsconfig.isBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
-            blockSize = mdsconfig.blockSize;
-
-            ParallelOps.mmapsPerNode = 1;
-            ParallelOps.mmapScratchDir = ".";
-
-            cps = -1;
-            if (cps == -1) {
-                bind = false;
-            }
-            LOG.info("node count and thread count:" + ParallelOps.nodeCount + "\t"
-                    + ParallelOps.threadCount + "\t" + byteOrder + "\t" + blockSize);
+            BlockSize = mdsconfig.blockSize;
         }
 
         private void executeMds(short[] datapoints) {
             Stopwatch mainTimer = Stopwatch.createStarted();
             MDSProgramWorker mdsProgramWorker = new MDSProgramWorker(0, ParallelOps.threadComm,
-                    mdsconfig, byteOrder, blockSize, mainTimer, null, datapoints);
+                    mdsconfig, byteOrder, BlockSize, mainTimer, null, datapoints);
             try {
                 mdsProgramWorker.run();
             } catch (IOException e) {
@@ -210,7 +180,7 @@ public final class MDSConnectedDataflowExample {
         }
     }
 
-    private static class MDSReceiverTask extends BaseSink implements Collector {
+    private static class MDSReceiverTask extends BaseCompute implements Collector {
         private static final long serialVersionUID = -254264120110286748L;
 
         @Override

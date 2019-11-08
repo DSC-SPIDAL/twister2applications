@@ -25,6 +25,8 @@ import java.nio.ShortBuffer;
 import java.nio.channels.FileChannel;
 import java.util.logging.Logger;
 
+import static java.lang.Short.MAX_VALUE;
+
 public class MatrixGenerator {
 
   private static final Logger LOG = Logger.getLogger(MatrixGenerator.class.getName());
@@ -32,7 +34,6 @@ public class MatrixGenerator {
   private Config config;
 
   private static ByteOrder endianness = ByteOrder.BIG_ENDIAN;
-  private static int dataTypeSize = Short.BYTES;
   private int workerId;
 
   public MatrixGenerator(Config cfg, int workerid) {
@@ -44,7 +45,6 @@ public class MatrixGenerator {
     this.config = cfg;
   }
 
-
   /**
    * To generate the matrix for MDS application
    * @param matrixRowLength
@@ -54,10 +54,9 @@ public class MatrixGenerator {
    */
   public void generate(int matrixRowLength, int matrixColumnLength, String directory, String byteType) {
     endianness = "big".equals(byteType) ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
-
     short[] input = new short[matrixRowLength * matrixColumnLength];
     for (int i = 0; i < matrixRowLength * matrixColumnLength; i++) {
-      double temp = Math.random() * Short.MAX_VALUE;
+      double temp = Math.random() * MAX_VALUE;
       input[i] = (short) temp;
     }
     try {
@@ -74,7 +73,6 @@ public class MatrixGenerator {
 
       Path pathDirectory = new Path(directory);
       FileSystem fs = FileSystemUtils.get(pathDirectory.toUri(), config);
-      LOG.info("File System:" + fs.getClass().getName());
       if (fs.exists(pathDirectory)) {
         if (!fs.delete(pathDirectory, true)) {
           throw new IOException("Failed to delete the directory: " + pathDirectory.getPath());
@@ -82,9 +80,9 @@ public class MatrixGenerator {
       }
       FSDataOutputStream outputStream = fs.create(new Path(directory, generateRandom(10) + ".bin"));
       FileChannel out = outputStream.getChannel();
-      LOG.info("Byte buffer values:" + byteBuffer);
       out.write(byteBuffer);
       outputStream.flush();
+      outputStream.sync();
       out.close();
     } catch (IOException e) {
       throw new RuntimeException("IOException Occured" + e.getMessage());
