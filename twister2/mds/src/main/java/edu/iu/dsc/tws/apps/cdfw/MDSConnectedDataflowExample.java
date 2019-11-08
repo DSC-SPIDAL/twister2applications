@@ -30,6 +30,7 @@ import edu.iu.dsc.tws.task.cdfw.DataFlowJobConfig;
 import edu.iu.dsc.tws.task.impl.ComputeConnection;
 import edu.iu.dsc.tws.task.impl.ComputeGraphBuilder;
 import edu.iu.dsc.tws.task.impl.cdfw.CDFWWorker;
+import mpi.MPIException;
 import org.apache.commons.cli.*;
 
 import java.io.IOException;
@@ -83,7 +84,7 @@ public final class MDSConnectedDataflowExample {
 
         MDSDataObjectSource mdsDataObjectSource = new MDSDataObjectSource(
                 Context.TWISTER2_DIRECT_EDGE, dataDirectory, dsize);
-        MDSDataObjectSink mdsDataObjectSink = new MDSDataObjectSink(dimension);
+        MDSDataObjectSink mdsDataObjectSink = new MDSDataObjectSink("points", dimension);
         ComputeGraphBuilder mdsDataProcessingGraphBuilder = ComputeGraphBuilder.newBuilder(config);
         mdsDataProcessingGraphBuilder.setTaskGraphName("MDSDataProcessing");
         mdsDataProcessingGraphBuilder.addSource("dataobjectsource", mdsDataObjectSource, parallel);
@@ -135,7 +136,9 @@ public final class MDSConnectedDataflowExample {
         //Config Settings
         private DAMDSSection mdsconfig;
         private ByteOrder byteOrder;
-        private int BlockSize;
+        private int blockSize;
+        private int cps;
+        private boolean bind;
 
         @Override
         public void execute() {
@@ -163,15 +166,47 @@ public final class MDSConnectedDataflowExample {
         public void prepare(Config config, TaskContext context) {
             super.prepare(config, context);
             String configFilename = String.valueOf(config.get("config"));
+            readConfiguration(configFilename);
+            String[] args = new String[]{configFilename,
+                    String.valueOf(ParallelOps.nodeCount),
+                    String.valueOf(ParallelOps.threadCount)};
             mdsconfig = new ConfigurationMgr(configFilename).damdsSection;
+            try {
+                ParallelOps.setupParallelism(args);
+                ParallelOps.setParallelDecomposition(mdsconfig.numberDataPoints, mdsconfig.targetDimension);
+            } catch (MPIException e) {
+                throw new RuntimeException(e.getMessage());
+            } catch (IOException e) {
+                throw new RuntimeException(e.getMessage());
+            }
             byteOrder = mdsconfig.isBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
-            BlockSize = mdsconfig.blockSize;
+            blockSize = mdsconfig.blockSize;
+        }
+
+        private void readConfiguration(String filename) {
+            mdsconfig = new ConfigurationMgr(filename).damdsSection;
+
+            ParallelOps.nodeCount = context.getParallelism();
+            ParallelOps.threadCount = Integer.parseInt(String.valueOf(config.get("twister2.exector.worker.threads")));
+
+            byteOrder = mdsconfig.isBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
+            blockSize = mdsconfig.blockSize;
+
+            ParallelOps.mmapsPerNode = 1;
+            ParallelOps.mmapScratchDir = ".";
+
+            cps = -1;
+            if (cps == -1) {
+                bind = false;
+            }
+            LOG.info("node count and thread count:" + ParallelOps.nodeCount + "\t"
+                    + ParallelOps.threadCount + "\t" + byteOrder + "\t" + blockSize);
         }
 
         private void executeMds(short[] datapoints) {
             Stopwatch mainTimer = Stopwatch.createStarted();
             MDSProgramWorker mdsProgramWorker = new MDSProgramWorker(0, ParallelOps.threadComm,
-                    mdsconfig, byteOrder, BlockSize, mainTimer, null, datapoints);
+                    mdsconfig, byteOrder, blockSize, mainTimer, null, datapoints);
             try {
                 mdsProgramWorker.run();
             } catch (IOException e) {
