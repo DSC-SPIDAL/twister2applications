@@ -63,20 +63,38 @@ public final class MDSConnectedDataflowExample {
             Config config = cdfwEnv.getConfig();
             DataFlowJobConfig jobConfig = new DataFlowJobConfig();
 
-            generateData(config);
-
+            DataFlowGraph job = generateData(config, jobConfig);
             DataFlowGraph job1 = generateFirstJob(config, jobConfig);
             DataFlowGraph job2 = generateSecondJob(config, jobConfig);
 
+            cdfwEnv.executeDataFlowGraph(job);
             cdfwEnv.executeDataFlowGraph(job1);
             cdfwEnv.executeDataFlowGraph(job2);
         }
+    }
 
-        public void generateData(Config config) {
-            MatrixGenerator matrixGen = new MatrixGenerator(config);
-            LOG.info("data size:" + dsize+ "\t" + dimension + "\t" + dataDirectory + "\t" + byteType);
-            matrixGen.generate(dsize, dimension, dataDirectory, byteType);
-        }
+    private static DataFlowGraph generateData(Config config, DataFlowJobConfig jobConfig) {
+
+        DataGeneratorSource mdsDataObjectSource = new DataGeneratorSource(
+                Context.TWISTER2_DIRECT_EDGE, dsize, dimension, dataDirectory, byteType);
+        DataGeneratorSink mdsDataObjectSink = new DataGeneratorSink();
+        ComputeGraphBuilder dataGenerationGraphBuilder = ComputeGraphBuilder.newBuilder(config);
+        dataGenerationGraphBuilder.setTaskGraphName("DataGenerator");
+        dataGenerationGraphBuilder.addSource("datageneratorsource", mdsDataObjectSource, parallel);
+
+        ComputeConnection dataObjectComputeConnection = dataGenerationGraphBuilder.addCompute(
+                "datageneratorsink", mdsDataObjectSink, parallel);
+        dataObjectComputeConnection.direct("datageneratorsource")
+                .viaEdge(Context.TWISTER2_DIRECT_EDGE)
+                .withDataType(MessageTypes.OBJECT);
+        dataGenerationGraphBuilder.setMode(OperationMode.BATCH);
+        ComputeGraph dataObjectTaskGraph = dataGenerationGraphBuilder.build();
+        dataGenerationGraphBuilder.setTaskGraphName("datageneratorTG");
+
+        DataFlowGraph job = DataFlowGraph.newSubGraphJob("datageneratorsink", dataObjectTaskGraph)
+                .setWorkers(instances).addDataFlowJobConfig(jobConfig)
+                .setGraphType("non-iterative");
+        return job;
     }
 
 
