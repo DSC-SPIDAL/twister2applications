@@ -3,22 +3,14 @@ package edu.iu.dsc.tws.apps.stockanalysis;
 import edu.iu.dsc.tws.apps.stockanalysis.utils.Record;
 import edu.iu.dsc.tws.task.window.api.ITimeStampedData;
 
-import java.util.List;
-
-public class EventTimeData implements ITimeStampedData<Record> {
+public class EventTimeStockData implements ITimeStampedData<Record> {
 
     private long eventTime;
     private Record record;
-
-    public List<Record> getRecordList() {
-        return recordList;
-    }
-
-    private List<Record> recordList;
     private int id;
 
-    public EventTimeData(List<Record> data, int id, long eventTime) {
-        this.recordList = data;
+    public EventTimeStockData(Record data, int id, long eventTime) {
+        this.record = data;
         this.id = id;
         this.eventTime = eventTime;
     }
@@ -35,5 +27,17 @@ public class EventTimeData implements ITimeStampedData<Record> {
 
     public int getId() {
         return this.id;
+    }
+
+    public void setEventTime(long eventTime) {
+        this.eventTime = eventTime;
+    }
+
+    public void setRecord(Record record) {
+        this.record = record;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 }

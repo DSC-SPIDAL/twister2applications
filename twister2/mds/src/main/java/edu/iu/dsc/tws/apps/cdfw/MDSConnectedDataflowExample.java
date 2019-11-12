@@ -11,8 +11,9 @@ import edu.iu.dsc.tws.api.compute.TaskContext;
 import edu.iu.dsc.tws.api.compute.graph.ComputeGraph;
 import edu.iu.dsc.tws.api.compute.graph.OperationMode;
 import edu.iu.dsc.tws.api.compute.modifiers.Collector;
+import edu.iu.dsc.tws.api.compute.modifiers.IONames;
 import edu.iu.dsc.tws.api.compute.modifiers.Receptor;
-import edu.iu.dsc.tws.api.compute.nodes.BaseSink;
+import edu.iu.dsc.tws.api.compute.nodes.BaseCompute;
 import edu.iu.dsc.tws.api.compute.nodes.BaseSource;
 import edu.iu.dsc.tws.api.config.Config;
 import edu.iu.dsc.tws.api.config.Context;
@@ -24,8 +25,8 @@ import edu.iu.dsc.tws.rsched.core.ResourceAllocator;
 import edu.iu.dsc.tws.rsched.job.Twister2Submitter;
 import edu.iu.dsc.tws.task.cdfw.BaseDriver;
 import edu.iu.dsc.tws.task.cdfw.CDFWEnv;
-import edu.iu.dsc.tws.task.cdfw.DafaFlowJobConfig;
 import edu.iu.dsc.tws.task.cdfw.DataFlowGraph;
+import edu.iu.dsc.tws.task.cdfw.DataFlowJobConfig;
 import edu.iu.dsc.tws.task.impl.ComputeConnection;
 import edu.iu.dsc.tws.task.impl.ComputeGraphBuilder;
 import edu.iu.dsc.tws.task.impl.cdfw.CDFWWorker;
@@ -35,7 +36,6 @@ import org.apache.commons.cli.*;
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.util.HashMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class MDSConnectedDataflowExample {
@@ -61,35 +61,53 @@ public final class MDSConnectedDataflowExample {
         @Override
         public void execute(CDFWEnv cdfwEnv) {
             Config config = cdfwEnv.getConfig();
-            DafaFlowJobConfig jobConfig = new DafaFlowJobConfig();
+            DataFlowJobConfig jobConfig = new DataFlowJobConfig();
 
-            generateData(config);
-
+            DataFlowGraph job = generateData(config, jobConfig);
             DataFlowGraph job1 = generateFirstJob(config, jobConfig);
             DataFlowGraph job2 = generateSecondJob(config, jobConfig);
 
+            cdfwEnv.executeDataFlowGraph(job);
             cdfwEnv.executeDataFlowGraph(job1);
             cdfwEnv.executeDataFlowGraph(job2);
         }
+    }
 
-        public void generateData(Config config) {
-            MatrixGenerator matrixGen = new MatrixGenerator(config);
-            LOG.info("data size:" + dsize+ "\t" + dimension + "\t" + dataDirectory + "\t" + byteType);
-            matrixGen.generate(dsize, dimension, dataDirectory, byteType);
-        }
+    private static DataFlowGraph generateData(Config config, DataFlowJobConfig jobConfig) {
+
+        DataGeneratorSource mdsDataObjectSource = new DataGeneratorSource(
+                Context.TWISTER2_DIRECT_EDGE, dsize, dimension, dataDirectory, byteType);
+        DataGeneratorSink mdsDataObjectSink = new DataGeneratorSink();
+        ComputeGraphBuilder dataGenerationGraphBuilder = ComputeGraphBuilder.newBuilder(config);
+        dataGenerationGraphBuilder.setTaskGraphName("DataGenerator");
+        dataGenerationGraphBuilder.addSource("datageneratorsource", mdsDataObjectSource, parallel);
+
+        ComputeConnection dataObjectComputeConnection = dataGenerationGraphBuilder.addCompute(
+                "datageneratorsink", mdsDataObjectSink, parallel);
+        dataObjectComputeConnection.direct("datageneratorsource")
+                .viaEdge(Context.TWISTER2_DIRECT_EDGE)
+                .withDataType(MessageTypes.OBJECT);
+        dataGenerationGraphBuilder.setMode(OperationMode.BATCH);
+        ComputeGraph dataObjectTaskGraph = dataGenerationGraphBuilder.build();
+        dataGenerationGraphBuilder.setTaskGraphName("datageneratorTG");
+
+        DataFlowGraph job = DataFlowGraph.newSubGraphJob("datageneratorsink", dataObjectTaskGraph)
+                .setWorkers(instances).addDataFlowJobConfig(jobConfig)
+                .setGraphType("non-iterative");
+        return job;
     }
 
 
-    private static DataFlowGraph generateFirstJob(Config config, DafaFlowJobConfig jobConfig) {
+    private static DataFlowGraph generateFirstJob(Config config, DataFlowJobConfig jobConfig) {
 
         MDSDataObjectSource mdsDataObjectSource = new MDSDataObjectSource(
                 Context.TWISTER2_DIRECT_EDGE, dataDirectory, dsize);
-        MDSDataObjectSink mdsDataObjectSink = new MDSDataObjectSink(dimension);
+        MDSDataObjectSink mdsDataObjectSink = new MDSDataObjectSink("points", dimension);
         ComputeGraphBuilder mdsDataProcessingGraphBuilder = ComputeGraphBuilder.newBuilder(config);
         mdsDataProcessingGraphBuilder.setTaskGraphName("MDSDataProcessing");
         mdsDataProcessingGraphBuilder.addSource("dataobjectsource", mdsDataObjectSource, parallel);
 
-        ComputeConnection dataObjectComputeConnection = mdsDataProcessingGraphBuilder.addSink(
+        ComputeConnection dataObjectComputeConnection = mdsDataProcessingGraphBuilder.addCompute(
                 "dataobjectsink", mdsDataObjectSink, parallel);
         dataObjectComputeConnection.direct("dataobjectsource")
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
@@ -100,12 +118,11 @@ public final class MDSConnectedDataflowExample {
 
         DataFlowGraph job = DataFlowGraph.newSubGraphJob("dataobjectsink", dataObjectTaskGraph)
                 .setWorkers(instances).addDataFlowJobConfig(jobConfig)
-                .addOutput("points", "dataobjectsink")
                 .setGraphType("non-iterative");
         return job;
     }
 
-    private static DataFlowGraph generateSecondJob(Config config, DafaFlowJobConfig jobConfig) {
+    private static DataFlowGraph generateSecondJob(Config config, DataFlowJobConfig jobConfig) {
 
         MDSSourceTask generatorTask = new MDSSourceTask();
         MDSReceiverTask receiverTask = new MDSReceiverTask();
@@ -114,7 +131,7 @@ public final class MDSConnectedDataflowExample {
         mdsComputeProcessingGraphBuilder.setTaskGraphName("MDSCompute");
         mdsComputeProcessingGraphBuilder.addSource("generator", generatorTask, parallel);
         ComputeConnection computeConnection
-                = mdsComputeProcessingGraphBuilder.addSink("receiver", receiverTask, parallel);
+                = mdsComputeProcessingGraphBuilder.addCompute("receiver", receiverTask, parallel);
         computeConnection.direct("generator")
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
                 .withDataType(MessageTypes.OBJECT);
@@ -123,7 +140,6 @@ public final class MDSConnectedDataflowExample {
 
         DataFlowGraph job = DataFlowGraph.newSubGraphJob("mdscomputegraph", dataComputeTaskGraph)
                 .setWorkers(instances).addDataFlowJobConfig(jobConfig)
-                .addInput("dataobjectsink", "points", "dataobjectink")
                 .setGraphType("non-iterative");
         return job;
     }
@@ -132,8 +148,8 @@ public final class MDSConnectedDataflowExample {
 
         private static final long serialVersionUID = -254264120110286748L;
 
-        private DataObject<?> dataPointsObject = null;
         private short[] datapoints = null;
+        private DataPartition<?> dataPartition = null;
 
         //Config Settings
         private DAMDSSection mdsconfig;
@@ -144,18 +160,25 @@ public final class MDSConnectedDataflowExample {
 
         @Override
         public void execute() {
-            DataPartition<?> dataPartition = dataPointsObject.getPartition(context.taskIndex());
-            datapoints = (short[]) dataPartition.getConsumer().next();
+            datapoints = (short[]) dataPartition.first();
             executeMds(datapoints);
             context.writeEnd(Context.TWISTER2_DIRECT_EDGE, "MDS_Execution");
         }
 
         @Override
         public void add(String name, DataObject<?> data) {
-            LOG.log(Level.INFO, "Received input: " + name);
+        }
+
+        @Override
+        public void add(String name, DataPartition<?> data) {
             if ("points".equals(name)) {
-                this.dataPointsObject = data;
+                this.dataPartition = data;
             }
+        }
+
+        @Override
+        public IONames getReceivableNames() {
+            return IONames.declare("points");
         }
 
         public void prepare(Config config, TaskContext context) {
@@ -210,7 +233,7 @@ public final class MDSConnectedDataflowExample {
         }
     }
 
-    private static class MDSReceiverTask extends BaseSink implements Collector {
+    private static class MDSReceiverTask extends BaseCompute implements Collector {
         private static final long serialVersionUID = -254264120110286748L;
 
         @Override

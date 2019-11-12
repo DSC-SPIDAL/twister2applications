@@ -21,8 +21,9 @@ import edu.iu.dsc.tws.api.compute.executor.ExecutionPlan;
 import edu.iu.dsc.tws.api.compute.graph.ComputeGraph;
 import edu.iu.dsc.tws.api.compute.graph.OperationMode;
 import edu.iu.dsc.tws.api.compute.modifiers.Collector;
+import edu.iu.dsc.tws.api.compute.modifiers.IONames;
 import edu.iu.dsc.tws.api.compute.modifiers.Receptor;
-import edu.iu.dsc.tws.api.compute.nodes.BaseSink;
+import edu.iu.dsc.tws.api.compute.nodes.BaseCompute;
 import edu.iu.dsc.tws.api.compute.nodes.BaseSource;
 import edu.iu.dsc.tws.api.config.Config;
 import edu.iu.dsc.tws.api.config.Context;
@@ -35,7 +36,6 @@ import mpi.MPIException;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class MDSWorker extends TaskWorker {
@@ -88,12 +88,12 @@ public class MDSWorker extends TaskWorker {
         /** Task Graph to partition the generated matrix for MDS **/
         MDSDataObjectSource mdsDataObjectSource = new MDSDataObjectSource(Context.TWISTER2_DIRECT_EDGE,
                 directory, datasize);
-        MDSDataObjectSink mdsDataObjectSink = new MDSDataObjectSink(matrixColumLength);
+        MDSDataObjectSink mdsDataObjectSink = new MDSDataObjectSink("points", matrixColumLength);
         ComputeGraphBuilder mdsDataProcessingGraphBuilder = ComputeGraphBuilder.newBuilder(config);
         mdsDataProcessingGraphBuilder.setTaskGraphName("MDSDataProcessing");
         mdsDataProcessingGraphBuilder.addSource("dataobjectsource", mdsDataObjectSource, parallel);
 
-        ComputeConnection dataObjectComputeConnection = mdsDataProcessingGraphBuilder.addSink(
+        ComputeConnection dataObjectComputeConnection = mdsDataProcessingGraphBuilder.addCompute(
                 "dataobjectsink", mdsDataObjectSink, parallel);
         dataObjectComputeConnection.direct("dataobjectsource")
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
@@ -109,17 +109,14 @@ public class MDSWorker extends TaskWorker {
 
         long endTimeData = System.currentTimeMillis();
 
-        //Retrieve the output of the first task graph
-        DataObject<Object> dataPointsObject = taskExecutor.getOutput(dataObjectTaskGraph, plan, "dataobjectsink");
-
-        /** Task Graph to run the MDS **/
+         /** Task Graph to run the MDS **/
         MDSSourceTask generatorTask = new MDSSourceTask();
         MDSReceiverTask receiverTask = new MDSReceiverTask();
 
         ComputeGraphBuilder mdsComputeProcessingGraphBuilder = ComputeGraphBuilder.newBuilder(config);
         mdsComputeProcessingGraphBuilder.setTaskGraphName("MDSCompute");
         mdsComputeProcessingGraphBuilder.addSource("generator", generatorTask, parallel);
-        ComputeConnection computeConnection = mdsComputeProcessingGraphBuilder.addSink("receiver",
+        ComputeConnection computeConnection = mdsComputeProcessingGraphBuilder.addCompute("receiver",
                 receiverTask, parallel);
         computeConnection.direct("generator")
                 .viaEdge(Context.TWISTER2_DIRECT_EDGE)
@@ -132,8 +129,6 @@ public class MDSWorker extends TaskWorker {
         ExecutionPlan executionPlan = taskExecutor.plan(mdsTaskGraph);
 
         //Actual execution for the first taskgraph
-        taskExecutor.addInput(
-                mdsTaskGraph, executionPlan, "generator", "points", dataPointsObject);
         taskExecutor.execute(mdsTaskGraph, executionPlan);
         long endTime = System.currentTimeMillis();
         if (workerId == 0) {
@@ -161,16 +156,14 @@ public class MDSWorker extends TaskWorker {
         if (cps == -1){
             bind = false;
         }
-        LOG.info("node count and thread count:" + ParallelOps.nodeCount + "\t"
-                + ParallelOps.threadCount + "\t" + byteOrder + "\t" + BlockSize);
     }
 
     private static class MDSSourceTask extends BaseSource implements Receptor {
 
         private static final long serialVersionUID = -254264120110286748L;
 
-        private DataObject<?> dataPointsObject = null;
         private short[] datapoints = null;
+        private DataPartition<?> dataPartition = null;
 
         //Config Settings
         private DAMDSSection mdsconfig;
@@ -179,19 +172,25 @@ public class MDSWorker extends TaskWorker {
 
         @Override
         public void execute() {
-            //DataPartition<?> dataPartition = dataPointsObject.getPartitions(context.taskIndex());
-            DataPartition<?> dataPartition = dataPointsObject.getPartition(context.taskIndex());
-            datapoints = (short[]) dataPartition.getConsumer().next();
+            datapoints = (short[]) dataPartition.first();
             executeMds(datapoints);
             context.writeEnd(Context.TWISTER2_DIRECT_EDGE, "MDS_Execution");
         }
 
         @Override
         public void add(String name, DataObject<?> data) {
-            LOG.log(Level.INFO, "Received input: " + name);
+        }
+
+        @Override
+        public void add(String name, DataPartition<?> data) {
             if ("points".equals(name)) {
-                this.dataPointsObject = data;
+                this.dataPartition = data;
             }
+        }
+
+        @Override
+        public IONames getReceivableNames() {
+            return IONames.declare("points");
         }
 
         public void prepare(Config config, TaskContext context) {
@@ -204,6 +203,7 @@ public class MDSWorker extends TaskWorker {
 
         private void executeMds(short[] datapoints) {
             Stopwatch mainTimer = Stopwatch.createStarted();
+            LOG.info("parallel ops thread:" + ParallelOps.threadComm + "\t" + byteOrder + "\t" + BlockSize);
             MDSProgramWorker mdsProgramWorker = new MDSProgramWorker(0, ParallelOps.threadComm,
                     mdsconfig, byteOrder, BlockSize, mainTimer, null, datapoints);
             try {
@@ -214,7 +214,7 @@ public class MDSWorker extends TaskWorker {
         }
     }
 
-    private static class MDSReceiverTask extends BaseSink implements Collector {
+    private static class MDSReceiverTask extends BaseCompute implements Collector {
         private static final long serialVersionUID = -254264120110286748L;
 
         @Override
