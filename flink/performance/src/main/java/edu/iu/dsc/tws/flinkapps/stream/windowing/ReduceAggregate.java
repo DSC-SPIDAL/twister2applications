@@ -13,7 +13,7 @@ import org.apache.flink.streaming.api.datastream.*;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
-import org.apache.flink.streaming.api.windowing.windows.GlobalWindow;
+import org.apache.flink.streaming.api.windowing.time.Time;
 
 public class ReduceAggregate {
 
@@ -76,15 +76,30 @@ public class ReduceAggregate {
 
         KeyedStream<Tuple2<Integer, CollectiveData>, Tuple> keyedStream = mapData.keyBy(0);
 
-        WindowedStream<Tuple2<Integer, CollectiveData>, Tuple, GlobalWindow> windowedStream = null;
+        WindowedStream<Tuple2<Integer, CollectiveData>, Tuple, ?> windowedStream = null;
 
-        if (slidingWindowLength == 0) {
-            // tumbling window
+        if (isTime) {
+            // time windows
+            if (slidingWindowLength == 0) {
+                // tumbling window
+                windowedStream = keyedStream.timeWindow(Time.milliseconds(windowLength));
+            } else {
+                // sliding window
+                windowedStream = keyedStream.timeWindow(Time.milliseconds(windowLength),
+                        Time.milliseconds(slidingWindowLength));
+            }
+
+
         } else {
-           // sliding window
+            // count windows
+            if (slidingWindowLength == 0) {
+                // tumbling window
+                windowedStream = keyedStream.countWindow(windowLength);
+            } else {
+                // sliding window
+                windowedStream = keyedStream.countWindow(windowLength, slidingWindowLength);
+            }
         }
-
-        windowedStream = keyedStream.countWindow(1);
 
         SingleOutputStreamOperator<Tuple2<Integer, CollectiveData>> reducedWindowStream = windowedStream
                 .reduce(new ReduceFunction<Tuple2<Integer, CollectiveData>>() {
@@ -111,7 +126,7 @@ public class ReduceAggregate {
                     }
 
                     @Override
-                    public void invoke(Tuple2<Integer, CollectiveData> integerStringTuple2) throws Exception {
+                    public void invoke(Tuple2<Integer, CollectiveData> integerStringTuple2, Context context) throws Exception {
                         if (count == 0) {
                             start = System.nanoTime();
                         }
@@ -138,6 +153,11 @@ public class ReduceAggregate {
                             //System.out.println("Final: " + count + " " + (System.nanoTime() - start) / 1000000 + " " + (integerStringTuple2.f1));
                         }
                     }
+
+//                    @Override
+//                    public void invoke(Tuple2<Integer, CollectiveData> integerStringTuple2) throws Exception {
+//
+//                    }
                 });
 
 

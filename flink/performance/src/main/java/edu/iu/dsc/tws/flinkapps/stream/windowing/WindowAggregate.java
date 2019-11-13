@@ -25,12 +25,14 @@ public class WindowAggregate {
         isTime = params.getBoolean("time", false);
 
         if (aggregationType.equals("gather")) {
-
+            GatherAggregate gatherAggregate = new GatherAggregate(size, iterations, windowLength,
+                    slidingWindowLength, isTime, env);
+            gatherAggregate.execute();
         }
 
         if (aggregationType.equals("reduce")) {
             ReduceAggregate reduceAggregate = new ReduceAggregate(size, iterations, windowLength,
-            slidingWindowLength, isTime, env);
+                    slidingWindowLength, isTime, env);
             reduceAggregate.execute();
         }
 
