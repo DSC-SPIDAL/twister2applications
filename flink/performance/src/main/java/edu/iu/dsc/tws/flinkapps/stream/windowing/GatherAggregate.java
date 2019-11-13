@@ -26,16 +26,18 @@ public class GatherAggregate {
     private int slidingWindowLength;
     private boolean isTime = false;
     private String aggregationType;
+    private long throttleTime = 1000;
     private StreamExecutionEnvironment env;
 
     public GatherAggregate(int size, int iterations, int warmupIterations, int windowLength, int slidingWindowLength,
-                           boolean isTime, StreamExecutionEnvironment env) {
+                           boolean isTime, long throttleTime, StreamExecutionEnvironment env) {
         this.size = size;
         this.iterations = iterations;
         this.windowLength = windowLength;
         this.slidingWindowLength = slidingWindowLength;
         this.isTime = isTime;
         this.warmupIterations = warmupIterations;
+        this.throttleTime = throttleTime;
         this.env = env;
     }
 
@@ -62,6 +64,7 @@ public class GatherAggregate {
                         while (count < iterations + warmupIterations) {
                             CollectiveData i = new CollectiveData(size, count);
                             sourceContext.collect(i);
+                            Thread.sleep(throttleTime);
                             //System.out.println("gather-source," + count);
                             //System.out.println(i.getSummary());
                             count++;

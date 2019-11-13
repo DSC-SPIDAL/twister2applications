@@ -12,6 +12,7 @@ public class WindowAggregate {
     private static int slidingWindowLength;
     private static String aggregationType;
     private static boolean isTime = false;
+    private static long throttleTime = 100;
 
     public static void main(String[] args) throws Exception {
         final ParameterTool params = ParameterTool.fromArgs(args);
@@ -25,16 +26,17 @@ public class WindowAggregate {
         windowLength = params.getInt("windowLength", 5);
         slidingWindowLength = params.getInt("slidingLength", 3);
         isTime = params.getBoolean("time", false);
+        throttleTime = params.getLong("-throttleTime", 100);
 
         if (aggregationType.equals("gather")) {
             GatherAggregate gatherAggregate = new GatherAggregate(size, iterations, warmupIterations, windowLength,
-                    slidingWindowLength, isTime, env);
+                    slidingWindowLength, isTime, throttleTime, env);
             gatherAggregate.execute();
         }
 
         if (aggregationType.equals("reduce")) {
             ReduceAggregate reduceAggregate = new ReduceAggregate(size, iterations, warmupIterations, windowLength,
-                    slidingWindowLength, isTime, env);
+                    slidingWindowLength, isTime, throttleTime, env);
             reduceAggregate.execute();
         }
         //execute flink job
