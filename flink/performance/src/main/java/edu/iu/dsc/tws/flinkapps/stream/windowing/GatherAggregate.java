@@ -14,25 +14,28 @@ import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
 import org.apache.flink.streaming.api.windowing.time.Time;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class GatherAggregate {
 
     private int size;
     private int iterations;
+    private int warmupIterations;
     private int windowLength;
     private int slidingWindowLength;
     private boolean isTime = false;
     private String aggregationType;
     private StreamExecutionEnvironment env;
 
-    public GatherAggregate(int size, int iterations, int windowLength, int slidingWindowLength, boolean isTime,
-                           StreamExecutionEnvironment env) {
+    public GatherAggregate(int size, int iterations, int warmupIterations, int windowLength, int slidingWindowLength,
+                           boolean isTime, StreamExecutionEnvironment env) {
         this.size = size;
         this.iterations = iterations;
         this.windowLength = windowLength;
         this.slidingWindowLength = slidingWindowLength;
         this.isTime = isTime;
+        this.warmupIterations = warmupIterations;
         this.env = env;
     }
 
@@ -42,6 +45,7 @@ public class GatherAggregate {
                     int count = 0;
                     int size = 0;
                     int iterations = 10000;
+                    int warmupIterations;
 
                     @Override
                     public void open(Configuration parameters) throws Exception {
@@ -50,13 +54,15 @@ public class GatherAggregate {
                                 getRuntimeContext().getExecutionConfig().getGlobalJobParameters();
                         size = p.getInt("size", 128000);
                         iterations = p.getInt("itr", 10000);
+                        warmupIterations = p.getInt("witr", 10000);
                     }
 
                     @Override
                     public void run(SourceContext<CollectiveData> sourceContext) throws Exception {
-                        while (count < iterations) {
+                        while (count < iterations + warmupIterations) {
                             CollectiveData i = new CollectiveData(size, count);
                             sourceContext.collect(i);
+                            //System.out.println("gather-source," + count);
                             //System.out.println(i.getSummary());
                             count++;
                         }
@@ -107,22 +113,26 @@ public class GatherAggregate {
 
                     @Override
                     public List<CollectiveData> createAccumulator() {
-                        return null;
+                        return new ArrayList<>();
                     }
 
                     @Override
                     public List<CollectiveData> add(Tuple2<Integer, CollectiveData> integerCollectiveDataTuple2, List<CollectiveData> collectiveData) {
-                        return null;
+                        collectiveData.add(integerCollectiveDataTuple2.f1);
+                        return collectiveData;
                     }
 
                     @Override
                     public List<CollectiveData> getResult(List<CollectiveData> collectiveData) {
-                        return null;
+                        return collectiveData;
                     }
 
                     @Override
                     public List<CollectiveData> merge(List<CollectiveData> collectiveData, List<CollectiveData> acc1) {
-                        return null;
+                        List<CollectiveData> d = new ArrayList<>();
+                        d.addAll(collectiveData);
+                        d.addAll(acc1);
+                        return d;
                     }
                 });
         DataStreamSink<List<CollectiveData>> dataStreamSink = aggregateWindowedStream
@@ -131,17 +141,17 @@ public class GatherAggregate {
                     long start;
                     int count = 0;
                     int iterations;
+                    int warmupIterations;
 
                     @Override
                     public void invoke(List<CollectiveData> value, Context context) throws Exception {
                         if (count == 0) {
                             start = System.nanoTime();
                         }
-                        count++;
+                        //System.out.println("within invoke");
+                        CollectiveData c = value.get(0);
+                        if (count > warmupIterations && c != null) {
 
-
-                        if (count >= iterations) {
-                            CollectiveData c = value.get(0);
                             long timeNow = System.nanoTime();
                             String hostInfo = GetInfo.hostInfo();
 
@@ -155,11 +165,12 @@ public class GatherAggregate {
 //                                + hostInfo + ","
 //                                + c.getMeta() + ","
 //                                + c.getList().length);
-                            System.out.println(count + ", " + c.getIteration() + ", " + timeNow + "," + c.getList().length);
+                            System.out.println("gather," + count + ", " + c.getIteration() + ", " + timeNow + "," + c.getList().length);
 
 
                             //System.out.println("Final: " + count + " " + (System.nanoTime() - start) / 1000000 + " " + (integerStringTuple2.f1));
                         }
+                        count++;
                     }
 
                     @Override
@@ -168,6 +179,7 @@ public class GatherAggregate {
                         ParameterTool p = (ParameterTool)
                                 getRuntimeContext().getExecutionConfig().getGlobalJobParameters();
                         iterations = p.getInt("itr", 10000);
+                        warmupIterations = p.getInt("witr", 10000);
                         //System.out.println("7777 iterations: " + iterations);
                     }
                 });

@@ -19,19 +19,21 @@ public class ReduceAggregate {
 
     private int size;
     private int iterations;
+    private int warmupIterations;
     private int windowLength;
     private int slidingWindowLength;
     private boolean isTime = false;
     private String aggregationType;
     private StreamExecutionEnvironment env;
 
-    public ReduceAggregate(int size, int iterations, int windowLength, int slidingWindowLength,
+    public ReduceAggregate(int size, int iterations, int warmupIterations, int windowLength, int slidingWindowLength,
                            boolean isTime, StreamExecutionEnvironment env) {
         this.size = size;
         this.iterations = iterations;
         this.windowLength = windowLength;
         this.slidingWindowLength = slidingWindowLength;
         this.isTime = isTime;
+        this.warmupIterations = warmupIterations;
         this.env = env;
     }
 
@@ -41,6 +43,7 @@ public class ReduceAggregate {
                     int count = 0;
                     int size = 0;
                     int iterations = 10000;
+                    int warmupIterations = 10000;
 
                     @Override
                     public void open(Configuration parameters) throws Exception {
@@ -49,13 +52,17 @@ public class ReduceAggregate {
                                 getRuntimeContext().getExecutionConfig().getGlobalJobParameters();
                         size = p.getInt("size", 128000);
                         iterations = p.getInt("itr", 10000);
+                        warmupIterations = p.getInt("witr", 10000);
+                        //System.out.println("open: " + size + "," + iterations + "," + warmupIterations);
                     }
 
                     @Override
                     public void run(SourceContext<CollectiveData> sourceContext) throws Exception {
-                        while (count < iterations) {
+                        System.out.println("run: " + count + "/" + warmupIterations + "," + iterations);
+                        while (count < iterations + warmupIterations) {
                             CollectiveData i = new CollectiveData(size, count);
                             sourceContext.collect(i);
+                            //System.out.println("source: " + count);
                             //System.out.println(i.getSummary());
                             count++;
                         }
@@ -115,6 +122,7 @@ public class ReduceAggregate {
                     long start;
                     int count = 0;
                     int iterations;
+                    int warmupIterations;
 
                     @Override
                     public void open(Configuration parameters) throws Exception {
@@ -122,6 +130,7 @@ public class ReduceAggregate {
                         ParameterTool p = (ParameterTool)
                                 getRuntimeContext().getExecutionConfig().getGlobalJobParameters();
                         iterations = p.getInt("itr", 10000);
+                        warmupIterations = p.getInt("witr", 10000);
                         //System.out.println("7777 iterations: " + iterations);
                     }
 
@@ -130,13 +139,14 @@ public class ReduceAggregate {
                         if (count == 0) {
                             start = System.nanoTime();
                         }
-                        count++;
                         CollectiveData c = integerStringTuple2.f1;
-                        if (count >= iterations && c != null) {
-
+                        System.out.println(count + "/" + warmupIterations);
+                        if (count > warmupIterations && c != null) {
                             long timeNow = System.nanoTime();
                             String hostInfo = GetInfo.hostInfo();
-                            if (c.getMeta().equals(hostInfo)) {
+                            //System.out.println("I am invoked inside count not null: " + c.getSummary() + "," + hostInfo);
+
+
 //                        System.out.println("sink,"
 //                                + count + ","
 //                                + c.getIteration() + ","
@@ -147,11 +157,12 @@ public class ReduceAggregate {
 //                                + hostInfo + ","
 //                                + c.getMeta() + ","
 //                                + c.getList().length);
-                                System.out.println(count + ", " + c.getIteration() + ", " + timeNow + "," + c.getList().length);
-                            }
+                            System.out.println("reduce," + count + ", " + c.getIteration() + ", " + timeNow + "," + c.getList().length);
+
 
                             //System.out.println("Final: " + count + " " + (System.nanoTime() - start) / 1000000 + " " + (integerStringTuple2.f1));
                         }
+                        count++;
                     }
 
 //                    @Override

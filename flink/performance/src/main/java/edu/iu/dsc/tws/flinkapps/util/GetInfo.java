@@ -12,7 +12,7 @@ public final class GetInfo {
     public static String hostInfo() {
         InetAddress ip;
         String hostname = "null";
-        String hostInfo = "null";
+        String hostInfo = "null-hostinfo";
         try {
             ip = InetAddress.getLocalHost();
             hostname = ip.getHostName();
@@ -20,7 +20,7 @@ public final class GetInfo {
 //            System.out.println("Your current Hostname : " + hostname);
             hostInfo = ip + "-" + hostname;
         } catch (UnknownHostException e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
         return hostInfo;
     }
