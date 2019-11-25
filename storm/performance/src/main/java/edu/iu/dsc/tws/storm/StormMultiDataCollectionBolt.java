@@ -18,7 +18,7 @@ public class StormMultiDataCollectionBolt extends BaseRichBolt {
     private OutputCollector outputCollector;
     private int count = 0;
     private boolean debug = false;
-    private int printInveral = 0;
+    private long printInveral = 0;
     private TopologyContext context;
     private Map<Integer, Queue<Tuple>> incoming = new HashMap<>();
     private Map<Integer, Queue<Long>> arrivalTimes = new HashMap<>();
@@ -52,7 +52,7 @@ public class StormMultiDataCollectionBolt extends BaseRichBolt {
         }
         List<Integer> taskIds = topologyContext.getComponentTasks(upperComponentName);
         this.debug = (boolean) stormConf.get(Constants.ARGS_DEBUG);
-        this.printInveral = (int) stormConf.get(Constants.ARGS_PRINT_INTERVAL);
+        this.printInveral = (long) stormConf.get(Constants.ARGS_PRINT_INTERVAL);
 
         this.outputCollector = outputCollector;
         this.context = topologyContext;

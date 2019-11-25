@@ -1,6 +1,10 @@
-package edu.iu.dsc.tws.flinkapps.stream.windowing;
+package edu.iu.dsc.tws.flinkapps.stream.dynamic;
 
 import edu.iu.dsc.tws.flinkapps.data.CollectiveData;
+import edu.iu.dsc.tws.flinkapps.payload.DynamicLoadGenerator;
+import edu.iu.dsc.tws.flinkapps.payload.PayLoadBehavior1;
+import edu.iu.dsc.tws.flinkapps.payload.PayLoadTask;
+import edu.iu.dsc.tws.flinkapps.payload.PayLoadTask1;
 import edu.iu.dsc.tws.flinkapps.util.GetInfo;
 import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
@@ -16,45 +20,47 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
-public class GatherAggregate {
+public class SimpleLoadSimulator {
 
     private int size;
+    private final int maximumPayLoadCount = 100;
     private int iterations;
     private int warmupIterations;
     private int windowLength;
     private int slidingWindowLength;
-    private boolean isTimeWindow = false;
-    private boolean isEvenTime = false;
-    private boolean isTimingEnabled = false;
+    private boolean isTime = false;
     private String aggregationType;
-    private long throttleTime = 1000;
     private StreamExecutionEnvironment env;
+    private Timer timer;
+    private TimerTask timerTask;
 
-    public GatherAggregate(int size, int iterations, int warmupIterations, int windowLength, int slidingWindowLength,
-                           boolean isTimeWindow, boolean isEvenTime, boolean isTimingEnabled,
-                            long throttleTime, StreamExecutionEnvironment env) {
+    protected static SimpleLoadSimulator loadSimulator;
+
+    public SimpleLoadSimulator(int size, int iterations, int warmupIterations, int windowLength,
+                               int slidingWindowLength, boolean isTime,
+                               StreamExecutionEnvironment env) {
         this.size = size;
         this.iterations = iterations;
+        this.warmupIterations = warmupIterations;
         this.windowLength = windowLength;
         this.slidingWindowLength = slidingWindowLength;
-        this.isTimeWindow = isTimeWindow;
-        this.isTimingEnabled = isTimingEnabled;
-        this.isEvenTime = isEvenTime;
-        this.warmupIterations = warmupIterations;
-        this.throttleTime = throttleTime;
+        this.isTime = isTime;
         this.env = env;
     }
 
     public void execute() {
+        loadSimulator = this;
         DataStream<CollectiveData> stringStream = env
                 .addSource(new RichParallelSourceFunction<CollectiveData>() {
                     int count = 0;
                     int size = 0;
                     int iterations = 10000;
                     int warmupIterations;
-                    boolean isEventTime;
-                    boolean isTimingEnabled;
+                    Timer timer;
+                    TimerTask timerTask;
 
                     @Override
                     public void open(Configuration parameters) throws Exception {
@@ -64,21 +70,18 @@ public class GatherAggregate {
                         size = p.getInt("size", 128000);
                         iterations = p.getInt("itr", 10000);
                         warmupIterations = p.getInt("witr", 10000);
-                        isEventTime = p.getBoolean("eventTime", false);
-                        isTimingEnabled = p.getBoolean("enableTime", false);
-
+                        timer = new Timer();
+                        timerTask = new Helper();
                     }
 
                     @Override
                     public void run(SourceContext<CollectiveData> sourceContext) throws Exception {
-                        while (count < iterations + warmupIterations) {
-                            CollectiveData i = new CollectiveData(size, count);
-                            sourceContext.collect(i);
-                            Thread.sleep(throttleTime);
-                            //System.out.println("gather-source," + count);
-                            //System.out.println(i.getSummary());
-                            count++;
-                        }
+                        //timer.schedule(timerTask, 100, 100);
+                        CollectiveData c = new CollectiveData(256, count);
+                        System.out.println(c.getSummary());
+                        sourceContext.collect(c);
+                        Thread.sleep(100);
+                        count++;
                     }
 
                     @Override
@@ -98,7 +101,7 @@ public class GatherAggregate {
 
         WindowedStream<Tuple2<Integer, CollectiveData>, Tuple, ?> windowedStream = null;
 
-        if (isTimeWindow) {
+        if (isTime) {
             // time windows
             if (slidingWindowLength == 0) {
                 // tumbling window
@@ -161,9 +164,9 @@ public class GatherAggregate {
                         if (count == 0) {
                             start = System.nanoTime();
                         }
-                        //System.out.println("within invoke");
+                        System.out.println("within invoke");
                         CollectiveData c = value.get(0);
-                        if (count > warmupIterations && c != null) {
+                        if (c != null) {
 
                             long timeNow = System.nanoTime();
                             String hostInfo = GetInfo.hostInfo();
@@ -178,7 +181,7 @@ public class GatherAggregate {
 //                                + hostInfo + ","
 //                                + c.getMeta() + ","
 //                                + c.getList().length);
-                            System.out.println("gather," + count + ", " + c.getIteration() + ", " + timeNow + "," + c.getList().length);
+                            System.out.println("loadsim," + count + ", " + c.getIteration() + ", " + timeNow + "," + c.getList().length);
 
 
                             //System.out.println("Final: " + count + " " + (System.nanoTime() - start) / 1000000 + " " + (integerStringTuple2.f1));
@@ -197,6 +200,19 @@ public class GatherAggregate {
                     }
                 });
 
+    }
+
+    static class Helper extends TimerTask
+    {
+        public static int i = 0;
+        public void run()
+        {
+            System.out.println("Timer ran " + ++i);
+            if(i == 4)
+            {
+                System.out.println("Stop Timer");
+            }
+        }
 
     }
 }

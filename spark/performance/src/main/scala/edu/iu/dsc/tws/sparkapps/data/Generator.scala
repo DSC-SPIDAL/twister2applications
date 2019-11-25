@@ -4,6 +4,8 @@ import java.util.Random
 
 import edu.iu.dsc.tws.apps.common.RandomString
 
+import scala.collection.mutable
+
 /**
   * Created by pulasthi on 2/20/18.
   */
@@ -20,6 +22,38 @@ class Generator {
     }
     data
   }
+
+  def getStringSequence(paralelizm: Int, size: Int,iterations: Int): Seq[String] = {
+    var data: Seq[String] = Seq[String]()
+    val totalStrings = paralelizm * iterations;
+    randomString = new RandomString(size, new Random(System.nanoTime), RandomString.alphanum)
+    for( i <- 1 to totalStrings){
+      data :+ randomString.nextString()
+    }
+    data
+  }
+
+  def getStringDataObjects(size: Int): Seq[DataObject] = {
+    var data: Seq[DataObject] = Seq[DataObject]()
+    val totalStrings = size
+    randomString = new RandomString(size, new Random(System.nanoTime), RandomString.alphanum)
+    for( i <- 1 to totalStrings){
+      data :+ randomString.nextString()
+    }
+    data
+  }
+
+  def getStringQueue(paralelizm: Int, size: Int,iterations: Int): mutable.Queue[String] = {
+    var data: mutable.Queue[String] = mutable.Queue[String]()
+    val totalStrings = paralelizm * iterations;
+    randomString = new RandomString(size, new Random(System.nanoTime), RandomString.alphanum)
+    for( i <- 1 to totalStrings){
+      data :+ randomString.nextString()
+    }
+    data
+  }
+
+
 
   def getSVMData(paralelizm: Int, size: Int,noOfFeatures: Int): List[String] = {
     var data: List[String] = List[String]()
@@ -42,4 +76,8 @@ class Generator {
     }
     data2
   }
+}
+
+class DataObject(yc: Int) extends Serializable {
+  var y: Int = yc
 }

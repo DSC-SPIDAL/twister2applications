@@ -5,4 +5,4 @@ masterURL=spark://localhost:7077
 para=4
 ec=1
 em=$(( 1 * $ec ))G
-spark-submit --executor-cores $ec --executor-memory $em --class "edu.iu.dsc.tws.sparkapps.Driver" --master local[4] $pathToJar -size $1 -iter $2 -col $3 -para $para -batchSize $4 -qDelay $5 -logPath $6
+spark-submit --executor-cores $ec --executor-memory $em --class "edu.iu.dsc.tws.sparkapps.Driver" --master $masterURL $pathToJar -size $1 -iter $2 -col $3 -para $para -batchSize $4 -qDelay $5 -logPath $6

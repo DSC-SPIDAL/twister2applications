@@ -14,8 +14,10 @@ class Gather(paralelizm: Int, size: Int, iterations: Int) {
 
     val tempArray = 0 to (iterations) toArray;
     var startTime = System.currentTimeMillis();
+
     val parallelRDD = sc.parallelize(data, paralelizm);
     val results = parallelRDD.map(s => s).collect();
+    results.foreach(p=> print(p))
     var endTime = System.currentTimeMillis();
 
     print("The number of strings in results is : " + results.length)

@@ -22,18 +22,23 @@ public class ReduceAggregate {
     private int warmupIterations;
     private int windowLength;
     private int slidingWindowLength;
-    private boolean isTime = false;
+    private boolean isTimeWindow = false;
+    private boolean isEventTime = false;
+    private boolean isTimingEnabled = false;
     private String aggregationType;
     private long throttleTime = 100;
     private StreamExecutionEnvironment env;
 
     public ReduceAggregate(int size, int iterations, int warmupIterations, int windowLength, int slidingWindowLength,
-                           boolean isTime, long throttleTime, StreamExecutionEnvironment env) {
+                           boolean isTimeWindow, boolean isEventTime, boolean isTimingEnabled,
+                           long throttleTime, StreamExecutionEnvironment env) {
         this.size = size;
         this.iterations = iterations;
         this.windowLength = windowLength;
         this.slidingWindowLength = slidingWindowLength;
-        this.isTime = isTime;
+        this.isTimeWindow = isTimeWindow;
+        this.isTimingEnabled = isTimingEnabled;
+        this.isEventTime = isEventTime;
         this.warmupIterations = warmupIterations;
         this.throttleTime = throttleTime;
         this.env = env;
@@ -46,6 +51,8 @@ public class ReduceAggregate {
                     int size = 0;
                     int iterations = 10000;
                     int warmupIterations = 10000;
+                    boolean isEventTime;
+                    boolean isTimingEnabled;
 
                     @Override
                     public void open(Configuration parameters) throws Exception {
@@ -55,6 +62,8 @@ public class ReduceAggregate {
                         size = p.getInt("size", 128000);
                         iterations = p.getInt("itr", 10000);
                         warmupIterations = p.getInt("witr", 10000);
+                        isEventTime = p.getBoolean("eventTime", false);
+                        isTimingEnabled = p.getBoolean("enableTime", false);
                         //System.out.println("open: " + size + "," + iterations + "," + warmupIterations);
                     }
 
@@ -63,7 +72,15 @@ public class ReduceAggregate {
                         System.out.println("run: " + count + "/" + warmupIterations + "," + iterations);
                         while (count < iterations + warmupIterations) {
                             CollectiveData i = new CollectiveData(size, count);
-                            sourceContext.collect(i);
+                            if (isTimingEnabled) {
+                                if (isEventTime) {
+
+                                } else {
+
+                                }
+                            } else {
+                                sourceContext.collect(i);
+                            }
                             Thread.sleep(throttleTime);
                             //System.out.println("source: " + count);
                             //System.out.println(i.getSummary());
@@ -88,7 +105,7 @@ public class ReduceAggregate {
 
         WindowedStream<Tuple2<Integer, CollectiveData>, Tuple, ?> windowedStream = null;
 
-        if (isTime) {
+        if (isTimeWindow) {
             // time windows
             if (slidingWindowLength == 0) {
                 // tumbling window
@@ -149,7 +166,6 @@ public class ReduceAggregate {
                             String hostInfo = GetInfo.hostInfo();
                             //System.out.println("I am invoked inside count not null: " + c.getSummary() + "," + hostInfo);
 
-
 //                        System.out.println("sink,"
 //                                + count + ","
 //                                + c.getIteration() + ","
@@ -160,7 +176,8 @@ public class ReduceAggregate {
 //                                + hostInfo + ","
 //                                + c.getMeta() + ","
 //                                + c.getList().length);
-                            System.out.println("reduce," + count + ", " + c.getIteration() + ", " + timeNow + "," + c.getList().length);
+                            System.out.println("reduce," + count + ", " + c.getIteration() + ", " + timeNow + ","
+                                    + c.getList().length);
 
 
                             //System.out.println("Final: " + count + " " + (System.nanoTime() - start) / 1000000 + " " + (integerStringTuple2.f1));

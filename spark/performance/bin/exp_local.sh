@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-./run_local.sh 100 512 2 0
+./run_local.sh 100 512 2 10 10
