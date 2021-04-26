@@ -14,7 +14,7 @@
         <provided.scope>provided</provided.scope>
         <hbase.version>0.98.4-hadoop2</hbase.version>
         <storm.version>2.0.0</storm.version>
-        <storm.core.version>1.0.1</storm.core.version>
+        <storm.core.version>1.1.3</storm.core.version>
         <kafka.version>2.1.0</kafka.version>
     </properties>
 
